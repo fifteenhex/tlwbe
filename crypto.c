@@ -11,12 +11,6 @@ uint32_t crypto_mic(void* key, size_t keylen, void* data, size_t datalen) {
 	CMAC_Final(ctx, mac, &maclen);
 	CMAC_CTX_free(ctx);
 
-	printf("mac - size %d; ", (int) maclen);
-	for (int i = maclen; i >= 0; i--) {
-		printf("%02x", (int) mac[i]);
-	}
-	printf("\n");
-
 	uint32_t mic;
 	for (int i = 3; i >= 0; i--) {
 		mic = mic << 8;

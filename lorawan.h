@@ -16,3 +16,12 @@ struct lorawan_joinreq {
 	uint64_t deveui;
 	uint16_t devnonce;
 }__attribute__((packed));
+
+struct lorawan_joinaccept {
+	uint8_t appnonce[3];
+	uint8_t netid[3];
+	uint32_t devaddr;
+	uint8_t dlsettings;
+	uint8_t rxdelay;
+	uint8_t cflist[16];
+};

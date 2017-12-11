@@ -5,6 +5,7 @@
 #include <mosquitto.h>
 #include <string.h>
 
+#include "pktfwdbr.h"
 #include "lorawan.h"
 #include "crypto.h"
 
@@ -69,6 +70,31 @@ static void mosq_log(struct mosquitto* mosq, void* userdata, int level,
 static void mosq_message(struct mosquitto* mosq, void* userdata,
 		const struct mosquitto_message* msg) {
 
+	struct context* cntx = (struct context*) userdata;
+
+	char** splittopic;
+	int numtopicparts;
+	mosquitto_sub_topic_tokenise(msg->topic, &splittopic, &numtopicparts);
+
+	if (numtopicparts < 3) {
+		g_message("unexpected number of topic parts: %d", numtopicparts);
+		goto out;
+	}
+
+	char* roottopic = splittopic[0];
+	char* gatewayid = splittopic[1];
+	char* direction = splittopic[2];
+
+	if (strcmp(roottopic, PKTFWDBR_TOPIC_ROOT) != 0) {
+		g_message("unexpected topic root: %s", roottopic);
+		goto out;
+	}
+
+	if (strcmp(direction, PKTFWDBR_TOPIC_RX) != 0) {
+		g_message("unexpected message direction: %s", direction);
+		goto out;
+	}
+
 	JsonParser* jsonparser = json_parser_new_immutable();
 	if (!json_parser_load_from_data(jsonparser, msg->payload, msg->payloadlen,
 	NULL)) {
@@ -77,9 +103,20 @@ static void mosq_message(struct mosquitto* mosq, void* userdata,
 
 	JsonNode* root = json_parser_get_root(jsonparser);
 	JsonObject* rootobj = json_node_get_object(root);
+
+	if (!(json_object_has_member(rootobj, "data"))) {
+		g_message("no data field");
+		goto out;
+	}
+
 	const gchar* b64data = json_object_get_string_member(rootobj, "data");
 	gsize datalen;
 	guchar* data = g_base64_decode(b64data, &datalen);
+
+	if (data == NULL) {
+		g_message("failed to decode data");
+		goto out;
+	}
 
 	guchar* pkt = data;
 
@@ -107,7 +144,12 @@ static void mosq_message(struct mosquitto* mosq, void* userdata,
 			guint32 calcedmic = crypto_mic(key, sizeof(key), data,
 					sizeof(*joinreq) + 1);
 
+		if (calcedmic == inmic) {
+			mosquitto_publish(cntx->mosq,NULL, PKTFWDBR_TOPIC_ROOT "/", 0, NULL, 0, false);
+		}
+		else
 		g_message("mic should be %"G_GINT32_MODIFIER"x, calculated %"G_GINT32_MODIFIER"x", inmic, calcedmic);
+
 	} else
 		g_message("join request should be %d bytes long, have %d", joinreqlen,
 				datalen);
@@ -119,6 +161,10 @@ default:
 	}
 
 	g_free(data);
+
+	out: if (splittopic != NULL)
+		mosquitto_sub_topic_tokens_free(&splittopic, numtopicparts);
+
 }
 
 int main(int argc, char** argv) {
@@ -141,7 +187,7 @@ int main(int argc, char** argv) {
 	}
 
 	mosquitto_lib_init();
-	cntx.mosq = mosquitto_new(NULL, true, NULL);
+	cntx.mosq = mosquitto_new(NULL, true, &cntx);
 	mosquitto_log_callback_set(cntx.mosq, mosq_log);
 	mosquitto_message_callback_set(cntx.mosq, mosq_message);
 
