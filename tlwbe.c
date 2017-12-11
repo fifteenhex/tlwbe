@@ -104,8 +104,8 @@ static void mosq_message(struct mosquitto* mosq, void* userdata,
 			uint8_t key[] = { 0x6E, 0xE8, 0x9C, 0x07, 0x4F, 0x32, 0x68, 0x13,
 					0x9A, 0xBE, 0xF6, 0x31, 0x29, 0xD9, 0xE9, 0xA9 };
 
-			guint32 calcedmic = crypto_mic(key, sizeof(key), joinreq,
-					sizeof(*joinreq));
+			guint32 calcedmic = crypto_mic(key, sizeof(key), data,
+					sizeof(*joinreq) + 1);
 
 		g_message("mic should be %"G_GINT32_MODIFIER"x, calculated %"G_GINT32_MODIFIER"x", inmic, calcedmic);
 	} else
