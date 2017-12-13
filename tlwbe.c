@@ -5,17 +5,10 @@
 #include <mosquitto.h>
 #include <string.h>
 
+#include "tlwbe.h"
 #include "pktfwdbr.h"
 #include "lorawan.h"
-#include "crypto.h"
-
-struct context {
-	struct mosquitto* mosq;
-	const gchar* mqtthost;
-	gint mqttport;
-	GIOChannel* mosqchan;
-	guint mosqsource;
-};
+#include "join.h"
 
 static gboolean handlemosq(GIOChannel *source, GIOCondition condition,
 		gpointer data) {
@@ -48,7 +41,8 @@ static gboolean mosq_idle(gpointer data) {
 					handlemosq, cntx->mosq);
 			g_io_channel_unref(cntx->mosqchan);
 
-			mosquitto_subscribe(cntx->mosq, NULL, "pktfwdbr/#", 0);
+			mosquitto_subscribe(cntx->mosq, NULL,
+			PKTFWDBR_TOPIC_ROOT"/+/"PKTFWDBR_TOPIC_RX"/#", 0);
 
 			connected = true;
 		}
@@ -122,42 +116,12 @@ static void mosq_message(struct mosquitto* mosq, void* userdata,
 
 	uint8_t type = (*pkt++ >> MHDR_MTYPE_SHIFT) & MHDR_MTYPE_MASK;
 	switch (type) {
-	case MHDR_MTYPE_JOINREQ: {
-		int joinreqlen = 1 + sizeof(struct lorawan_joinreq) + 4;
-		if (datalen == joinreqlen) {
-
-			struct lorawan_joinreq* joinreq = (struct lorawan_joinreq*) pkt;
-			guint64 appeui = GUINT64_FROM_LE(joinreq->appeui);
-			guint64 deveui = GUINT64_FROM_LE(joinreq->deveui);
-			guint16 devnonce = GUINT16_FROM_LE(joinreq->devnonce);
-			g_message("handling join request for app %"G_GINT64_MODIFIER
-					"x from %"G_GINT64_MODIFIER"x "
-					"nonce %"G_GINT16_MODIFIER"x", appeui, deveui, devnonce);
-
-			pkt += sizeof(*joinreq);
-			guint32 inmic;
-			memcpy(&inmic, pkt, sizeof(inmic));
-
-			uint8_t key[] = { 0x6E, 0xE8, 0x9C, 0x07, 0x4F, 0x32, 0x68, 0x13,
-					0x9A, 0xBE, 0xF6, 0x31, 0x29, 0xD9, 0xE9, 0xA9 };
-
-			guint32 calcedmic = crypto_mic(key, sizeof(key), data,
-					sizeof(*joinreq) + 1);
-
-		if (calcedmic == inmic) {
-			mosquitto_publish(cntx->mosq,NULL, PKTFWDBR_TOPIC_ROOT "/", 0, NULL, 0, false);
-		}
-		else
-		g_message("mic should be %"G_GINT32_MODIFIER"x, calculated %"G_GINT32_MODIFIER"x", inmic, calcedmic);
-
-	} else
-		g_message("join request should be %d bytes long, have %d", joinreqlen,
-				datalen);
-}
-	break;
-default:
-	g_message("unhandled message type %d", (int) type);
-	break;
+	case MHDR_MTYPE_JOINREQ:
+		join_processjointrequest(cntx, gatewayid, data, datalen);
+		break;
+	default:
+		g_message("unhandled message type %d", (int) type);
+		break;
 	}
 
 	g_free(data);

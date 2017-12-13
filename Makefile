@@ -7,7 +7,7 @@ MOSQUITTO = -lmosquitto
 
 all: tlwbe
 
-tlwbe: tlwbe.c crypto.c
+tlwbe: tlwbe.c crypto.c join.c utils.c
 	$(CC) $(GLIB) $(JSON) $(LIBCRYPTO) $(MOSQUITTO) $(CFLAGS) $^ -o $@
 
 .PHONY: clean

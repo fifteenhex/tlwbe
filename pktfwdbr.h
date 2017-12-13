@@ -1,5 +1,20 @@
 #pragma once
 
+/* Basic topic format
+ *
+ * pktfwdbr/<gatewayid>/[rx|tx]
+ *
+ * for RX packets
+ *
+ * The topics for RX packets include some bonus info
+ * to make filtering the type/source of packets easier
+ * for anyone that happens to be listening.
+ *
+ *
+ * pktfwdbr/<gatewayid>/rx/join/<appeui>/<deveui>
+ *
+ */
+
 #define PKTFWDBR_TOPIC_ROOT		"pktfwdbr"
 #define PKTFWDBR_TOPIC_RX		"rx"
 #define PKTFWDBR_TOPIC_TX		"tx"
