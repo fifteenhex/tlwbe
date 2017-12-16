@@ -1,5 +1,9 @@
 #pragma once
 
+#include <mosquitto.h>
+
+#include "tlwbe.h"
+
 /* Basic topic format
  *
  * pktfwdbr/<gatewayid>/[rx|tx]
@@ -35,3 +39,6 @@
 #define PKTFWDBR_JSON_TXPK_SIZE	"size"
 #define PKTFWDBR_JSON_TXPK_DATA "data"
 #define PKTFWDBR_JSON_TXPK_NCRC	"ncrc"
+
+void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
+		char** splittopic, int numtopicparts);

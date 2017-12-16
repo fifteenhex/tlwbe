@@ -1,14 +1,13 @@
 #define GETTEXT_PACKAGE "gtk20"
 #include <glib.h>
 #include <gio/gio.h>
-#include <json-glib/json-glib.h>
 #include <mosquitto.h>
 #include <string.h>
 
 #include "tlwbe.h"
 #include "pktfwdbr.h"
-#include "lorawan.h"
-#include "join.h"
+#include "database.h"
+#include "control.h"
 
 static gboolean handlemosq(GIOChannel *source, GIOCondition condition,
 		gpointer data) {
@@ -44,6 +43,7 @@ static gboolean mosq_idle(gpointer data) {
 			mosquitto_subscribe(cntx->mosq, NULL,
 			PKTFWDBR_TOPIC_ROOT"/+/"PKTFWDBR_TOPIC_RX"/#", 0);
 
+			control_onbrokerconnect(cntx);
 			connected = true;
 		}
 	} else
@@ -76,55 +76,15 @@ static void mosq_message(struct mosquitto* mosq, void* userdata,
 	}
 
 	char* roottopic = splittopic[0];
-	char* gatewayid = splittopic[1];
-	char* direction = splittopic[2];
 
-	if (strcmp(roottopic, PKTFWDBR_TOPIC_ROOT) != 0) {
+	if (strcmp(roottopic, PKTFWDBR_TOPIC_ROOT) == 0)
+		pktfwdbr_onmsg(cntx, msg, splittopic, numtopicparts);
+	else if (strcmp(roottopic, TLWBE_TOPICROOT) == 0)
+		control_onmsg(cntx, msg, splittopic, numtopicparts);
+	else {
 		g_message("unexpected topic root: %s", roottopic);
 		goto out;
 	}
-
-	if (strcmp(direction, PKTFWDBR_TOPIC_RX) != 0) {
-		g_message("unexpected message direction: %s", direction);
-		goto out;
-	}
-
-	JsonParser* jsonparser = json_parser_new_immutable();
-	if (!json_parser_load_from_data(jsonparser, msg->payload, msg->payloadlen,
-	NULL)) {
-		g_message("failed to parse json");
-	}
-
-	JsonNode* root = json_parser_get_root(jsonparser);
-	JsonObject* rootobj = json_node_get_object(root);
-
-	if (!(json_object_has_member(rootobj, "data"))) {
-		g_message("no data field");
-		goto out;
-	}
-
-	const gchar* b64data = json_object_get_string_member(rootobj, "data");
-	gsize datalen;
-	guchar* data = g_base64_decode(b64data, &datalen);
-
-	if (data == NULL) {
-		g_message("failed to decode data");
-		goto out;
-	}
-
-	guchar* pkt = data;
-
-	uint8_t type = (*pkt++ >> MHDR_MTYPE_SHIFT) & MHDR_MTYPE_MASK;
-	switch (type) {
-	case MHDR_MTYPE_JOINREQ:
-		join_processjointrequest(cntx, gatewayid, data, datalen);
-		break;
-	default:
-		g_message("unhandled message type %d", (int) type);
-		break;
-	}
-
-	g_free(data);
 
 	out: if (splittopic != NULL)
 		mosquitto_sub_topic_tokens_free(&splittopic, numtopicparts);
@@ -135,6 +95,8 @@ int main(int argc, char** argv) {
 
 	struct context cntx = { .mosq = NULL, .mqtthost = "localhost", .mqttport =
 			1883 };
+
+	gchar* databasepath = "./tlwbe.sqlite";
 
 	GOptionEntry entries[] = { //
 			{ "mqtthost", 'h', 0, G_OPTION_ARG_STRING, &cntx.mqtthost, "", "" }, //
@@ -149,6 +111,8 @@ int main(int argc, char** argv) {
 		g_print("option parsing failed: %s\n", error->message);
 		goto out;
 	}
+
+	database_init(&cntx, databasepath);
 
 	mosquitto_lib_init();
 	cntx.mosq = mosquitto_new(NULL, true, &cntx);

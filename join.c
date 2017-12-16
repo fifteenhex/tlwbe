@@ -10,12 +10,19 @@
 #include "crypto.h"
 #include "utils.h"
 
-gchar* createtxjson(gsize* length) {
+gchar* createtxjson(guchar* data, gsize datalen, gsize* length) {
 	JsonGenerator* generator = json_generator_new();
 	JsonNode* rootnode = json_node_new(JSON_NODE_OBJECT);
 	JsonObject* rootobj = json_object_new();
 	json_node_set_object(rootnode, rootobj);
 	json_generator_set_root(generator, rootnode);
+
+	guchar* txdata = "yo yo";
+	gchar* b64txdata = g_base64_encode(txdata, 5);
+	json_object_set_string_member(rootobj, PKTFWDBR_JSON_TXPK_DATA, b64txdata);
+	json_object_set_int_member(rootobj, PKTFWDBR_JSON_TXPK_SIZE,
+			strlen(b64txdata));
+
 	return json_generator_to_data(generator, length);
 }
 
@@ -45,7 +52,7 @@ void join_processjointrequest(struct context* cntx, const gchar* gateway,
 	if (calcedmic == inmic) {
 		gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, NULL);
 		gsize payloadlen;
-		gchar* payload = createtxjson(&payloadlen);
+		gchar* payload = createtxjson(NULL, 0, &payloadlen);
 		mosquitto_publish(cntx->mosq,NULL, topic, payloadlen, payload, 0, false);
 		g_free(topic);
 	}
