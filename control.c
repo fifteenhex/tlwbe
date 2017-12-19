@@ -3,6 +3,11 @@
 #include <string.h>
 
 #include "control.h"
+#include "database.h"
+
+enum entity {
+	ENTITY_APP, ENTITY_DEV, ENTITY_INVALID
+};
 
 enum action {
 	ACTION_ADD,
@@ -13,8 +18,31 @@ enum action {
 	ACTION_INVALID
 };
 
+static const char* entities[] = { CONTROL_ENTITY_APP, CONTROL_ENTITY_DEV };
+
 static const char* actions[] = { CONTROL_ACTION_ADD, CONTROL_ACTION_UPDATE,
 CONTROL_ACTION_DEL, CONTROL_ACTION_GET, CONTROL_ACTION_LIST };
+
+static int control_app_add(struct context* cntx, JsonObject* rootobj,
+		JsonBuilder* jsonbuilder) {
+	if (!json_object_has_member(rootobj, CONTROL_JSON_NAME)
+			|| !json_object_has_member(rootobj, CONTROL_JSON_EUI))
+		return -1;
+
+	const gchar* name = json_object_get_string_member(rootobj,
+	CONTROL_JSON_NAME);
+	const gchar* eui = json_object_get_string_member(rootobj, CONTROL_JSON_EUI);
+
+	struct app a = { .name = name, .eui = eui };
+
+	database_app_add(cntx, &a);
+
+	return 0;
+}
+
+static int control_dev_add(JsonObject* rootobj, JsonBuilder* jsonbuilder) {
+	return 0;
+}
 
 void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		char** splittopic, int numtopicparts) {
@@ -23,13 +51,23 @@ void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 	char* entity = splittopic[2];
 	char* action = splittopic[3];
 
+	enum entity e = ENTITY_INVALID;
+	for (int i = 0; i < G_N_ELEMENTS(entities); i++) {
+		if (strcmp(entity, entities[i]) == 0)
+			e = i;
+	}
+	if (e == ENTITY_INVALID) {
+		g_message("invalid entity %s", entity);
+		goto out;
+	}
+
 	enum action a = ACTION_INVALID;
 	for (int i = 0; i < G_N_ELEMENTS(actions); i++) {
 		if (strcmp(action, actions[i]) == 0)
 			a = i;
 	}
 	if (a == ACTION_INVALID) {
-		g_message("invalid action %d", action);
+		g_message("invalid action %s", action);
 		goto out;
 	}
 
@@ -41,43 +79,55 @@ void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 	}
 
 	const gchar* token = NULL;
-	{
-		JsonNode* rootnode = json_parser_get_root(jsonparser);
-		if (json_node_get_node_type(rootnode) != JSON_NODE_OBJECT) {
-			g_message("control message root should be an object");
-			goto out;
-		}
-		JsonObject* rootobj = json_node_get_object(rootnode);
-		if (!json_object_has_member(rootobj, CONTROL_JSON_TOKEN)) {
-			g_message("control message does not contain token");
-			goto out;
-		}
-		token = json_object_get_string_member(rootobj, CONTROL_JSON_TOKEN);
+
+	JsonNode* rootnode = json_parser_get_root(jsonparser);
+	if (json_node_get_node_type(rootnode) != JSON_NODE_OBJECT) {
+		g_message("control message root should be an object");
+		goto out;
 	}
+	JsonObject* rootobj = json_node_get_object(rootnode);
+	if (!json_object_has_member(rootobj, CONTROL_JSON_TOKEN)) {
+		g_message("control message does not contain token");
+		goto out;
+	}
+	token = json_object_get_string_member(rootobj,
+	CONTROL_JSON_TOKEN);
 
 	JsonBuilder* jsonbuilder = json_builder_new();
 	json_builder_begin_object(jsonbuilder);
 	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_TOKEN);
 	json_builder_add_string_value(jsonbuilder, token);
 
-	if (strcmp(entity, CONTROL_ENTITY_APP) == 0) {
-
-	} else if (strcmp(entity, CONTROL_ENTITY_DEV) == 0) {
-
-	} else {
-		g_message("unexpected entity %s", entity);
+	int code = -1;
+	switch (e) {
+	case ENTITY_APP:
+		switch (a) {
+		case ACTION_ADD:
+			code = control_app_add(cntx, rootobj, jsonbuilder);
+			break;
+		}
+		break;
+	case ENTITY_DEV:
+		switch (a) {
+		case ACTION_ADD:
+			code = control_dev_add(rootobj, jsonbuilder);
+		}
+		break;
 	}
+
+	json_builder_set_member_name(jsonbuilder, "code");
+	json_builder_add_int_value(jsonbuilder, code);
 
 	json_builder_end_object(jsonbuilder);
 
-	JsonNode* root = json_builder_get_root(jsonbuilder);
+	JsonNode* responseroot = json_builder_get_root(jsonbuilder);
 	JsonGenerator* generator = json_generator_new();
-	json_generator_set_root(generator, root);
+	json_generator_set_root(generator, responseroot);
 
 	gsize payloadlen;
 	payload = json_generator_to_data(generator, &payloadlen);
 
-	json_node_free(root);
+	json_node_free(responseroot);
 	g_object_unref(generator);
 	g_object_unref(jsonbuilder);
 

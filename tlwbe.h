@@ -11,5 +11,7 @@ struct context {
 	gint mqttport;
 	GIOChannel* mosqchan;
 	guint mosqsource;
+	//sqlite stuff
 	sqlite3 *db;
+	sqlite3_stmt *insertappstmt;
 };
