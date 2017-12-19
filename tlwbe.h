@@ -12,6 +12,7 @@ struct context {
 	GIOChannel* mosqchan;
 	guint mosqsource;
 	//sqlite stuff
-	sqlite3 *db;
-	sqlite3_stmt *insertappstmt;
+	sqlite3* db;
+	sqlite3_stmt* insertappstmt;
+	sqlite3_stmt* listappsstmt;
 };

@@ -40,7 +40,65 @@ static int control_app_add(struct context* cntx, JsonObject* rootobj,
 	return 0;
 }
 
-static int control_dev_add(JsonObject* rootobj, JsonBuilder* jsonbuilder) {
+static int control_app_get(struct context* cntx, JsonObject* rootobj,
+		JsonBuilder* jsonbuilder) {
+	database_app_get(cntx, NULL);
+	return 0;
+}
+
+static int control_app_update(struct context* cntx, JsonObject* rootobj,
+		JsonBuilder* jsonbuilder) {
+	database_app_update(cntx, NULL);
+	return 0;
+}
+
+static int control_app_del(struct context* cntx, JsonObject* rootobj,
+		JsonBuilder* jsonbuilder) {
+	database_app_del(cntx, NULL);
+	return 0;
+}
+
+static void control_apps_list_euicallback(const char* eui, void* data) {
+	JsonBuilder* jsonbuilder = data;
+	json_builder_add_string_value(jsonbuilder, eui);
+}
+
+static int control_apps_list(struct context* cntx, JsonObject* rootobj,
+		JsonBuilder* jsonbuilder) {
+	json_builder_set_member_name(jsonbuilder, "result");
+	json_builder_begin_array(jsonbuilder);
+	database_apps_list(cntx, control_apps_list_euicallback, jsonbuilder);
+	json_builder_end_array(jsonbuilder);
+	return 0;
+}
+
+static int control_dev_add(struct context* cntx, JsonObject* rootobj,
+		JsonBuilder* jsonbuilder) {
+	database_dev_add(cntx, NULL);
+	return 0;
+}
+
+static int control_dev_update(struct context* cntx, JsonObject* rootobj,
+		JsonBuilder* jsonbuilder) {
+	database_dev_update(cntx, NULL);
+	return 0;
+}
+
+static int control_dev_get(struct context* cntx, JsonObject* rootobj,
+		JsonBuilder* jsonbuilder) {
+	database_dev_get(cntx, NULL);
+	return 0;
+}
+
+static int control_dev_del(struct context* cntx, JsonObject* rootobj,
+		JsonBuilder* jsonbuilder) {
+	database_dev_del(cntx, NULL);
+	return 0;
+}
+
+static int control_devs_list(struct context* cntx, JsonObject* rootobj,
+		JsonBuilder* jsonbuilder) {
+	database_devs_list(cntx);
 	return 0;
 }
 
@@ -105,12 +163,37 @@ void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		case ACTION_ADD:
 			code = control_app_add(cntx, rootobj, jsonbuilder);
 			break;
+		case ACTION_UPDATE:
+			code = control_app_update(cntx, rootobj, jsonbuilder);
+			break;
+		case ACTION_GET:
+			code = control_app_get(cntx, rootobj, jsonbuilder);
+			break;
+		case ACTION_DEL:
+			code = control_app_del(cntx, rootobj, jsonbuilder);
+			break;
+		case ACTION_LIST:
+			code = control_apps_list(cntx, rootobj, jsonbuilder);
+			break;
 		}
 		break;
 	case ENTITY_DEV:
 		switch (a) {
 		case ACTION_ADD:
-			code = control_dev_add(rootobj, jsonbuilder);
+			code = control_dev_add(cntx, rootobj, jsonbuilder);
+			break;
+		case ACTION_UPDATE:
+			code = control_dev_update(cntx, rootobj, jsonbuilder);
+			break;
+		case ACTION_GET:
+			code = control_dev_get(cntx, rootobj, jsonbuilder);
+			break;
+		case ACTION_DEL:
+			code = control_dev_del(cntx, rootobj, jsonbuilder);
+			break;
+		case ACTION_LIST:
+			code = control_devs_list(cntx, rootobj, jsonbuilder);
+			break;
 		}
 		break;
 	}
@@ -131,16 +214,18 @@ void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 	g_object_unref(generator);
 	g_object_unref(jsonbuilder);
 
-	mosquitto_publish(cntx->mosq, NULL, TLWBE_TOPICROOT"/"CONTROL_SUBTOPIC"/"CONTROL_RESULT, payloadlen, payload, 0, false);
+	mosquitto_publish(cntx->mosq, NULL,
+	TLWBE_TOPICROOT"/"CONTROL_SUBTOPIC"/"CONTROL_RESULT, payloadlen, payload, 0,
+	false);
 
 	out: if (payload != NULL)
 		g_free(payload);
 }
 
 void control_onbrokerconnect(struct context* cntx) {
-mosquitto_subscribe(cntx->mosq, NULL, TLWBE_TOPICROOT"/"CONTROL_SUBTOPIC"/"CONTROL_ENTITY_APP"/#",
-		0);
-mosquitto_subscribe(cntx->mosq, NULL, TLWBE_TOPICROOT"/"CONTROL_SUBTOPIC"/"CONTROL_ENTITY_DEV"/#",
-		0);
+	mosquitto_subscribe(cntx->mosq, NULL,
+	TLWBE_TOPICROOT"/"CONTROL_SUBTOPIC"/"CONTROL_ENTITY_APP"/#", 0);
+	mosquitto_subscribe(cntx->mosq, NULL,
+	TLWBE_TOPICROOT"/"CONTROL_SUBTOPIC"/"CONTROL_ENTITY_DEV"/#", 0);
 }
 
