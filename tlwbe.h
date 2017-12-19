@@ -14,5 +14,6 @@ struct context {
 	//sqlite stuff
 	sqlite3* db;
 	sqlite3_stmt* insertappstmt;
+	sqlite3_stmt* getappsstmt;
 	sqlite3_stmt* listappsstmt;
 };

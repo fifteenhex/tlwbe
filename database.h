@@ -19,7 +19,8 @@ void database_init(struct context* cntx, const gchar* databasepath);
 
 void database_app_add(struct context* cntx, const struct app* app);
 void database_app_update(struct context* cntx, const struct app* app);
-void database_app_get(struct context* cntx, const char* eui);
+void database_app_get(struct context* cntx, const char* eui,
+		void (*callback)(struct app* app, void* data), void* data);
 void database_app_del(struct context* cntx, const char* eui);
 void database_apps_list(struct context* cntx,
 		void (*callback)(const char* eui, void* data), void* data);

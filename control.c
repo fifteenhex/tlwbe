@@ -40,9 +40,19 @@ static int control_app_add(struct context* cntx, JsonObject* rootobj,
 	return 0;
 }
 
+static void control_app_get_callback(struct app* app, void* data) {
+	JsonBuilder* jsonbuilder = data;
+	json_builder_set_member_name(jsonbuilder, "app");
+	json_builder_begin_object(jsonbuilder);
+	json_builder_end_object(jsonbuilder);
+}
+
 static int control_app_get(struct context* cntx, JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
-	database_app_get(cntx, NULL);
+	if (!json_object_has_member(rootobj, CONTROL_JSON_EUI))
+		return -1;
+	const gchar* eui = json_object_get_string_member(rootobj, CONTROL_JSON_EUI);
+	database_app_get(cntx, eui, control_app_get_callback, jsonbuilder);
 	return 0;
 }
 

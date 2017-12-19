@@ -1,6 +1,7 @@
 #include <sqlite3.h>
 
 #include "database.h"
+#include "utils.h"
 
 #define CREATETABLE_APPS	"CREATE TABLE IF NOT EXISTS apps ("\
 								"eui	TEXT NOT NULL UNIQUE,"\
@@ -29,6 +30,8 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	sqlite3_stmt *createappsstmt = NULL;
 	sqlite3_stmt *createdevsstmt = NULL;
 	cntx->insertappstmt = NULL;
+	cntx->getappsstmt = NULL;
+	cntx->listappsstmt = NULL;
 
 	if (sqlite3_prepare_v2(cntx->db, CREATETABLE_APPS, -1, &createappsstmt,
 	NULL) != SQLITE_OK) {
@@ -47,6 +50,13 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	if (sqlite3_prepare_v2(cntx->db, INSERT_APP, -1, &cntx->insertappstmt,
 	NULL) != SQLITE_OK) {
 		g_message("failed to prepare sql to insert app; %s",
+				sqlite3_errmsg(cntx->db));
+		goto out;
+	}
+
+	if (sqlite3_prepare_v2(cntx->db, GET_APP, -1, &cntx->getappsstmt,
+	NULL) != SQLITE_OK) {
+		g_message("failed to prepare sql to get app; %s",
 				sqlite3_errmsg(cntx->db));
 		goto out;
 	}
@@ -70,6 +80,8 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 
 	out: if (cntx->insertappstmt != NULL)
 		sqlite3_finalize(cntx->insertappstmt);
+	if (cntx->getappsstmt != NULL)
+		sqlite3_finalize(cntx->getappsstmt);
 	if (cntx->listappsstmt != NULL)
 		sqlite3_finalize(cntx->listappsstmt);
 	noerr: if (createappsstmt != NULL)
@@ -111,31 +123,37 @@ void database_app_update(struct context* cntx, const struct app* app) {
 
 }
 
-void database_app_get(struct context* cntx, const char* eui) {
+static void database_app_get_rowcallback(sqlite3_stmt* stmt, void* data) {
+	struct pair* callbackanddata = data;
+	struct app a;
+	((void (*)(struct app*, void*)) callbackanddata->first)(&a,
+			callbackanddata->second);
+}
 
+void database_app_get(struct context* cntx, const char* eui,
+		void (*callback)(struct app* app, void* data), void* data) {
+	const struct pair callbackanddata = { .first = callback, .second = data };
+	sqlite3_stmt* stmt = cntx->getappsstmt;
+	sqlite3_bind_text(stmt, 1, eui, 1, SQLITE_STATIC);
+	database_stepuntilcomplete(stmt, database_app_get_rowcallback,
+			&callbackanddata);
+	sqlite3_reset(stmt);
 }
 
 void database_app_del(struct context* cntx, const char* eui) {
 
 }
 
-struct pair {
-	void* first;
-	void* second;
-};
-
 static void database_apps_list_rowcallback(sqlite3_stmt* stmt, void* data) {
+	const struct pair* callbackanddata = data;
 	const unsigned char* eui = sqlite3_column_text(stmt, 0);
-	struct pair* callbackanddata = data;
 	((void (*)(const char*, void*)) callbackanddata->first)(eui,
 			callbackanddata->second);
 }
 
 void database_apps_list(struct context* cntx,
 		void (*callback)(const char* eui, void* data), void* data) {
-
-	struct pair callbackanddata = { .first = callback, .second = data };
-
+	const struct pair callbackanddata = { .first = callback, .second = data };
 	sqlite3_stmt* stmt = cntx->listappsstmt;
 	database_stepuntilcomplete(stmt, database_apps_list_rowcallback,
 			&callbackanddata);
