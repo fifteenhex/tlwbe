@@ -1,9 +1,15 @@
 #include <json-glib/json-glib.h>
 #include <mosquitto.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "control.h"
 #include "database.h"
+
+#define EUILEN		8
+#define EUIASCIILEN ((EUILEN * 2) + 1)
+#define KEYLEN		16
+#define KEYASCIILEN	((KEYLEN * 2) + 1)
 
 enum entity {
 	ENTITY_APP, ENTITY_DEV, ENTITY_INVALID
@@ -22,6 +28,19 @@ static const char* entities[] = { CONTROL_ENTITY_APP, CONTROL_ENTITY_DEV };
 
 static const char* actions[] = { CONTROL_ACTION_ADD, CONTROL_ACTION_UPDATE,
 CONTROL_ACTION_DEL, CONTROL_ACTION_GET, CONTROL_ACTION_LIST };
+
+static char* control_generateeui64(char* buff) {
+	guint64 now = g_get_real_time() / 1000000;
+	guint32 rand = g_random_int();
+	guint64 eui = (now << 4) | rand;
+	sprintf(buff, "%"G_GINT64_MODIFIER"x", eui);
+	return buff;
+}
+
+static char* control_generatekey(char* buff) {
+	sprintf(buff, "%"G_GINT32_MODIFIER"x""%"G_GINT32_MODIFIER"x""%"G_GINT32_MODIFIER"x""%"G_GINT32_MODIFIER"x",1,2,3,4);
+	return buff;
+}
 
 static int control_app_add(struct context* cntx, JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
@@ -84,7 +103,30 @@ static int control_apps_list(struct context* cntx, JsonObject* rootobj,
 
 static int control_dev_add(struct context* cntx, JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
-	database_dev_add(cntx, NULL);
+	if (!json_object_has_member(rootobj, CONTROL_JSON_NAME)
+			|| !json_object_has_member(rootobj, CONTROL_JSON_APPEUI))
+		return -1;
+
+	gchar euibuff[EUIASCIILEN];
+	gchar keybuff[KEYASCIILEN];
+
+	const gchar* eui =
+			json_object_has_member(rootobj, CONTROL_JSON_EUI) ?
+					json_object_get_string_member(rootobj, CONTROL_JSON_EUI) :
+					control_generateeui64(euibuff);
+	const gchar* appeui = json_object_get_string_member(rootobj,
+	CONTROL_JSON_APPEUI);
+	const gchar* key =
+			json_object_has_member(rootobj, CONTROL_JSON_KEY) ?
+					json_object_get_string_member(rootobj,
+					CONTROL_JSON_KEY) :
+					control_generatekey(keybuff);
+	const gchar* name = json_object_get_string_member(rootobj,
+	CONTROL_JSON_NAME);
+
+	struct dev d = { .eui = eui, .appeui = appeui, .key = key, .name = name };
+
+	database_dev_add(cntx, &d);
 	return 0;
 }
 
@@ -94,9 +136,19 @@ static int control_dev_update(struct context* cntx, JsonObject* rootobj,
 	return 0;
 }
 
+static void control_dev_get_callback(struct app* app, void* data) {
+	JsonBuilder* jsonbuilder = data;
+	json_builder_set_member_name(jsonbuilder, "dev");
+	json_builder_begin_object(jsonbuilder);
+	json_builder_end_object(jsonbuilder);
+}
+
 static int control_dev_get(struct context* cntx, JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
-	database_dev_get(cntx, NULL);
+	if (!json_object_has_member(rootobj, CONTROL_JSON_EUI))
+		return -1;
+	const gchar* eui = json_object_get_string_member(rootobj, CONTROL_JSON_EUI);
+	database_dev_get(cntx, eui, control_dev_get_callback, jsonbuilder);
 	return 0;
 }
 
@@ -108,7 +160,10 @@ static int control_dev_del(struct context* cntx, JsonObject* rootobj,
 
 static int control_devs_list(struct context* cntx, JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
-	database_devs_list(cntx);
+	json_builder_set_member_name(jsonbuilder, "result");
+	json_builder_begin_array(jsonbuilder);
+	database_devs_list(cntx, control_apps_list_euicallback, jsonbuilder);
+	json_builder_end_array(jsonbuilder);
 	return 0;
 }
 

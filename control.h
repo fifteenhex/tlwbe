@@ -15,6 +15,8 @@
 #define CONTROL_JSON_TOKEN		"token"
 #define CONTROL_JSON_NAME		"name"
 #define CONTROL_JSON_EUI		"eui"
+#define CONTROL_JSON_APPEUI		"appeui"
+#define CONTROL_JSON_KEY		"key"
 
 void control_onbrokerconnect(struct context* cntx);
 void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
