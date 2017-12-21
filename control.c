@@ -5,11 +5,7 @@
 
 #include "control.h"
 #include "database.h"
-
-#define EUILEN		8
-#define EUIASCIILEN ((EUILEN * 2) + 1)
-#define KEYLEN		16
-#define KEYASCIILEN	((KEYLEN * 2) + 1)
+#include "lorawan.h"
 
 enum entity {
 	ENTITY_APP, ENTITY_DEV, ENTITY_INVALID
@@ -63,6 +59,12 @@ static void control_app_get_callback(struct app* app, void* data) {
 	JsonBuilder* jsonbuilder = data;
 	json_builder_set_member_name(jsonbuilder, "app");
 	json_builder_begin_object(jsonbuilder);
+	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_EUI);
+	json_builder_add_string_value(jsonbuilder, app->eui);
+	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_NAME);
+	json_builder_add_string_value(jsonbuilder, app->name);
+	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_SERIAL);
+	json_builder_add_int_value(jsonbuilder, app->serial);
 	json_builder_end_object(jsonbuilder);
 }
 
@@ -70,6 +72,7 @@ static int control_app_get(struct context* cntx, JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
 	if (!json_object_has_member(rootobj, CONTROL_JSON_EUI))
 		return -1;
+
 	const gchar* eui = json_object_get_string_member(rootobj, CONTROL_JSON_EUI);
 	database_app_get(cntx, eui, control_app_get_callback, jsonbuilder);
 	return 0;
@@ -136,10 +139,20 @@ static int control_dev_update(struct context* cntx, JsonObject* rootobj,
 	return 0;
 }
 
-static void control_dev_get_callback(struct app* app, void* data) {
+static void control_dev_get_callback(struct dev* dev, void* data) {
 	JsonBuilder* jsonbuilder = data;
 	json_builder_set_member_name(jsonbuilder, "dev");
 	json_builder_begin_object(jsonbuilder);
+	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_EUI);
+	json_builder_add_string_value(jsonbuilder, dev->eui);
+	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_APPEUI);
+	json_builder_add_string_value(jsonbuilder, dev->appeui);
+	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_KEY);
+	json_builder_add_string_value(jsonbuilder, dev->key);
+	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_NAME);
+	json_builder_add_string_value(jsonbuilder, dev->name);
+	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_SERIAL);
+	json_builder_add_int_value(jsonbuilder, dev->serial);
 	json_builder_end_object(jsonbuilder);
 }
 

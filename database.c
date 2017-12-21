@@ -152,7 +152,13 @@ void database_app_update(struct context* cntx, const struct app* app) {
 
 static void database_app_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 	struct pair* callbackanddata = data;
-	struct app a;
+
+	const unsigned char* eui = sqlite3_column_text(stmt, 0);
+	const unsigned char* name = sqlite3_column_text(stmt, 1);
+	int serial = sqlite3_column_int(stmt, 2);
+
+	struct app a = { .eui = eui, .name = name, .serial = serial };
+
 	((void (*)(struct app*, void*)) callbackanddata->first)(&a,
 			callbackanddata->second);
 }
@@ -161,7 +167,7 @@ void database_app_get(struct context* cntx, const char* eui,
 		void (*callback)(struct app* app, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
 	sqlite3_stmt* stmt = cntx->getappsstmt;
-	sqlite3_bind_text(stmt, 1, eui, 1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 1, eui, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, database_app_get_rowcallback,
 			&callbackanddata);
 	sqlite3_reset(stmt);
@@ -204,7 +210,16 @@ void database_dev_update(struct context* cntx, const struct dev* dev) {
 
 static void database_dev_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 	struct pair* callbackanddata = data;
-	struct dev d;
+
+	const unsigned char* eui = sqlite3_column_text(stmt, 0);
+	const unsigned char* appeui = sqlite3_column_text(stmt, 1);
+	const unsigned char* key = sqlite3_column_text(stmt, 2);
+	const unsigned char* name = sqlite3_column_text(stmt, 3);
+	int serial = sqlite3_column_int(stmt, 4);
+
+	struct dev d = { .eui = eui, .appeui = appeui, .key = key, .name = name,
+			.serial = serial };
+
 	((void (*)(struct dev*, void*)) callbackanddata->first)(&d,
 			callbackanddata->second);
 }
@@ -213,7 +228,7 @@ void database_dev_get(struct context* cntx, const char* eui,
 		void (*callback)(struct dev* app, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
 	sqlite3_stmt* stmt = cntx->getdevstmt;
-	sqlite3_bind_text(stmt, 1, eui, 1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 1, eui, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, database_dev_get_rowcallback,
 			&callbackanddata);
 	sqlite3_reset(stmt);

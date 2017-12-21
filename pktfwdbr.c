@@ -41,10 +41,10 @@ void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 
 	guchar* pkt = data;
 
-	uint8_t type = (*pkt++ >> MHDR_MTYPE_SHIFT) & MHDR_MTYPE_MASK;
+	uint8_t type = (*pkt >> MHDR_MTYPE_SHIFT) & MHDR_MTYPE_MASK;
 	switch (type) {
 	case MHDR_MTYPE_JOINREQ:
-		join_processjointrequest(cntx, gatewayid, data, datalen);
+		join_processjoinrequest(cntx, gatewayid, data, datalen);
 		break;
 	default:
 		g_message("unhandled message type %d", (int) type);

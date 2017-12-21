@@ -2,6 +2,11 @@
 
 #include <stdint.h>
 
+#define EUILEN		8
+#define EUIASCIILEN ((EUILEN * 2) + 1)
+#define KEYLEN		16
+#define KEYASCIILEN	((KEYLEN * 2) + 1)
+
 #define MHDR_MTYPE_SHIFT	5
 #define MHDR_MTYPE_MASK		0b111
 #define MHDR_MTYPE_JOINREQ	0b000

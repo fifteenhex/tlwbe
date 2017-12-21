@@ -9,6 +9,7 @@
 #include "pktfwdbr.h"
 #include "crypto.h"
 #include "utils.h"
+#include "database.h"
 
 gchar* createtxjson(guchar* data, gsize datalen, gsize* length) {
 	JsonGenerator* generator = json_generator_new();
@@ -26,12 +27,21 @@ gchar* createtxjson(guchar* data, gsize datalen, gsize* length) {
 	return json_generator_to_data(generator, length);
 }
 
-void join_processjointrequest(struct context* cntx, const gchar* gateway,
+static void join_processjoinrequest_rowcallback(struct dev* d, void* data) {
+	uint8_t* key = data;
+	for (int i = 0; i < KEYLEN; i++) {
+		unsigned b;
+		sscanf(d->key + (i * 2), "%02x", &b);
+		key[i] = b;
+	}
+}
+
+void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 		guchar* data, int datalen) {
 	guchar* pkt = data + 1;
 	int joinreqlen = 1 + sizeof(struct lorawan_joinreq) + 4;
 	if (datalen == joinreqlen) {
-		struct lorawan_joinreq* joinreq = (struct lorawan_joinreq*) data;
+		struct lorawan_joinreq* joinreq = (struct lorawan_joinreq*) pkt;
 		guint64 appeui = GUINT64_FROM_LE(joinreq->appeui);
 		guint64 deveui = GUINT64_FROM_LE(joinreq->deveui);
 		guint16 devnonce = GUINT16_FROM_LE(joinreq->devnonce);
@@ -43,8 +53,11 @@ void join_processjointrequest(struct context* cntx, const gchar* gateway,
 		guint32 inmic;
 		memcpy(&inmic, pkt, sizeof(inmic));
 
-		uint8_t key[] = { 0x6E, 0xE8, 0x9C, 0x07, 0x4F, 0x32, 0x68, 0x13, 0x9A,
-				0xBE, 0xF6, 0x31, 0x29, 0xD9, 0xE9, 0xA9 };
+		char asciieui[EUIASCIILEN];
+		sprintf(asciieui, "%016"G_GINT64_MODIFIER"x", deveui);
+		uint8_t key[KEYLEN];
+		database_dev_get(cntx, asciieui, join_processjoinrequest_rowcallback,
+				key);
 
 		guint32 calcedmic = crypto_mic(key, sizeof(key), data,
 				sizeof(*joinreq) + 1);
