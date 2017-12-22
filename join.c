@@ -2,6 +2,7 @@
 #include <json-glib/json-glib.h>
 #include <mosquitto.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "join.h"
 #include "tlwbe.h"
@@ -27,13 +28,35 @@ gchar* createtxjson(guchar* data, gsize datalen, gsize* length) {
 	return json_generator_to_data(generator, length);
 }
 
-static void join_processjoinrequest_rowcallback(struct dev* d, void* data) {
+static void join_processjoinrequest_rowcallback(const struct dev* d, void* data) {
 	uint8_t* key = data;
 	for (int i = 0; i < KEYLEN; i++) {
 		unsigned b;
 		sscanf(d->key + (i * 2), "%02x", &b);
 		key[i] = b;
 	}
+}
+
+static void join_processjoinrequest_createsession(struct context* cntx,
+		const gchar* deveui, struct session* s) {
+	//remove any existing session
+	database_session_del(cntx, deveui);
+
+	//create a new session
+	uint8_t nonce[APPNONCELEN];
+	uint8_t devaddr[DEVADDRLEN];
+	crypto_randbytes(nonce, sizeof(nonce));
+	crypto_randbytes(devaddr, sizeof(devaddr));
+	gchar* noncestr = utils_bin2hex(nonce, sizeof(nonce));
+	gchar* devaddrstr = utils_bin2hex(devaddr, sizeof(devaddr));
+
+	s->deveui = deveui;
+	s->appnonce = noncestr;
+	s->devaddr = devaddrstr;
+
+	g_message("new session for %s, %s %s", s->deveui, s->appnonce, s->devaddr);
+
+	database_session_add(cntx, s);
 }
 
 void join_processjoinrequest(struct context* cntx, const gchar* gateway,
@@ -63,6 +86,11 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 				sizeof(*joinreq) + 1);
 
 	if (calcedmic == inmic) {
+		struct session s;
+		join_processjoinrequest_createsession(cntx, asciieui, &s);
+		g_free(s.appnonce);
+		g_free(s.devaddr);
+
 		gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, NULL);
 		gsize payloadlen;
 		gchar* payload = createtxjson(NULL, 0, &payloadlen);

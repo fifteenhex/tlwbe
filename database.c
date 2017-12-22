@@ -19,12 +19,24 @@
 								"PRIMARY KEY(eui)"\
 							");"
 
+#define CREATETABLE_SESSIONS	"CREATE TABLE IF NOT EXISTS sessions ("\
+								"deveui		TEXT NOT NULL UNIQUE,"\
+								"appnonce	TEXT NOT NULL,"\
+								"devaddr	TEXT NOT NULL UNIQUE,"\
+								"PRIMARY KEY(deveui)"\
+							");"
+
 #define INSERT_APP	"INSERT INTO apps (eui,name,serial) VALUES (?,?,?);"
 #define GET_APP		"SELECT * FROM apps WHERE eui = ?;"
 #define LIST_APPS	"SELECT eui FROM apps;"
+
 #define INSERT_DEV	"INSERT INTO devs (eui, appeui, key, name,serial) VALUES (?,?,?,?,?);"
 #define GET_DEV		"SELECT * FROM devs WHERE eui = ?;"
 #define LIST_DEVS	"SELECT eui FROM devs;"
+
+#define INSERT_SESSION "INSERT INTO sessions (deveui, appnonce, devaddr) VALUES (?,?,?);"
+#define GET_SESSION "SELECT * FROM sessions WHERE deveui = ?;"
+#define DELETE_SESSION "DELETE FROM sessions WHERE deveui = ?;"
 
 static int database_stepuntilcomplete(sqlite3_stmt* stmt,
 		void (*rowcallback)(sqlite3_stmt* stmt, void* data), void* data) {
@@ -44,91 +56,56 @@ static int database_stepuntilcomplete(sqlite3_stmt* stmt,
 	return ret;
 }
 
+#define INITSTMT(SQL, STMT) STMT = NULL;\
+							if (sqlite3_prepare_v2(cntx->db, SQL,\
+								-1, &STMT, NULL) != SQLITE_OK) {\
+									g_message("failed to prepare sql; %s -> %s",\
+										sqlite3_errmsg(cntx->db));\
+									goto out;\
+								}
+
 void database_init(struct context* cntx, const gchar* databasepath) {
 	int ret = sqlite3_open(databasepath, &cntx->db);
 	if (ret)
 		sqlite3_close(cntx->db);
 
-	sqlite3_stmt *createappsstmt = NULL;
-	sqlite3_stmt *createdevsstmt = NULL;
-	cntx->insertappstmt = NULL;
-	cntx->getappsstmt = NULL;
-	cntx->listappsstmt = NULL;
-	cntx->insertdevstmt = NULL;
+	sqlite3_stmt *createappsstmt;
+	sqlite3_stmt *createdevsstmt;
+	sqlite3_stmt *createsessionsstmt;
 
-	if (sqlite3_prepare_v2(cntx->db, CREATETABLE_APPS, -1, &createappsstmt,
-	NULL) != SQLITE_OK) {
-		g_message("failed to prepare sql to create apps table; %s",
-				sqlite3_errmsg(cntx->db));
-		goto out;
-	}
-
-	if (sqlite3_prepare_v2(cntx->db, CREATETABLE_DEVS, -1, &createdevsstmt,
-	NULL) != SQLITE_OK) {
-		g_message("failed to prepare sql to create devs table; %s",
-				sqlite3_errmsg(cntx->db));
-		goto out;
-	}
+	INITSTMT(CREATETABLE_APPS, createappsstmt);
+	INITSTMT(CREATETABLE_DEVS, createdevsstmt);
+	INITSTMT(CREATETABLE_SESSIONS, createsessionsstmt);
 
 	database_stepuntilcomplete(createappsstmt, NULL, NULL);
 	database_stepuntilcomplete(createdevsstmt, NULL, NULL);
+	database_stepuntilcomplete(createsessionsstmt, NULL, NULL);
 
-	if (sqlite3_prepare_v2(cntx->db, INSERT_APP, -1, &cntx->insertappstmt,
-	NULL) != SQLITE_OK) {
-		g_message("failed to prepare sql to insert app; %s",
-				sqlite3_errmsg(cntx->db));
-		goto out;
-	}
+	INITSTMT(INSERT_APP, cntx->insertappstmt);
+	INITSTMT(GET_APP, cntx->getappsstmt);
+	INITSTMT(LIST_APPS, cntx->listappsstmt);
 
-	if (sqlite3_prepare_v2(cntx->db, GET_APP, -1, &cntx->getappsstmt,
-	NULL) != SQLITE_OK) {
-		g_message("failed to prepare sql to get app; %s",
-				sqlite3_errmsg(cntx->db));
-		goto out;
-	}
+	INITSTMT(INSERT_DEV, cntx->insertdevstmt);
+	INITSTMT(GET_DEV, cntx->getdevstmt);
+	INITSTMT(LIST_DEVS, cntx->listdevsstmt);
 
-	if (sqlite3_prepare_v2(cntx->db, LIST_APPS, -1, &cntx->listappsstmt,
-	NULL) != SQLITE_OK) {
-		g_message("failed to prepare sql to list apps; %s",
-				sqlite3_errmsg(cntx->db));
-		goto out;
-	}
-
-	if (sqlite3_prepare_v2(cntx->db, INSERT_DEV, -1, &cntx->insertdevstmt,
-	NULL) != SQLITE_OK) {
-		g_message("failed to prepare sql to insert dev; %s",
-				sqlite3_errmsg(cntx->db));
-		goto out;
-	}
-
-	if (sqlite3_prepare_v2(cntx->db, GET_DEV, -1, &cntx->getdevstmt,
-	NULL) != SQLITE_OK) {
-		g_message("failed to prepare sql to get dev; %s",
-				sqlite3_errmsg(cntx->db));
-		goto out;
-	}
-
-	if (sqlite3_prepare_v2(cntx->db, LIST_DEVS, -1, &cntx->listdevsstmt,
-	NULL) != SQLITE_OK) {
-		g_message("failed to prepare sql to lise devs; %s",
-				sqlite3_errmsg(cntx->db));
-		goto out;
-	}
+	INITSTMT(INSERT_SESSION, cntx->insertsessionstmt);
+	INITSTMT(GET_SESSION, cntx->getsessionstmt);
+	INITSTMT(DELETE_SESSION, cntx->deletesessionstmt);
 
 	goto noerr;
 
-	out: if (cntx->insertappstmt != NULL)
-		sqlite3_finalize(cntx->insertappstmt);
-	if (cntx->getappsstmt != NULL)
-		sqlite3_finalize(cntx->getappsstmt);
-	if (cntx->listappsstmt != NULL)
-		sqlite3_finalize(cntx->listappsstmt);
-	if (cntx->insertdevstmt != NULL)
-		sqlite3_finalize(cntx->insertdevstmt);
-	if (cntx->getdevstmt != NULL)
-		sqlite3_finalize(cntx->getdevstmt);
-	if (cntx->listdevsstmt != NULL)
-		sqlite3_finalize(cntx->listdevsstmt);
+	out: {
+		sqlite3_stmt* stmts[] = { cntx->insertappstmt, cntx->getappsstmt,
+				cntx->listappsstmt, cntx->insertdevstmt, cntx->getdevstmt,
+				cntx->listdevsstmt, cntx->insertsessionstmt,
+				cntx->getsessionstmt, cntx->deletesessionstmt };
+
+		for (int i = 0; i < G_N_ELEMENTS(stmts); i++) {
+			sqlite3_finalize(stmts[i]);
+		}
+	}
+
 	noerr: if (createappsstmt != NULL)
 		sqlite3_finalize(createappsstmt);
 	if (createdevsstmt != NULL)
@@ -157,14 +134,14 @@ static void database_app_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 	const unsigned char* name = sqlite3_column_text(stmt, 1);
 	int serial = sqlite3_column_int(stmt, 2);
 
-	struct app a = { .eui = eui, .name = name, .serial = serial };
+	const struct app a = { .eui = eui, .name = name, .serial = serial };
 
-	((void (*)(struct app*, void*)) callbackanddata->first)(&a,
+	((void (*)(const struct app*, void*)) callbackanddata->first)(&a,
 			callbackanddata->second);
 }
 
 void database_app_get(struct context* cntx, const char* eui,
-		void (*callback)(struct app* app, void* data), void* data) {
+		void (*callback)(const struct app* app, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
 	sqlite3_stmt* stmt = cntx->getappsstmt;
 	sqlite3_bind_text(stmt, 1, eui, -1, SQLITE_STATIC);
@@ -217,15 +194,15 @@ static void database_dev_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 	const unsigned char* name = sqlite3_column_text(stmt, 3);
 	int serial = sqlite3_column_int(stmt, 4);
 
-	struct dev d = { .eui = eui, .appeui = appeui, .key = key, .name = name,
-			.serial = serial };
+	const struct dev d = { .eui = eui, .appeui = appeui, .key = key, .name =
+			name, .serial = serial };
 
-	((void (*)(struct dev*, void*)) callbackanddata->first)(&d,
+	((void (*)(const struct dev*, void*)) callbackanddata->first)(&d,
 			callbackanddata->second);
 }
 
 void database_dev_get(struct context* cntx, const char* eui,
-		void (*callback)(struct dev* app, void* data), void* data) {
+		void (*callback)(const struct dev* app, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
 	sqlite3_stmt* stmt = cntx->getdevstmt;
 	sqlite3_bind_text(stmt, 1, eui, -1, SQLITE_STATIC);
@@ -244,5 +221,45 @@ void database_devs_list(struct context* cntx,
 	sqlite3_stmt* stmt = cntx->listdevsstmt;
 	database_stepuntilcomplete(stmt, database_apps_list_rowcallback,
 			&callbackanddata);
+	sqlite3_reset(stmt);
+}
+
+void database_session_add(struct context* cntx, const struct session* session) {
+	sqlite3_stmt* stmt = cntx->insertsessionstmt;
+	sqlite3_bind_text(stmt, 1, session->deveui, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 2, session->appnonce, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 3, session->devaddr, -1, SQLITE_STATIC);
+	database_stepuntilcomplete(stmt, NULL, NULL);
+	sqlite3_reset(stmt);
+}
+
+static void database_session_get_rowcallback(sqlite3_stmt* stmt, void* data) {
+	struct pair* callbackanddata = data;
+
+	const char* deveui = sqlite3_column_text(stmt, 1);
+	const char* appnonce = sqlite3_column_text(stmt, 2);
+	const char* devaddr = sqlite3_column_text(stmt, 3);
+
+	const struct session s = { .deveui = deveui, .appnonce = appnonce,
+			.devaddr = devaddr };
+
+	((void (*)(const struct session*, void*)) callbackanddata->first)(&s,
+			callbackanddata->second);
+}
+
+void database_session_get(struct context* cntx, const char* deveui,
+		void (*callback)(const struct session* session, void* data), void* data) {
+	const struct pair callbackanddata = { .first = callback, .second = data };
+	sqlite3_stmt* stmt = cntx->getsessionstmt;
+	sqlite3_bind_text(stmt, 1, deveui, -1, SQLITE_STATIC);
+	database_stepuntilcomplete(stmt, database_session_get_rowcallback,
+			&callbackanddata);
+	sqlite3_reset(stmt);
+}
+
+void database_session_del(struct context* cntx, const char* deveui) {
+	sqlite3_stmt* stmt = cntx->deletesessionstmt;
+	sqlite3_bind_text(stmt, 1, deveui, -1, SQLITE_STATIC);
+	database_stepuntilcomplete(stmt, NULL, NULL);
 	sqlite3_reset(stmt);
 }

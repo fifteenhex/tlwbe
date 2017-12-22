@@ -8,6 +8,7 @@
 void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		char** splittopic, int numtopicparts) {
 
+	JsonParser* jsonparser = NULL;
 	char* gatewayid = splittopic[1];
 	char* direction = splittopic[2];
 
@@ -16,7 +17,7 @@ void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		goto out;
 	}
 
-	JsonParser* jsonparser = json_parser_new_immutable();
+	jsonparser = json_parser_new_immutable();
 	if (!json_parser_load_from_data(jsonparser, msg->payload, msg->payloadlen,
 	NULL)) {
 		g_message("failed to parse json");
@@ -53,4 +54,6 @@ void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 
 	out: if (data != NULL)
 		g_free(data);
+	if (jsonparser != NULL)
+		g_object_unref(jsonparser);
 }

@@ -16,19 +16,34 @@ struct dev {
 	const guint32 serial;
 };
 
+struct session {
+	const gchar* deveui;
+	const gchar* appnonce;
+	const gchar* devaddr;
+
+};
+
 void database_init(struct context* cntx, const gchar* databasepath);
 
+// app
 void database_app_add(struct context* cntx, const struct app* app);
 void database_app_update(struct context* cntx, const struct app* app);
 void database_app_get(struct context* cntx, const char* eui,
-		void (*callback)(struct app* app, void* data), void* data);
+		void (*callback)(const struct app* app, void* data), void* data);
 void database_app_del(struct context* cntx, const char* eui);
 void database_apps_list(struct context* cntx,
 		void (*callback)(const char* eui, void* data), void* data);
+// dev
 void database_dev_add(struct context* cntx, const struct dev* dev);
 void database_dev_update(struct context* cntx, const struct dev* dev);
 void database_dev_get(struct context* cntx, const char* eui,
-		void (*callback)(struct dev* app, void* data), void* data);
+		void (*callback)(const struct dev* dev, void* data), void* data);
 void database_dev_del(struct context* cntx, const char* eui);
 void database_devs_list(struct context* cntx,
 		void (*callback)(const char* eui, void* data), void* data);
+//session
+void database_session_add(struct context* cntx, const struct session* dev);
+void database_session_get(struct context* cntx, const char* deveui,
+		void (*callback)(const struct session* session, void* data),
+		void* data);
+void database_session_del(struct context* cntx, const char* deveui);

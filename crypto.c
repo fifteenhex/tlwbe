@@ -1,4 +1,5 @@
 #include <openssl/cmac.h>
+#include <openssl/rand.h>
 
 #include "crypto.h"
 
@@ -17,4 +18,8 @@ uint32_t crypto_mic(void* key, size_t keylen, void* data, size_t datalen) {
 		mic |= mac[i];
 	}
 	return mic;
+}
+
+void crypto_randbytes(void* buff, size_t len) {
+	RAND_bytes(buff, len);
 }

@@ -6,3 +6,4 @@ struct pair {
 };
 
 gchar* utils_createtopic(const gchar* id, ...);
+gchar* utils_bin2hex(guint8* buff, gsize len);

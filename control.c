@@ -6,6 +6,8 @@
 #include "control.h"
 #include "database.h"
 #include "lorawan.h"
+#include "crypto.h"
+#include "utils.h"
 
 enum entity {
 	ENTITY_APP, ENTITY_DEV, ENTITY_INVALID
@@ -33,9 +35,10 @@ static char* control_generateeui64(char* buff) {
 	return buff;
 }
 
-static char* control_generatekey(char* buff) {
-	sprintf(buff, "%"G_GINT32_MODIFIER"x""%"G_GINT32_MODIFIER"x""%"G_GINT32_MODIFIER"x""%"G_GINT32_MODIFIER"x",1,2,3,4);
-	return buff;
+static char* control_generatekey() {
+	uint8_t key[KEYLEN];
+	crypto_randbytes(key, sizeof(key));
+	return utils_bin2hex(key, sizeof(key));
 }
 
 static int control_app_add(struct context* cntx, JsonObject* rootobj,
@@ -55,7 +58,7 @@ static int control_app_add(struct context* cntx, JsonObject* rootobj,
 	return 0;
 }
 
-static void control_app_get_callback(struct app* app, void* data) {
+static void control_app_get_callback(const struct app* app, void* data) {
 	JsonBuilder* jsonbuilder = data;
 	json_builder_set_member_name(jsonbuilder, "app");
 	json_builder_begin_object(jsonbuilder);
@@ -119,17 +122,27 @@ static int control_dev_add(struct context* cntx, JsonObject* rootobj,
 					control_generateeui64(euibuff);
 	const gchar* appeui = json_object_get_string_member(rootobj,
 	CONTROL_JSON_APPEUI);
-	const gchar* key =
-			json_object_has_member(rootobj, CONTROL_JSON_KEY) ?
-					json_object_get_string_member(rootobj,
-					CONTROL_JSON_KEY) :
-					control_generatekey(keybuff);
+
+	// look for a key in the json, if there isn't one generate one
+	gchar* key = NULL;
+	gboolean freekey = FALSE;
+	if (json_object_has_member(rootobj, CONTROL_JSON_KEY))
+		key = json_object_get_string_member(rootobj, CONTROL_JSON_KEY);
+	else {
+		key = control_generatekey();
+		freekey = TRUE;
+	}
+
 	const gchar* name = json_object_get_string_member(rootobj,
 	CONTROL_JSON_NAME);
 
 	struct dev d = { .eui = eui, .appeui = appeui, .key = key, .name = name };
 
 	database_dev_add(cntx, &d);
+
+	if (freekey)
+		g_free(key);
+
 	return 0;
 }
 
@@ -139,7 +152,7 @@ static int control_dev_update(struct context* cntx, JsonObject* rootobj,
 	return 0;
 }
 
-static void control_dev_get_callback(struct dev* dev, void* data) {
+static void control_dev_get_callback(const struct dev* dev, void* data) {
 	JsonBuilder* jsonbuilder = data;
 	json_builder_set_member_name(jsonbuilder, "dev");
 	json_builder_begin_object(jsonbuilder);

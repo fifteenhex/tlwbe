@@ -20,3 +20,10 @@ gchar* utils_createtopic(const gchar* id, ...) {
 	gchar* topic = g_string_free(topicstr, FALSE);
 	return topic;
 }
+
+gchar* utils_bin2hex(guint8* buff, gsize len) {
+	GString* gs = g_string_new(NULL);
+	for (gsize i = 0; i < len; i++)
+		g_string_append_printf(gs, "%02x", (unsigned) *buff++);
+	return g_string_free(gs, FALSE);
+}

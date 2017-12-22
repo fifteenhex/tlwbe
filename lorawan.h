@@ -7,6 +7,9 @@
 #define KEYLEN		16
 #define KEYASCIILEN	((KEYLEN * 2) + 1)
 
+#define APPNONCELEN 3
+#define DEVADDRLEN 4
+
 #define MHDR_MTYPE_SHIFT	5
 #define MHDR_MTYPE_MASK		0b111
 #define MHDR_MTYPE_JOINREQ	0b000
