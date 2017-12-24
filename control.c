@@ -294,15 +294,9 @@ void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 
 	json_builder_end_object(jsonbuilder);
 
-	JsonNode* responseroot = json_builder_get_root(jsonbuilder);
-	JsonGenerator* generator = json_generator_new();
-	json_generator_set_root(generator, responseroot);
-
 	gsize payloadlen;
-	payload = json_generator_to_data(generator, &payloadlen);
+	payload = utils_jsonbuildertostring(jsonbuilder, &payloadlen);
 
-	json_node_free(responseroot);
-	g_object_unref(generator);
 	g_object_unref(jsonbuilder);
 
 	mosquitto_publish(cntx->mosq, NULL,

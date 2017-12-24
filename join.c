@@ -1,4 +1,3 @@
-#include <glib.h>
 #include <json-glib/json-glib.h>
 #include <mosquitto.h>
 #include <string.h>
@@ -11,22 +10,6 @@
 #include "crypto.h"
 #include "utils.h"
 #include "database.h"
-
-gchar* createtxjson(guchar* data, gsize datalen, gsize* length) {
-	JsonGenerator* generator = json_generator_new();
-	JsonNode* rootnode = json_node_new(JSON_NODE_OBJECT);
-	JsonObject* rootobj = json_object_new();
-	json_node_set_object(rootnode, rootobj);
-	json_generator_set_root(generator, rootnode);
-
-	guchar* txdata = "yo yo";
-	gchar* b64txdata = g_base64_encode(txdata, 5);
-	json_object_set_string_member(rootobj, PKTFWDBR_JSON_TXPK_DATA, b64txdata);
-	json_object_set_int_member(rootobj, PKTFWDBR_JSON_TXPK_SIZE,
-			strlen(b64txdata));
-
-	return json_generator_to_data(generator, length);
-}
 
 static void join_processjoinrequest_rowcallback(const struct dev* d, void* data) {
 	uint8_t* key = data;
@@ -60,7 +43,7 @@ static void join_processjoinrequest_createsession(struct context* cntx,
 }
 
 void join_processjoinrequest(struct context* cntx, const gchar* gateway,
-		guchar* data, int datalen) {
+		guchar* data, int datalen, const struct pktfwdpkt* rxpkt) {
 	guchar* pkt = data + 1;
 	int joinreqlen = 1 + sizeof(struct lorawan_joinreq) + 4;
 	if (datalen == joinreqlen) {
@@ -93,7 +76,7 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 
 		gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, NULL);
 		gsize payloadlen;
-		gchar* payload = createtxjson(NULL, 0, &payloadlen);
+		gchar* payload = downlink_createtxjson(NULL, 0, &payloadlen, rxpkt);
 		mosquitto_publish(cntx->mosq,NULL, topic, payloadlen, payload, 0, false);
 		g_free(topic);
 	}

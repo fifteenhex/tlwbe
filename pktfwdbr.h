@@ -40,5 +40,12 @@
 #define PKTFWDBR_JSON_TXPK_DATA "data"
 #define PKTFWDBR_JSON_TXPK_NCRC	"ncrc"
 
+struct pktfwdpkt {
+	gchar* modulation;
+	gdouble frequency;
+	gchar* data;
+	gsize size;
+};
+
 void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		char** splittopic, int numtopicparts);

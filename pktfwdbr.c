@@ -5,6 +5,27 @@
 #include "lorawan.h"
 #include "join.h"
 
+static gboolean pktfwdbr_onmsg_parsepkt(JsonObject* rootobj,
+		struct pktfwdpkt* pkt) {
+
+	if (!(json_object_has_member(rootobj, PKTFWDBR_JSON_TXPK_MODU))
+			|| !(json_object_has_member(rootobj, PKTFWDBR_JSON_TXPK_FREQ))
+			|| !(json_object_has_member(rootobj, PKTFWDBR_JSON_TXPK_DATA))
+			|| !(json_object_has_member(rootobj, PKTFWDBR_JSON_TXPK_SIZE))) {
+		g_message("no data field");
+		return FALSE;
+	}
+
+	pkt->modulation = json_object_get_string_member(rootobj,
+	PKTFWDBR_JSON_TXPK_MODU);
+	pkt->frequency = json_object_get_double_member(rootobj,
+	PKTFWDBR_JSON_TXPK_FREQ);
+	pkt->data = json_object_get_string_member(rootobj, PKTFWDBR_JSON_TXPK_DATA);
+	pkt->size = json_object_get_int_member(rootobj, PKTFWDBR_JSON_TXPK_SIZE);
+
+	return TRUE;
+}
+
 void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		char** splittopic, int numtopicparts) {
 
@@ -26,12 +47,10 @@ void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 	JsonNode* root = json_parser_get_root(jsonparser);
 	JsonObject* rootobj = json_node_get_object(root);
 
-	if (!(json_object_has_member(rootobj, "data"))) {
-		g_message("no data field");
-		goto out;
-	}
+	struct pktfwdpkt pkt;
+	pktfwdbr_onmsg_parsepkt(rootobj, &pkt);
 
-	const gchar* b64data = json_object_get_string_member(rootobj, "data");
+	const gchar* b64data = pkt.data;
 	gsize datalen;
 	guchar* data = g_base64_decode(b64data, &datalen);
 
@@ -40,12 +59,10 @@ void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		goto out;
 	}
 
-	guchar* pkt = data;
-
-	uint8_t type = (*pkt >> MHDR_MTYPE_SHIFT) & MHDR_MTYPE_MASK;
+	uint8_t type = (*data >> MHDR_MTYPE_SHIFT) & MHDR_MTYPE_MASK;
 	switch (type) {
 	case MHDR_MTYPE_JOINREQ:
-		join_processjoinrequest(cntx, gatewayid, data, datalen);
+		join_processjoinrequest(cntx, gatewayid, data, datalen, &pkt);
 		break;
 	default:
 		g_message("unhandled message type %d", (int) type);
