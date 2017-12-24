@@ -41,10 +41,17 @@
 #define PKTFWDBR_JSON_TXPK_NCRC	"ncrc"
 
 struct pktfwdpkt {
+	// rf
 	gchar* modulation;
 	gdouble frequency;
+	guint32 rfchannel;
+	// lora stuff
+	gchar* datarate;
+	gchar* coderate;
+	//
 	gchar* data;
 	gsize size;
+	guint32 timestamp;
 };
 
 void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
