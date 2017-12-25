@@ -260,7 +260,7 @@ static void database_session_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 void database_session_get_deveui(struct context* cntx, const char* deveui,
 		void (*callback)(const struct session* session, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
-	const sqlite3_stmt* stmt = cntx->getsessionbydeveuistmt;
+	sqlite3_stmt* stmt = cntx->getsessionbydeveuistmt;
 	sqlite3_bind_text(stmt, 1, deveui, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, database_session_get_rowcallback,
 			&callbackanddata);
@@ -270,7 +270,7 @@ void database_session_get_deveui(struct context* cntx, const char* deveui,
 void database_session_get_devaddr(struct context* cntx, const char* devaddr,
 		void (*callback)(const struct session* session, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
-	const sqlite3_stmt* stmt = cntx->getsessionbydevaddrstmt;
+	sqlite3_stmt* stmt = cntx->getsessionbydevaddrstmt;
 	sqlite3_bind_text(stmt, 1, devaddr, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, database_session_get_rowcallback,
 			&callbackanddata);
@@ -302,7 +302,7 @@ void database_keyparts_get(struct context* cntx, const char* devaddr,
 		void (*callback)(const struct keyparts* keyparts, void* data),
 		void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
-	const sqlite3_stmt* stmt = cntx->getkeyparts;
+	sqlite3_stmt* stmt = cntx->getkeyparts;
 	sqlite3_bind_text(stmt, 1, devaddr, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, database_keyparts_get_rowcallback,
 			&callbackanddata);

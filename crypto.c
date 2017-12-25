@@ -1,5 +1,6 @@
 #include <openssl/cmac.h>
 #include <openssl/rand.h>
+#include <string.h>
 #include "crypto.h"
 #include "lorawan.h"
 
@@ -49,6 +50,7 @@ static void crypto_calculatesessionkeys_key(const uint8_t* key,
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
 	EVP_CIPHER_CTX_init(ctx);
 	EVP_EncryptInit(ctx, EVP_aes_128_ecb(), key, NULL);
+	EVP_CIPHER_CTX_set_padding(ctx, 0);
 
 	int outlen;
 	EVP_EncryptUpdate(ctx, skey, &outlen, &kb, sizeof(kb));
@@ -82,4 +84,18 @@ void crypto_calculatesessionkeys(const uint8_t* key, const uint8_t* appnonce,
 
 void crypto_randbytes(void* buff, size_t len) {
 	RAND_bytes(buff, len);
+}
+
+void crypto_fillinblock(uint8_t* block, uint8_t firstbyte, uint8_t dir,
+		uint32_t devaddr, uint32_t fcnt, uint8_t lastbyte) {
+	// 5 - dir
+	// 6 - devaddr
+	// 10 - fcnt
+	// 15 - len
+	memset(block, 0, BLOCKLEN);
+	block[0] = firstbyte;
+	block[5] = dir;
+	memcpy(block + 6, &devaddr, sizeof(devaddr));
+	memcpy(block + 10, &fcnt, sizeof(fcnt));
+	block[15] = lastbyte;
 }

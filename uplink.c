@@ -28,8 +28,8 @@ static void uplink_process_rowcallback(const struct keyparts* keyparts,
 	utils_hex2bin(keyparts->appnonce, appnonce, sizeof(appnonce));
 	utils_hex2bin(keyparts->devnonce, devnonce, sizeof(devnonce));
 
-	crypto_calculatesessionkeys(key, appnonce, netid, devnonce, &keys->nwksk,
-			&keys->appsk);
+	crypto_calculatesessionkeys(key, appnonce, netid, devnonce, keys->nwksk,
+			keys->appsk);
 
 	gchar* nskhex = utils_bin2hex(&keys->nwksk, sizeof(keys->nwksk));
 	gchar* askhex = utils_bin2hex(&keys->appsk, sizeof(keys->appsk));
@@ -73,16 +73,9 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 	guint32 mic;
 	memcpy(&mic, dataend, sizeof(mic));
 
-	// 6 - devaddr
-	// 10 - fcnt
-	// 15 - len
-	uint8_t b0[] = { 0x49, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-			0xFF, 0xFF, 0, 0xFF };
-	memcpy(&b0[6], &devaddr, sizeof(devaddr));
+	uint8_t b0[BLOCKLEN];
 	guint32 fullfcnt = fcnt;
-	memcpy(&b0[10], &fullfcnt, sizeof(fullfcnt));
-	guint8 len = datasizewithoutmic;
-	memcpy(&b0[15], &len, sizeof(len));
+	crypto_fillinblock(b0, 0x49, 0, devaddr, fullfcnt, datasizewithoutmic);
 
 	struct sessionkeys keys;
 	database_keyparts_get(cntx, devaddrascii, uplink_process_rowcallback,
@@ -91,7 +84,11 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 	guint32 calcedmic = crypto_mic_2(keys.nwksk, KEYLEN, b0, sizeof(b0),
 			datastart, datasizewithoutmic);
 
-g_message("uplink from %s to port %d (%d fopts, %d fcnt, %d bytes of payload, mic %08"
-		G_GINT32_MODIFIER"x calcedmic %08"G_GINT32_MODIFIER"x)",devaddrascii, fport, numfopts, (int) fcnt, payloadlen, mic, calcedmic);
+	g_message("uplink from %s to port %d (%d fopts, %d fcnt, %d bytes of payload, mic %08"
+			G_GINT32_MODIFIER"x calcedmic %08"G_GINT32_MODIFIER"x)",devaddrascii, fport, numfopts, (int) fcnt, payloadlen, mic, calcedmic);
 
+	if (mic == calcedmic) {
+
+	} else
+		g_message("bad mic, dropping");
 }
