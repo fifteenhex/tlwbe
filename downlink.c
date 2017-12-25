@@ -6,10 +6,7 @@
 #include "utils.h"
 
 gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
-		const struct pktfwdpkt* rxpkt) {
-
-	data = "yo yo";
-	datalen = strlen(data);
+		guint64 delay, const struct pktfwdpkt* rxpkt) {
 
 	JsonBuilder* jsonbuilder = json_builder_new();
 	json_builder_begin_object(jsonbuilder);

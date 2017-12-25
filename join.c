@@ -13,11 +13,7 @@
 
 static void join_processjoinrequest_rowcallback(const struct dev* d, void* data) {
 	uint8_t* key = data;
-	for (int i = 0; i < KEYLEN; i++) {
-		unsigned b;
-		sscanf(d->key + (i * 2), "%02x", &b);
-		key[i] = b;
-	}
+	utils_hex2bin(d->key, key, KEYLEN);
 }
 
 static void join_processjoinrequest_createsession(struct context* cntx,
@@ -40,6 +36,24 @@ static void join_processjoinrequest_createsession(struct context* cntx,
 	g_message("new session for %s, %s %s", s->deveui, s->appnonce, s->devaddr);
 
 	database_session_add(cntx, s);
+}
+
+static void join_processjoinrequest_createjoinresponse(const struct session* s,
+		const char* appkey, uint8_t* pkt) {
+
+	uint8_t plainpkt[LORAWAN_PAYLOADWITHMIC(sizeof(struct lorawan_joinaccept))];
+	memset(plainpkt, 0, sizeof(plainpkt));
+
+	struct lorawan_joinaccept* response = &plainpkt;
+	utils_hex2bin(s->appnonce, &response->appnonce, sizeof(response->appnonce));
+	utils_hex2bin(s->devaddr, &response->devaddr, sizeof(response->devaddr));
+
+	uint32_t mic = crypto_mic(appkey, KEYLEN, plainpkt,
+			sizeof(plainpkt) - MICLEN);
+	memcpy(plainpkt + sizeof(*response), &mic, sizeof(mic));
+
+	pkt[0] = (MHDR_MTYPE_JOINACK << MHDR_MTYPE_SHIFT);
+	crypto_encryptfordevice(appkey, plainpkt, sizeof(plainpkt), pkt + 1);
 }
 
 void join_processjoinrequest(struct context* cntx, const gchar* gateway,
@@ -71,12 +85,16 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 	if (calcedmic == inmic) {
 		struct session s;
 		join_processjoinrequest_createsession(cntx, asciieui, &s);
+
+		uint8_t pkt[LORAWAN_PKTSZ(sizeof(struct lorawan_joinaccept))];
+		join_processjoinrequest_createjoinresponse(&s, key, pkt);
+
 		g_free(s.appnonce);
 		g_free(s.devaddr);
 
 		gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, NULL);
 		gsize payloadlen;
-		gchar* payload = downlink_createtxjson(NULL, 0, &payloadlen, rxpkt);
+		gchar* payload = downlink_createtxjson(pkt, sizeof(pkt), &payloadlen, 5000000, rxpkt);
 		mosquitto_publish(cntx->mosq,NULL, topic, payloadlen, payload, 0, false);
 		g_free(topic);
 	}

@@ -1,4 +1,5 @@
 #include <glib.h>
+#include <string.h>
 
 #include "utils.h"
 #include "pktfwdbr.h"
@@ -26,6 +27,26 @@ gchar* utils_bin2hex(guint8* buff, gsize len) {
 	for (gsize i = 0; i < len; i++)
 		g_string_append_printf(gs, "%02x", (unsigned) *buff++);
 	return g_string_free(gs, FALSE);
+}
+
+void utils_hex2bin(const gchar* string, guint8* buff, gsize buffsz) {
+	if (strlen(string) % 2 != 0) {
+		g_message("hex string length should be a multiple of 2");
+		return;
+	}
+
+	gchar slice[3];
+	slice[2] = '\0';
+
+	for (int i = 0; i < buffsz; i++) {
+		guint64 b;
+		memcpy(slice, string, 2);
+		g_ascii_string_to_unsigned(slice, 16, 0, 0xff, &b, NULL);
+		buff[i] = b;
+		string += 2;
+		if (*string == '\0')
+			break;
+	}
 }
 
 gchar* utils_jsonbuildertostring(JsonBuilder* jsonbuilder, gsize* jsonlen) {

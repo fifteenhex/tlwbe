@@ -42,14 +42,14 @@
 
 struct pktfwdpkt {
 	// rf
-	gchar* modulation;
+	const gchar* modulation;
 	gdouble frequency;
 	guint32 rfchannel;
 	// lora stuff
-	gchar* datarate;
-	gchar* coderate;
+	const gchar* datarate;
+	const gchar* coderate;
 	//
-	gchar* data;
+	const gchar* data;
 	gsize size;
 	guint32 timestamp;
 };

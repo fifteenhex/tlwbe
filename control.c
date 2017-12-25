@@ -124,7 +124,7 @@ static int control_dev_add(struct context* cntx, JsonObject* rootobj,
 	CONTROL_JSON_APPEUI);
 
 	// look for a key in the json, if there isn't one generate one
-	gchar* key = NULL;
+	const gchar* key = NULL;
 	gboolean freekey = FALSE;
 	if (json_object_has_member(rootobj, CONTROL_JSON_KEY))
 		key = json_object_get_string_member(rootobj, CONTROL_JSON_KEY);
