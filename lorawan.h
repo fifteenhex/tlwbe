@@ -10,7 +10,12 @@
 #define MHDRLEN		1
 #define MICLEN		4
 #define APPNONCELEN	3
+#define DEVNONCELEN 2
+#define DEVNONCEASCIILEN	((DEVNONCELEN * 2) + 1)
 #define DEVADDRLEN	4
+#define DEVADDRASCIILEN ((DEVADDRLEN * 2) + 1)
+#define NETIDLEN	3
+#define SESSIONKEYLEN	16
 
 #define MHDR_MTYPE_SHIFT	5
 #define MHDR_MTYPE_MASK		0b111
@@ -31,11 +36,18 @@ struct lorawan_joinreq {
 }__attribute__((packed));
 
 struct lorawan_joinaccept {
-	uint8_t appnonce[3];
-	uint8_t netid[3];
+	uint8_t appnonce[APPNONCELEN];
+	uint8_t netid[NETIDLEN];
 	uint32_t devaddr;
 	uint8_t dlsettings;
 	uint8_t rxdelay;
 	uint8_t cflist[16];
 }__attribute__((packed));
 
+#define LORAWAN_FHDR_FCTRL_FOPTLEN_MASK 0b1111
+
+struct lorawan_fhdr {
+	uint32_t devaddr;
+	uint8_t fctrl;
+	uint16_t fcnt;
+}__attribute__((packed));

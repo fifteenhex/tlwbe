@@ -4,6 +4,7 @@
 #include "pktfwdbr.h"
 #include "lorawan.h"
 #include "join.h"
+#include "uplink.h"
 
 static gboolean pktfwdbr_onmsg_parsepkt(JsonObject* rootobj,
 		struct pktfwdpkt* pkt) {
@@ -28,7 +29,7 @@ static gboolean pktfwdbr_onmsg_parsepkt(JsonObject* rootobj,
 	pkt->datarate = json_object_get_string_member(rootobj,
 	PKTFWDBR_JSON_TXPK_DATR);
 	pkt->coderate = json_object_get_string_member(rootobj,
-			PKTFWDBR_JSON_TXPK_CODR);
+	PKTFWDBR_JSON_TXPK_CODR);
 
 	// pull out the timing stuff
 	pkt->timestamp = json_object_get_int_member(rootobj,
@@ -77,6 +78,10 @@ void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 	switch (type) {
 	case MHDR_MTYPE_JOINREQ:
 		join_processjoinrequest(cntx, gatewayid, data, datalen, &pkt);
+		break;
+	case MHDR_MTYPE_UNCNFUP:
+	case MHDR_MTYPE_CNFUP:
+		uplink_process(cntx, gatewayid, data, datalen, &pkt);
 		break;
 	default:
 		g_message("unhandled message type %d", (int) type);

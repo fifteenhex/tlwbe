@@ -23,6 +23,8 @@ struct context {
 	sqlite3_stmt* listdevsstmt;
 	// statements for sessions
 	sqlite3_stmt* insertsessionstmt;
-	sqlite3_stmt* getsessionstmt;
+	sqlite3_stmt* getsessionbydeveuistmt;
+	sqlite3_stmt* getsessionbydevaddrstmt;
 	sqlite3_stmt* deletesessionstmt;
+	sqlite3_stmt* getkeyparts;
 };

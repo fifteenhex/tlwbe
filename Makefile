@@ -15,6 +15,7 @@ tlwbe: tlwbe.c \
 	control.c \
 	utils.c \
 	downlink.c \
+	uplink.c \
 	pktfwdbr.c
 	$(CC) $(GLIB) $(JSON) $(LIBCRYPTO) $(SQLITE) $(MOSQUITTO) $(CFLAGS) $^ -o $@
 

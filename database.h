@@ -18,9 +18,16 @@ struct dev {
 
 struct session {
 	const gchar* deveui;
+	const gchar* devnonce;
 	const gchar* appnonce;
 	const gchar* devaddr;
 
+};
+
+struct keyparts {
+	const gchar* key;
+	const gchar* appnonce;
+	const gchar* devnonce;
 };
 
 void database_init(struct context* cntx, const gchar* databasepath);
@@ -43,7 +50,14 @@ void database_devs_list(struct context* cntx,
 		void (*callback)(const char* eui, void* data), void* data);
 //session
 void database_session_add(struct context* cntx, const struct session* dev);
-void database_session_get(struct context* cntx, const char* deveui,
+void database_session_get_deveui(struct context* cntx, const char* deveui,
+		void (*callback)(const struct session* session, void* data),
+		void* data);
+void database_session_get_devaddr(struct context* cntx, const char* devaddr,
 		void (*callback)(const struct session* session, void* data),
 		void* data);
 void database_session_del(struct context* cntx, const char* deveui);
+// dev + session
+void database_keyparts_get(struct context*, const char* devaddr,
+		void (*callback)(const struct keyparts* keyparts, void* data),
+		void* data);

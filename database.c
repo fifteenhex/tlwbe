@@ -21,6 +21,7 @@
 
 #define CREATETABLE_SESSIONS	"CREATE TABLE IF NOT EXISTS sessions ("\
 								"deveui		TEXT NOT NULL UNIQUE,"\
+								"devnonce	TEXT NOT NULL,"\
 								"appnonce	TEXT NOT NULL,"\
 								"devaddr	TEXT NOT NULL UNIQUE,"\
 								"PRIMARY KEY(deveui)"\
@@ -34,9 +35,12 @@
 #define GET_DEV		"SELECT * FROM devs WHERE eui = ?;"
 #define LIST_DEVS	"SELECT eui FROM devs;"
 
-#define INSERT_SESSION "INSERT INTO sessions (deveui, appnonce, devaddr) VALUES (?,?,?);"
-#define GET_SESSION "SELECT * FROM sessions WHERE deveui = ?;"
-#define DELETE_SESSION "DELETE FROM sessions WHERE deveui = ?;"
+#define INSERT_SESSION		"INSERT INTO sessions (deveui, devnonce, appnonce, devaddr) VALUES (?,?,?,?);"
+#define GET_SESSIONDEVEUI	"SELECT * FROM sessions WHERE deveui = ?;"
+#define GET_SESSIONDEVADDR	"SELECT * FROM sessions WHERE devaddr = ?;"
+#define DELETE_SESSION		"DELETE FROM sessions WHERE deveui = ?;"
+#define GET_KEYPARTS		"SELECT key,appnonce,devnonce "\
+								"FROM sessions INNER JOIN devs on devs.eui = sessions.deveui WHERE devaddr = ?"
 
 static int database_stepuntilcomplete(sqlite3_stmt* stmt,
 		void (*rowcallback)(sqlite3_stmt* stmt, void* data), void* data) {
@@ -90,8 +94,11 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	INITSTMT(LIST_DEVS, cntx->listdevsstmt);
 
 	INITSTMT(INSERT_SESSION, cntx->insertsessionstmt);
-	INITSTMT(GET_SESSION, cntx->getsessionstmt);
+	INITSTMT(GET_SESSIONDEVEUI, cntx->getsessionbydeveuistmt);
+	INITSTMT(GET_SESSIONDEVADDR, cntx->getsessionbydevaddrstmt);
 	INITSTMT(DELETE_SESSION, cntx->deletesessionstmt);
+
+	INITSTMT(GET_KEYPARTS, cntx->getkeyparts);
 
 	goto noerr;
 
@@ -99,7 +106,8 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 		sqlite3_stmt* stmts[] = { cntx->insertappstmt, cntx->getappsstmt,
 				cntx->listappsstmt, cntx->insertdevstmt, cntx->getdevstmt,
 				cntx->listdevsstmt, cntx->insertsessionstmt,
-				cntx->getsessionstmt, cntx->deletesessionstmt };
+				cntx->getsessionbydeveuistmt, cntx->getsessionbydevaddrstmt,
+				cntx->deletesessionstmt, cntx->getkeyparts };
 
 		for (int i = 0; i < G_N_ELEMENTS(stmts); i++) {
 			sqlite3_finalize(stmts[i]);
@@ -227,8 +235,9 @@ void database_devs_list(struct context* cntx,
 void database_session_add(struct context* cntx, const struct session* session) {
 	sqlite3_stmt* stmt = cntx->insertsessionstmt;
 	sqlite3_bind_text(stmt, 1, session->deveui, -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 2, session->appnonce, -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 3, session->devaddr, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 2, session->devnonce, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 3, session->appnonce, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 4, session->devaddr, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, NULL, NULL);
 	sqlite3_reset(stmt);
 }
@@ -236,22 +245,33 @@ void database_session_add(struct context* cntx, const struct session* session) {
 static void database_session_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 	struct pair* callbackanddata = data;
 
-	const char* deveui = sqlite3_column_text(stmt, 1);
+	const char* deveui = sqlite3_column_text(stmt, 0);
+	const char* devnonce = sqlite3_column_text(stmt, 1);
 	const char* appnonce = sqlite3_column_text(stmt, 2);
 	const char* devaddr = sqlite3_column_text(stmt, 3);
 
-	const struct session s = { .deveui = deveui, .appnonce = appnonce,
-			.devaddr = devaddr };
+	const struct session s = { .deveui = deveui, .devnonce = devnonce,
+			.appnonce = appnonce, .devaddr = devaddr };
 
 	((void (*)(const struct session*, void*)) callbackanddata->first)(&s,
 			callbackanddata->second);
 }
 
-void database_session_get(struct context* cntx, const char* deveui,
+void database_session_get_deveui(struct context* cntx, const char* deveui,
 		void (*callback)(const struct session* session, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
-	sqlite3_stmt* stmt = cntx->getsessionstmt;
+	const sqlite3_stmt* stmt = cntx->getsessionbydeveuistmt;
 	sqlite3_bind_text(stmt, 1, deveui, -1, SQLITE_STATIC);
+	database_stepuntilcomplete(stmt, database_session_get_rowcallback,
+			&callbackanddata);
+	sqlite3_reset(stmt);
+}
+
+void database_session_get_devaddr(struct context* cntx, const char* devaddr,
+		void (*callback)(const struct session* session, void* data), void* data) {
+	const struct pair callbackanddata = { .first = callback, .second = data };
+	const sqlite3_stmt* stmt = cntx->getsessionbydevaddrstmt;
+	sqlite3_bind_text(stmt, 1, devaddr, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, database_session_get_rowcallback,
 			&callbackanddata);
 	sqlite3_reset(stmt);
@@ -261,5 +281,30 @@ void database_session_del(struct context* cntx, const char* deveui) {
 	sqlite3_stmt* stmt = cntx->deletesessionstmt;
 	sqlite3_bind_text(stmt, 1, deveui, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, NULL, NULL);
+	sqlite3_reset(stmt);
+}
+
+static void database_keyparts_get_rowcallback(sqlite3_stmt* stmt, void* data) {
+	struct pair* callbackanddata = data;
+
+	const char* key = sqlite3_column_text(stmt, 0);
+	const char* appnonce = sqlite3_column_text(stmt, 1);
+	const char* devnonce = sqlite3_column_text(stmt, 2);
+
+	const struct keyparts kp = { .key = key, .appnonce = appnonce, .devnonce =
+			devnonce };
+
+	((void (*)(const struct keyparts*, void*)) callbackanddata->first)(&kp,
+			callbackanddata->second);
+}
+
+void database_keyparts_get(struct context* cntx, const char* devaddr,
+		void (*callback)(const struct keyparts* keyparts, void* data),
+		void* data) {
+	const struct pair callbackanddata = { .first = callback, .second = data };
+	const sqlite3_stmt* stmt = cntx->getkeyparts;
+	sqlite3_bind_text(stmt, 1, devaddr, -1, SQLITE_STATIC);
+	database_stepuntilcomplete(stmt, database_keyparts_get_rowcallback,
+			&callbackanddata);
 	sqlite3_reset(stmt);
 }
