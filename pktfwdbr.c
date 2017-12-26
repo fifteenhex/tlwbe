@@ -57,6 +57,7 @@ void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 	if (!json_parser_load_from_data(jsonparser, msg->payload, msg->payloadlen,
 	NULL)) {
 		g_message("failed to parse json");
+		goto out;
 	}
 
 	JsonNode* root = json_parser_get_root(jsonparser);
