@@ -4,8 +4,8 @@
 #include "crypto.h"
 #include "lorawan.h"
 
-uint32_t crypto_mic_2(void* key, size_t keylen, void* data1, size_t data1len,
-		void* data2, size_t data2len) {
+uint32_t crypto_mic_2(const void* key, size_t keylen, const void* data1,
+		size_t data1len, const void* data2, size_t data2len) {
 	CMAC_CTX *ctx = CMAC_CTX_new();
 	CMAC_Init(ctx, key, keylen, EVP_aes_128_cbc(), NULL);
 	CMAC_Update(ctx, data1, data1len);
@@ -24,7 +24,8 @@ uint32_t crypto_mic_2(void* key, size_t keylen, void* data1, size_t data1len,
 	return mic;
 }
 
-uint32_t crypto_mic(void* key, size_t keylen, void* data, size_t datalen) {
+uint32_t crypto_mic(const void* key, size_t keylen, const void* data,
+		size_t datalen) {
 	return crypto_mic_2(key, keylen, data, datalen, NULL, 0);
 }
 

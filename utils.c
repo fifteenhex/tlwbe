@@ -22,14 +22,16 @@ gchar* utils_createtopic(const gchar* id, ...) {
 	return topic;
 }
 
-gchar* utils_bin2hex(guint8* buff, gsize len) {
+gchar* utils_bin2hex(const void* buff, gsize len) {
+	const guint8* byte = buff;
 	GString* gs = g_string_new(NULL);
 	for (gsize i = 0; i < len; i++)
-		g_string_append_printf(gs, "%02x", (unsigned) *buff++);
+		g_string_append_printf(gs, "%02x", (unsigned) *byte++);
 	return g_string_free(gs, FALSE);
 }
 
-void utils_hex2bin(const gchar* string, guint8* buff, gsize buffsz) {
+void utils_hex2bin(const gchar* string, void* buff, gsize buffsz) {
+	guint8* byte = buff;
 	if (strlen(string) % 2 != 0) {
 		g_message("hex string length should be a multiple of 2");
 		return;
@@ -42,7 +44,7 @@ void utils_hex2bin(const gchar* string, guint8* buff, gsize buffsz) {
 		guint64 b;
 		memcpy(slice, string, 2);
 		g_ascii_string_to_unsigned(slice, 16, 0, 0xff, &b, NULL);
-		buff[i] = b;
+		*byte++ = b;
 		string += 2;
 		if (*string == '\0')
 			break;

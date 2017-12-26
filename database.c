@@ -154,7 +154,7 @@ void database_app_get(struct context* cntx, const char* eui,
 	sqlite3_stmt* stmt = cntx->getappsstmt;
 	sqlite3_bind_text(stmt, 1, eui, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, database_app_get_rowcallback,
-			&callbackanddata);
+			(void*) &callbackanddata);
 	sqlite3_reset(stmt);
 }
 
@@ -174,7 +174,7 @@ void database_apps_list(struct context* cntx,
 	const struct pair callbackanddata = { .first = callback, .second = data };
 	sqlite3_stmt* stmt = cntx->listappsstmt;
 	database_stepuntilcomplete(stmt, database_apps_list_rowcallback,
-			&callbackanddata);
+			(void*) &callbackanddata);
 	sqlite3_reset(stmt);
 }
 
@@ -215,7 +215,7 @@ void database_dev_get(struct context* cntx, const char* eui,
 	sqlite3_stmt* stmt = cntx->getdevstmt;
 	sqlite3_bind_text(stmt, 1, eui, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, database_dev_get_rowcallback,
-			&callbackanddata);
+			(void*) &callbackanddata);
 	sqlite3_reset(stmt);
 }
 
@@ -228,7 +228,7 @@ void database_devs_list(struct context* cntx,
 	const struct pair callbackanddata = { .first = callback, .second = data };
 	sqlite3_stmt* stmt = cntx->listdevsstmt;
 	database_stepuntilcomplete(stmt, database_apps_list_rowcallback,
-			&callbackanddata);
+			(void*) &callbackanddata);
 	sqlite3_reset(stmt);
 }
 
@@ -263,7 +263,7 @@ void database_session_get_deveui(struct context* cntx, const char* deveui,
 	sqlite3_stmt* stmt = cntx->getsessionbydeveuistmt;
 	sqlite3_bind_text(stmt, 1, deveui, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, database_session_get_rowcallback,
-			&callbackanddata);
+			(void*) &callbackanddata);
 	sqlite3_reset(stmt);
 }
 
@@ -273,7 +273,7 @@ void database_session_get_devaddr(struct context* cntx, const char* devaddr,
 	sqlite3_stmt* stmt = cntx->getsessionbydevaddrstmt;
 	sqlite3_bind_text(stmt, 1, devaddr, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, database_session_get_rowcallback,
-			&callbackanddata);
+			(void*) &callbackanddata);
 	sqlite3_reset(stmt);
 }
 
@@ -307,6 +307,6 @@ void database_keyparts_get(struct context* cntx, const char* devaddr,
 	sqlite3_stmt* stmt = cntx->getkeyparts;
 	sqlite3_bind_text(stmt, 1, devaddr, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, database_keyparts_get_rowcallback,
-			&callbackanddata);
+			(void*) &callbackanddata);
 	sqlite3_reset(stmt);
 }

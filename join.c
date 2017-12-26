@@ -11,6 +11,7 @@
 #include "crypto.h"
 #include "utils.h"
 #include "database.h"
+#include "downlink.h"
 
 static void printsessionkeys(const uint8_t* key, const struct session* s) {
 	uint8_t nsk[SESSIONKEYLEN];
@@ -71,7 +72,8 @@ static void join_processjoinrequest_createjoinresponse(const struct session* s,
 	memset(plainpkt, 0, *pktlen);
 	plainpkt[0] = (MHDR_MTYPE_JOINACK << MHDR_MTYPE_SHIFT);
 
-	struct lorawan_joinaccept* response = &plainpkt[1];
+	struct lorawan_joinaccept* response =
+			(struct lorawan_joinaccept*) &plainpkt[1];
 	utils_hex2bin(s->appnonce, &response->appnonce, sizeof(response->appnonce));
 	utils_hex2bin(s->devaddr, &response->devaddr, sizeof(response->devaddr));
 
@@ -129,8 +131,8 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 
 		printsessionkeys(key, &s);
 
-		g_free(s.appnonce);
-		g_free(s.devaddr);
+		g_free((void*)s.appnonce);
+		g_free((void*)s.devaddr);
 
 		gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, NULL);
 		gsize payloadlen;

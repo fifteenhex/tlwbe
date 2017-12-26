@@ -75,7 +75,7 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 	guchar* dataend = data + (datalen - MICLEN);
 	gsize datasizewithoutmic = dataend - datastart;
 
-	struct lorawan_fhdr* fhdr = data + 1;
+	struct lorawan_fhdr* fhdr = (struct lorawan_fhdr*) (data + 1);
 	data += sizeof(fhdr);
 
 	guint32 devaddr = GUINT32_FROM_LE(fhdr->devaddr);
@@ -114,7 +114,7 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 			G_GINT32_MODIFIER"x calcedmic %08"G_GINT32_MODIFIER"x)",devaddrascii, fport, numfopts, (int) fcnt, payloadlen, mic, calcedmic);
 
 	if (mic == calcedmic) {
-		uint8_t* key = (fport == 0 ? &keys.nwksk : &keys.appsk);
+		uint8_t* key = (uint8_t*) (fport == 0 ? &keys.nwksk : &keys.appsk);
 		uint8_t decrypted[128];
 		crypto_decryptpayload(key, devaddr, fullfcnt, payload, decrypted,
 				payloadlen);

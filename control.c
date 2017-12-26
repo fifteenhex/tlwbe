@@ -141,7 +141,7 @@ static int control_dev_add(struct context* cntx, JsonObject* rootobj,
 	database_dev_add(cntx, &d);
 
 	if (freekey)
-		g_free(key);
+		g_free((void*) key);
 
 	return 0;
 }

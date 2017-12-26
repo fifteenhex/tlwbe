@@ -8,6 +8,6 @@ struct pair {
 };
 
 gchar* utils_createtopic(const gchar* id, ...);
-gchar* utils_bin2hex(guint8* buff, gsize len);
-void utils_hex2bin(const gchar* string, guint8* buff, gsize buffsz);
+gchar* utils_bin2hex(const void* buff, gsize len);
+void utils_hex2bin(const gchar* string, void* buff, gsize buffsz);
 gchar* utils_jsonbuildertostring(JsonBuilder* jsonbuilder, gsize* jsonlen);
