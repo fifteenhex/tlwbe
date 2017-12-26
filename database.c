@@ -19,6 +19,12 @@
 								"PRIMARY KEY(eui)"\
 							");"
 
+#define CREATETABLE_DEVFLAGS	"CREATE TABLE IF NOT EXISTS devflags ("\
+								"deveui	TEXT NOT NULL,"\
+								"flag	TEXT NOT NULL,"\
+								"PRIMARY KEY(deveui)"\
+							");"
+
 #define CREATETABLE_SESSIONS	"CREATE TABLE IF NOT EXISTS sessions ("\
 								"deveui		TEXT NOT NULL UNIQUE,"\
 								"devnonce	TEXT NOT NULL,"\
@@ -82,14 +88,17 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 
 	sqlite3_stmt *createappsstmt;
 	sqlite3_stmt *createdevsstmt;
+	sqlite3_stmt *createdevflagsstmt;
 	sqlite3_stmt *createsessionsstmt;
 
 	INITSTMT(CREATETABLE_APPS, createappsstmt);
 	INITSTMT(CREATETABLE_DEVS, createdevsstmt);
+	INITSTMT(CREATETABLE_DEVFLAGS, createdevflagsstmt);
 	INITSTMT(CREATETABLE_SESSIONS, createsessionsstmt);
 
 	database_stepuntilcomplete(createappsstmt, NULL, NULL);
 	database_stepuntilcomplete(createdevsstmt, NULL, NULL);
+	database_stepuntilcomplete(createdevflagsstmt, NULL, NULL);
 	database_stepuntilcomplete(createsessionsstmt, NULL, NULL);
 
 	INITSTMT(INSERT_APP, cntx->insertappstmt);
@@ -121,10 +130,14 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 		}
 	}
 
-	noerr: if (createappsstmt != NULL)
-		sqlite3_finalize(createappsstmt);
-	if (createdevsstmt != NULL)
-		sqlite3_finalize(createdevsstmt);
+	noerr: {
+		sqlite3_stmt* createstmts[] = { createappsstmt, createdevsstmt,
+				createdevflagsstmt, createsessionsstmt };
+		for (int i = 0; i < G_N_ELEMENTS(createstmts); i++) {
+			if (createstmts[i] != NULL)
+				sqlite3_finalize(createstmts[i]);
+		}
+	}
 
 	return;
 }
@@ -213,12 +226,7 @@ static void database_dev_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 
 void database_dev_get(struct context* cntx, const char* eui,
 		void (*callback)(const struct dev* app, void* data), void* data) {
-	const struct pair callbackanddata = { .first = callback, .second = data };
-	sqlite3_stmt* stmt = cntx->getdevstmt;
-	sqlite3_bind_text(stmt, 1, eui, -1, SQLITE_STATIC);
-	database_stepuntilcomplete(stmt, database_dev_get_rowcallback,
-			(void*) &callbackanddata);
-	sqlite3_reset(stmt);
+	LOOKUPBYSTRING(cntx->getdevstmt, eui, database_dev_get_rowcallback);
 }
 
 void database_dev_del(struct context* cntx, const char* eui) {
