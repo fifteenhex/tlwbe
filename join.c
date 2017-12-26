@@ -43,20 +43,24 @@ static void join_processjoinrequest_createsession(struct context* cntx,
 	database_session_del(cntx, deveui);
 
 	//create a new session
-	uint8_t appnonce[APPNONCELEN];
-	uint8_t devaddr[DEVADDRLEN];
-	crypto_randbytes(appnonce, sizeof(appnonce));
-	crypto_randbytes(devaddr, sizeof(devaddr));
-	gchar* appnoncestr = utils_bin2hex(appnonce, sizeof(appnonce));
-	gchar* devaddrstr = utils_bin2hex(devaddr, sizeof(devaddr));
+	guint32 appnonce;
+	guint32 devaddr;
+	crypto_randbytes(&appnonce, sizeof(appnonce));
+	appnonce &= 0xffffff; // appnonce is only 3 bytes
+	crypto_randbytes(&devaddr, sizeof(devaddr));
+
+	gchar* appnoncestr = g_malloc(APPNONCEASCIILEN);
+	sprintf(appnoncestr, "%06"G_GINT32_MODIFIER"x", appnonce);
+	gchar* devaddrstr = g_malloc(DEVADDRASCIILEN);
+	sprintf(devaddrstr, "%08"G_GINT32_MODIFIER"x", devaddr);
 
 	s->deveui = deveui;
 	s->devnonce = devnonce;
 	s->appnonce = appnoncestr;
 	s->devaddr = devaddrstr;
 
-	g_message("new session for %s, %s %s %s", s->deveui, s->devnonce,
-			s->appnonce, s->devaddr);
+	g_message("new session for %s; devnonce: %s, appnonce: %s, devaddr: %s",
+			s->deveui, s->devnonce, s->appnonce, s->devaddr);
 
 	database_session_add(cntx, s);
 }

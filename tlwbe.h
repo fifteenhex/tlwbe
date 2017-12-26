@@ -27,4 +27,5 @@ struct context {
 	sqlite3_stmt* getsessionbydevaddrstmt;
 	sqlite3_stmt* deletesessionstmt;
 	sqlite3_stmt* getkeyparts;
+	// statements for downlinks
 };

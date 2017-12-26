@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#define ASCIILEN(n) ((n * 2) + 1)
+
 #define EUILEN		8
 #define EUIASCIILEN ((EUILEN * 2) + 1)
 #define KEYLEN		16
@@ -10,6 +12,7 @@
 #define MHDRLEN		1
 #define MICLEN		4
 #define APPNONCELEN	3
+#define APPNONCEASCIILEN ASCIILEN(APPNONCELEN)
 #define DEVNONCELEN 2
 #define DEVNONCEASCIILEN	((DEVNONCELEN * 2) + 1)
 #define DEVADDRLEN	4

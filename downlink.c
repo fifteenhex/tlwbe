@@ -4,6 +4,7 @@
 #include "downlink.h"
 #include "pktfwdbr.h"
 #include "utils.h"
+#include "tlwbe.h"
 
 gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 		guint64 delay, const struct pktfwdpkt* rxpkt) {
@@ -47,4 +48,25 @@ gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 	g_free(b64txdata);
 
 	return json;
+}
+
+void downlink_onbrokerconnect(struct context* cntx) {
+	mosquitto_subscribe(cntx->mosq, NULL,
+	TLWBE_TOPICROOT "/" DOWNLINK_SUBTOPIC "/#", 0);
+}
+
+void downlink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
+		char** splittopic, int numtopicparts) {
+
+	if (numtopicparts != 5) {
+		g_message("need 5 topic parts, got %d", numtopicparts);
+		return;
+	}
+
+	const char* appeui = splittopic[2];
+	const char* deveui = splittopic[3];
+	const char* port = splittopic[4];
+
+	g_message("have downlink for app %s, dev %s, port %s", appeui, deveui,
+			port);
 }

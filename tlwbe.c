@@ -8,6 +8,7 @@
 #include "pktfwdbr.h"
 #include "database.h"
 #include "control.h"
+#include "downlink.h"
 
 static gboolean handlemosq(GIOChannel *source, GIOCondition condition,
 		gpointer data) {
@@ -44,6 +45,7 @@ static gboolean mosq_idle(gpointer data) {
 			PKTFWDBR_TOPIC_ROOT"/+/"PKTFWDBR_TOPIC_RX"/#", 0);
 
 			control_onbrokerconnect(cntx);
+			downlink_onbrokerconnect(cntx);
 			connected = true;
 		}
 	} else
@@ -79,9 +81,13 @@ static void mosq_message(struct mosquitto* mosq, void* userdata,
 
 	if (strcmp(roottopic, PKTFWDBR_TOPIC_ROOT) == 0)
 		pktfwdbr_onmsg(cntx, msg, splittopic, numtopicparts);
-	else if (strcmp(roottopic, TLWBE_TOPICROOT) == 0)
-		control_onmsg(cntx, msg, splittopic, numtopicparts);
-	else {
+	else if (strcmp(roottopic, TLWBE_TOPICROOT) == 0) {
+		char* subtopic = splittopic[1];
+		if (strcmp(subtopic, CONTROL_SUBTOPIC) == 0)
+			control_onmsg(cntx, msg, splittopic, numtopicparts);
+		else if (strcmp(subtopic, DOWNLINK_SUBTOPIC) == 0)
+			downlink_onmsg(cntx, msg, splittopic, numtopicparts);
+	} else {
 		g_message("unexpected topic root: %s", roottopic);
 		goto out;
 	}

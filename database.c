@@ -20,9 +20,9 @@
 							");"
 
 #define CREATETABLE_DEVFLAGS	"CREATE TABLE IF NOT EXISTS devflags ("\
+								"id		INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,"\
 								"deveui	TEXT NOT NULL,"\
-								"flag	TEXT NOT NULL,"\
-								"PRIMARY KEY(deveui)"\
+								"flag	TEXT NOT NULL"\
 							");"
 
 #define CREATETABLE_SESSIONS	"CREATE TABLE IF NOT EXISTS sessions ("\
@@ -32,6 +32,14 @@
 								"devaddr	TEXT NOT NULL UNIQUE,"\
 								"PRIMARY KEY(deveui)"\
 							");"
+
+#define CREATETABLE_DOWNLINKS	"CREATE TABLE IF NOT EXISTS downlinks ("\
+								"id			INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,"\
+								"appeui		TEXT NOT NULL,"\
+								"deveui		TEXT NOT NULL,"\
+								"port		INTEGER NOT NULL,"\
+								"payload	BLOB NOT NULL"\
+								");"
 
 #define INSERT_APP	"INSERT INTO apps (eui,name,serial) VALUES (?,?,?);"
 #define GET_APP		"SELECT * FROM apps WHERE eui = ?;"
@@ -66,11 +74,10 @@ static int database_stepuntilcomplete(sqlite3_stmt* stmt,
 	return ret;
 }
 
-#define INITSTMT(SQL, STMT) STMT = NULL;\
-							if (sqlite3_prepare_v2(cntx->db, SQL,\
+#define INITSTMT(SQL, STMT) if (sqlite3_prepare_v2(cntx->db, SQL,\
 								-1, &STMT, NULL) != SQLITE_OK) {\
 									g_message("failed to prepare sql; %s -> %s",\
-										sqlite3_errmsg(cntx->db));\
+										SQL, sqlite3_errmsg(cntx->db));\
 									goto out;\
 								}
 
@@ -86,20 +93,23 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	if (ret)
 		sqlite3_close(cntx->db);
 
-	sqlite3_stmt *createappsstmt;
-	sqlite3_stmt *createdevsstmt;
-	sqlite3_stmt *createdevflagsstmt;
-	sqlite3_stmt *createsessionsstmt;
+	sqlite3_stmt *createappsstmt = NULL;
+	sqlite3_stmt *createdevsstmt = NULL;
+	sqlite3_stmt *createdevflagsstmt = NULL;
+	sqlite3_stmt *createsessionsstmt = NULL;
+	sqlite3_stmt *createdownlinksstmt = NULL;
 
 	INITSTMT(CREATETABLE_APPS, createappsstmt);
 	INITSTMT(CREATETABLE_DEVS, createdevsstmt);
 	INITSTMT(CREATETABLE_DEVFLAGS, createdevflagsstmt);
 	INITSTMT(CREATETABLE_SESSIONS, createsessionsstmt);
+	INITSTMT(CREATETABLE_DOWNLINKS, createdownlinksstmt);
 
 	database_stepuntilcomplete(createappsstmt, NULL, NULL);
 	database_stepuntilcomplete(createdevsstmt, NULL, NULL);
 	database_stepuntilcomplete(createdevflagsstmt, NULL, NULL);
 	database_stepuntilcomplete(createsessionsstmt, NULL, NULL);
+	database_stepuntilcomplete(createdownlinksstmt, NULL, NULL);
 
 	INITSTMT(INSERT_APP, cntx->insertappstmt);
 	INITSTMT(GET_APP, cntx->getappsstmt);
@@ -132,7 +142,7 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 
 	noerr: {
 		sqlite3_stmt* createstmts[] = { createappsstmt, createdevsstmt,
-				createdevflagsstmt, createsessionsstmt };
+				createdevflagsstmt, createsessionsstmt, createdownlinksstmt };
 		for (int i = 0; i < G_N_ELEMENTS(createstmts); i++) {
 			if (createstmts[i] != NULL)
 				sqlite3_finalize(createstmts[i]);
