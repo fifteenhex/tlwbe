@@ -39,7 +39,7 @@
 #define GET_SESSIONDEVEUI	"SELECT * FROM sessions WHERE deveui = ?;"
 #define GET_SESSIONDEVADDR	"SELECT * FROM sessions WHERE devaddr = ?;"
 #define DELETE_SESSION		"DELETE FROM sessions WHERE deveui = ?;"
-#define GET_KEYPARTS		"SELECT key,appnonce,devnonce "\
+#define GET_KEYPARTS		"SELECT key,appnonce,devnonce,appeui,deveui "\
 								"FROM sessions INNER JOIN devs on devs.eui = sessions.deveui WHERE devaddr = ?"
 
 static int database_stepuntilcomplete(sqlite3_stmt* stmt,
@@ -290,9 +290,11 @@ static void database_keyparts_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 	const char* key = sqlite3_column_text(stmt, 0);
 	const char* appnonce = sqlite3_column_text(stmt, 1);
 	const char* devnonce = sqlite3_column_text(stmt, 2);
+	const char* appeui = sqlite3_column_text(stmt, 3);
+	const char* deveui = sqlite3_column_text(stmt, 4);
 
 	const struct keyparts kp = { .key = key, .appnonce = appnonce, .devnonce =
-			devnonce };
+			devnonce, .appeui = appeui, .deveui = deveui };
 
 	((void (*)(const struct keyparts*, void*)) callbackanddata->first)(&kp,
 			callbackanddata->second);

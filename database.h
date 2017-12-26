@@ -28,6 +28,9 @@ struct keyparts {
 	const gchar* key;
 	const gchar* appnonce;
 	const gchar* devnonce;
+	// not really needed for the keys but useful
+	const gchar* appeui;
+	const gchar* deveui;
 };
 
 void database_init(struct context* cntx, const gchar* databasepath);
