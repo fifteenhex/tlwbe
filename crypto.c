@@ -99,3 +99,32 @@ void crypto_fillinblock(uint8_t* block, uint8_t firstbyte, uint8_t dir,
 	memcpy(block + 10, &fcnt, sizeof(fcnt));
 	block[15] = lastbyte;
 }
+
+static void crypto_decryptpayload_generates(const uint8_t* key,
+		const uint8_t* ai, uint8_t* s) {
+	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+	EVP_CIPHER_CTX_init(ctx);
+	EVP_EncryptInit(ctx, EVP_aes_128_ecb(), key, NULL);
+	EVP_CIPHER_CTX_set_padding(ctx, 0);
+	int outlen;
+	EVP_EncryptUpdate(ctx, s, &outlen, ai, BLOCKLEN);
+	EVP_EncryptFinal(ctx, s + outlen, &outlen);
+	EVP_CIPHER_CTX_free(ctx);
+}
+
+void crypto_decryptpayload(const uint8_t* key, uint32_t devaddr, uint32_t fcnt,
+		const uint8_t* in, uint8_t* out, size_t len) {
+	for (int i = 0; (i * 16) < len; i++) {
+		uint8_t ai[BLOCKLEN];
+		crypto_fillinblock(ai, 0x1, 0, devaddr, fcnt, i + 1);
+		uint8_t s[BLOCKLEN];
+		crypto_decryptpayload_generates(key, ai, s);
+		for (int j = 0; j < 16; j++) {
+			int offset = (i * 16) + j;
+			if (offset == len)
+				break;
+			out[offset] = in[offset] ^ s[j];
+		}
+
+	}
+}

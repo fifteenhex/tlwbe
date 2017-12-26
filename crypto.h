@@ -13,3 +13,5 @@ void crypto_calculatesessionkeys(const uint8_t* key, const uint8_t* appnonce,
 		uint8_t* appkey);
 void crypto_fillinblock(uint8_t* block, uint8_t firstbyte, uint8_t dir,
 		uint32_t devaddr, uint32_t fcnt, uint8_t lastbyte);
+void crypto_decryptpayload(const uint8_t* key, uint32_t devaddr, uint32_t fcnt,
+		const uint8_t* in, uint8_t* out, size_t len);
