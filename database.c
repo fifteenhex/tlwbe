@@ -68,6 +68,13 @@ static int database_stepuntilcomplete(sqlite3_stmt* stmt,
 									goto out;\
 								}
 
+#define LOOKUPBYSTRING(stmt, string, convertor)\
+		const struct pair callbackanddata = { .first = callback, .second = data };\
+			sqlite3_bind_text(stmt, 1, string, -1, SQLITE_STATIC);\
+			database_stepuntilcomplete(stmt, convertor,\
+					(void*) &callbackanddata);\
+			sqlite3_reset(stmt)
+
 void database_init(struct context* cntx, const gchar* databasepath) {
 	int ret = sqlite3_open(databasepath, &cntx->db);
 	if (ret)
@@ -150,12 +157,7 @@ static void database_app_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 
 void database_app_get(struct context* cntx, const char* eui,
 		void (*callback)(const struct app* app, void* data), void* data) {
-	const struct pair callbackanddata = { .first = callback, .second = data };
-	sqlite3_stmt* stmt = cntx->getappsstmt;
-	sqlite3_bind_text(stmt, 1, eui, -1, SQLITE_STATIC);
-	database_stepuntilcomplete(stmt, database_app_get_rowcallback,
-			(void*) &callbackanddata);
-	sqlite3_reset(stmt);
+	LOOKUPBYSTRING(cntx->getappsstmt, eui, database_app_get_rowcallback);
 }
 
 void database_app_del(struct context* cntx, const char* eui) {
@@ -303,10 +305,6 @@ static void database_keyparts_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 void database_keyparts_get(struct context* cntx, const char* devaddr,
 		void (*callback)(const struct keyparts* keyparts, void* data),
 		void* data) {
-	const struct pair callbackanddata = { .first = callback, .second = data };
-	sqlite3_stmt* stmt = cntx->getkeyparts;
-	sqlite3_bind_text(stmt, 1, devaddr, -1, SQLITE_STATIC);
-	database_stepuntilcomplete(stmt, database_keyparts_get_rowcallback,
-			(void*) &callbackanddata);
-	sqlite3_reset(stmt);
+	LOOKUPBYSTRING(cntx->getkeyparts, devaddr,
+			database_keyparts_get_rowcallback);
 }
