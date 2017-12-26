@@ -35,6 +35,7 @@
 
 #define CREATETABLE_DOWNLINKS	"CREATE TABLE IF NOT EXISTS downlinks ("\
 								"id			INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,"\
+								"timestamp	INTEGER NOT NULL,"\
 								"appeui		TEXT NOT NULL,"\
 								"deveui		TEXT NOT NULL,"\
 								"port		INTEGER NOT NULL,"\
