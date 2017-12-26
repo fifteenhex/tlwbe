@@ -16,17 +16,7 @@ struct sessionkeys {
 };
 
 static void uplink_process_publish(struct context* cntx, const gchar* appeui,
-		const gchar* deveui, int port, const gchar* payload) {
-
-	JsonBuilder* jsonbuilder = json_builder_new();
-
-	json_builder_begin_object(jsonbuilder);
-
-	json_builder_set_member_name(jsonbuilder, "payload");
-	json_builder_add_string_value(jsonbuilder, payload);
-
-	json_builder_end_object(jsonbuilder);
-
+		const gchar* deveui, int port, const guint8* payload, gsize payloadlen) {
 	GString* topicstr = g_string_new(TLWBE_TOPICROOT"/");
 	g_string_append(topicstr, "uplink");
 	g_string_append(topicstr, "/");
@@ -36,14 +26,8 @@ static void uplink_process_publish(struct context* cntx, const gchar* appeui,
 	g_string_append(topicstr, "/");
 	g_string_append_printf(topicstr, "%d", port);
 	gchar* topic = g_string_free(topicstr, FALSE);
-
-	gsize jsonlen;
-	gchar* json = utils_jsonbuildertostring(jsonbuilder, &jsonlen);
-	mosquitto_publish(cntx->mosq, NULL, topic, jsonlen, json, 0, false);
-
+	mosquitto_publish(cntx->mosq, NULL, topic, payloadlen, payload, 0, false);
 	g_free(topic);
-	g_object_unref(jsonbuilder);
-
 }
 
 static void uplink_process_rowcallback(const struct keyparts* keyparts,
@@ -138,11 +122,8 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 		g_message("decrypted payload: %s", decryptedhex);
 		g_free(decryptedhex);
 
-		gchar* b64payload = g_base64_encode(decrypted, payloadlen);
-		uplink_process_publish(cntx, keys.appeui, keys.deveui, fport,
-				b64payload);
-		g_free(b64payload);
-
+		uplink_process_publish(cntx, keys.appeui, keys.deveui, fport, decrypted,
+				payloadlen);
 	} else
 		g_message("bad mic, dropping");
 
