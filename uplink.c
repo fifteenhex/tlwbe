@@ -72,7 +72,7 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 	gboolean confirm = LORAWAN_TYPE(*data++) == MHDR_MTYPE_CNFUP;
 
 	struct lorawan_fhdr* fhdr = (struct lorawan_fhdr*) data;
-	data += sizeof(fhdr);
+	data += sizeof(*fhdr);
 
 	guint32 devaddr = GUINT32_FROM_LE(fhdr->devaddr);
 	gchar devaddrascii[DEVADDRASCIILEN];
