@@ -30,6 +30,8 @@
 #define MHDR_MTYPE_CNFUP	0b100
 #define MHDR_MTYPE_CNFDN	0b101
 
+#define LORAWAN_TYPE(t) ((t >> MHDR_MTYPE_SHIFT) & MHDR_MTYPE_MASK)
+
 #define LORAWAN_PAYLOADWITHMIC(payloadsz) (payloadsz + MICLEN)
 #define LORAWAN_PKTSZ(payloadsz) (MHDRLEN + LORAWAN_PAYLOADWITHMIC(payloadsz))
 

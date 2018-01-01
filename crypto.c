@@ -101,6 +101,11 @@ void crypto_fillinblock(uint8_t* block, uint8_t firstbyte, uint8_t dir,
 	block[15] = lastbyte;
 }
 
+void crypto_fillinblock_updownlink(uint8_t* block, uint8_t dir,
+		uint32_t devaddr, uint32_t fcnt, uint8_t lastbyte) {
+	crypto_fillinblock(block, 0x49, dir, devaddr, fcnt, lastbyte);
+}
+
 static void crypto_decryptpayload_generates(const uint8_t* key,
 		const uint8_t* ai, uint8_t* s) {
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();

@@ -16,7 +16,8 @@ tlwbe: tlwbe.c \
 	utils.c \
 	downlink.c \
 	uplink.c \
-	pktfwdbr.c
+	pktfwdbr.c \
+	packet.c
 	$(CC) $(GLIB) $(JSON) $(LIBCRYPTO) $(SQLITE) $(MOSQUITTO) $(CFLAGS) $^ -o $@
 
 .PHONY: clean

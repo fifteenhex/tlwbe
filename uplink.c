@@ -6,14 +6,8 @@
 #include "lorawan.h"
 #include "database.h"
 #include "crypto.h"
-
-struct sessionkeys {
-	gboolean found;
-	uint8_t nwksk[SESSIONKEYLEN];
-	uint8_t appsk[SESSIONKEYLEN];
-	char* appeui;
-	char* deveui;
-};
+#include "packet.h"
+#include "downlink.h"
 
 static void uplink_process_publish(struct context* cntx, const gchar* appeui,
 		const gchar* deveui, int port, const guint8* payload, gsize payloadlen) {
@@ -75,7 +69,9 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 	guchar* dataend = data + (datalen - MICLEN);
 	gsize datasizewithoutmic = dataend - datastart;
 
-	struct lorawan_fhdr* fhdr = (struct lorawan_fhdr*) (data + 1);
+	gboolean confirm = LORAWAN_TYPE(*data++) == MHDR_MTYPE_CNFUP;
+
+	struct lorawan_fhdr* fhdr = (struct lorawan_fhdr*) data;
 	data += sizeof(fhdr);
 
 	guint32 devaddr = GUINT32_FROM_LE(fhdr->devaddr);
@@ -98,7 +94,7 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 
 	uint8_t b0[BLOCKLEN];
 	guint32 fullfcnt = fcnt;
-	crypto_fillinblock(b0, 0x49, 0, devaddr, fullfcnt, datasizewithoutmic);
+	crypto_fillinblock_updownlink(b0, 0, devaddr, fullfcnt, datasizewithoutmic);
 
 	struct sessionkeys keys = { 0 };
 	database_keyparts_get(cntx, devaddrascii, uplink_process_rowcallback,
@@ -124,6 +120,20 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 
 		uplink_process_publish(cntx, keys.appeui, keys.deveui, fport, decrypted,
 				payloadlen);
+
+		if (confirm) {
+			gsize cnfpktlen;
+			guint8* cnfpkt = packet_build(MHDR_MTYPE_UNCNFDN, devaddr, &keys,
+					&cnfpktlen);
+			gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, NULL);
+			gsize payloadlen;
+			gchar* payload = downlink_createtxjson(cnfpkt, cnfpktlen,
+					&payloadlen, 1000000, rxpkt);
+			mosquitto_publish(cntx->mosq, NULL, topic, payloadlen, payload, 0,
+			false);
+			g_free(topic);
+			g_free(cnfpkt);
+		}
 	} else
 		g_message("bad mic, dropping");
 
