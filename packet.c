@@ -8,8 +8,14 @@ guint8* packet_build(guint8 type, guint32 devaddr, struct sessionkeys* keys,
 	GByteArray* cnfpkt = g_byte_array_new();
 	guint8 mhdr = (type << MHDR_MTYPE_SHIFT);
 	g_byte_array_append(cnfpkt, &mhdr, sizeof(mhdr));
-	struct lorawan_fhdr fhdr = { 0 };
-	g_byte_array_append(cnfpkt, &fhdr, sizeof(fhdr));
+
+	g_byte_array_append(cnfpkt, &devaddr, sizeof(devaddr));
+
+	guint8 fctrl = LORAWAN_FHDR_FCTRL_ACK;
+	g_byte_array_append(cnfpkt, &fctrl, sizeof(fctrl));
+
+	guint16 fcnt = 0;
+	g_byte_array_append(cnfpkt, &fcnt, sizeof(fcnt));
 
 	uint8_t b0[BLOCKLEN];
 	guint32 fullfcnt = 0;

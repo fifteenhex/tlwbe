@@ -50,7 +50,11 @@ struct lorawan_joinaccept {
 	uint8_t cflist[16];
 }__attribute__((packed));
 
-#define LORAWAN_FHDR_FCTRL_FOPTLEN_MASK 0b1111
+#define LORAWAN_FHDR_FCTRL_FOPTLEN_MASK	0b1111
+#define LORAWAN_FHDR_FCTRL_ADR			(1 << 7)
+#define LORAWAN_FHDR_FCTRL_ADRACKREQ	(1 << 6)
+#define LORAWAN_FHDR_FCTRL_ACK			(1 << 5)
+#define LORAWAN_FHDR_FCTRL_FPENDING		(1 << 4)
 
 struct lorawan_fhdr {
 	uint32_t devaddr;

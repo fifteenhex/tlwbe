@@ -132,6 +132,9 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 			mosquitto_publish(cntx->mosq, NULL, topic, payloadlen, payload, 0,
 			false);
 			g_free(topic);
+			datahex = utils_bin2hex(cnfpkt, cnfpktlen);
+			g_message("raw conf %s", datahex);
+			g_free(datahex);
 			g_free(cnfpkt);
 		}
 	} else
