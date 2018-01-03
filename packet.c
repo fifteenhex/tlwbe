@@ -5,6 +5,79 @@
 #include "crypto.h"
 #include "utils.h"
 
+static void packet_appendu32(GByteArray* pkt, guint32 value) {
+	for (int i = 0; i < 4; i++) {
+		guint8 byte = (value >> (i * 8) & 0xff);
+		g_byte_array_append(pkt, &byte, sizeof(byte));
+	}
+}
+
+static void packet_appendu24(GByteArray* pkt, guint32 value) {
+	for (int i = 0; i < 3; i++) {
+		guint8 byte = (value >> (i * 8) & 0xff);
+		g_byte_array_append(pkt, &byte, sizeof(byte));
+	}
+}
+
+static void packet_appendu16(GByteArray* pkt, guint16 value) {
+	for (int i = 0; i < 2; i++) {
+		guint8 byte = (value >> (i * 8) & 0xff);
+		g_byte_array_append(pkt, &byte, sizeof(byte));
+	}
+}
+
+static void packet_appendu8(GByteArray* pkt, guint8 value) {
+	g_byte_array_append(pkt, &value, 1);
+
+}
+
+guint8* packet_build_joinresponse(const struct session* s, const char* appkey,
+		gsize* pktlen) {
+
+	gboolean cflist = FALSE;
+
+	GByteArray* pkt = g_byte_array_new();
+
+	guint8 mhdr = (MHDR_MTYPE_JOINACK << MHDR_MTYPE_SHIFT);
+	packet_appendu8(pkt, mhdr);
+
+	guint32 appnonce = 0;
+	utils_hex2bin(s->appnonce, &appnonce, sizeof(appnonce));
+	packet_appendu24(pkt, GUINT32_FROM_BE(appnonce << 8));
+
+	guint32 netid = 0;
+	packet_appendu24(pkt, netid);
+
+	guint32 devaddr = 0;
+	utils_hex2bin(s->devaddr, &devaddr, sizeof(devaddr));
+	packet_appendu32(pkt, GUINT32_FROM_BE(devaddr));
+
+	guint8 dlsettings = 0;
+	packet_appendu8(pkt, dlsettings);
+
+	guint8 rxdelay = 0;
+	packet_appendu8(pkt, rxdelay);
+
+	uint32_t mic = crypto_mic(appkey, KEYLEN, pkt->data, pkt->len);
+	packet_appendu32(pkt, mic);
+
+	guint8* crypted = g_malloc(pkt->len);
+	crypted[0] = pkt->data[0];
+	crypto_encryptfordevice(appkey, pkt->data + 1, pkt->len - 1, crypted + 1);
+
+	gchar* plainpkthex = utils_bin2hex(pkt->data, pkt->len);
+	gchar* cryptedpkthex = utils_bin2hex(crypted, pkt->len);
+	g_message("plain text packet:\t%s\n" "\tencrypted packet:\t%s", plainpkthex,
+			cryptedpkthex);
+	g_free(plainpkthex);
+	g_free(cryptedpkthex);
+
+	*pktlen = pkt->len;
+	g_byte_array_free(pkt, TRUE);
+
+	return crypted;
+}
+
 guint8* packet_build_data(guint8 type, guint32 devaddr, gboolean adr,
 		gboolean ack, guint32 framecounter, guint8 port, guint8* payload,
 		gsize payloadlen, struct sessionkeys* keys, gsize* pktlen) {

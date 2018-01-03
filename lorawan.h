@@ -32,26 +32,8 @@
 
 #define LORAWAN_TYPE(t) ((t >> MHDR_MTYPE_SHIFT) & MHDR_MTYPE_MASK)
 
-#define LORAWAN_PAYLOADWITHMIC(payloadsz) (payloadsz + MICLEN)
-#define LORAWAN_PKTSZ(payloadsz) (MHDRLEN + LORAWAN_PAYLOADWITHMIC(payloadsz))
-
-struct lorawan_joinaccept {
-	uint8_t appnonce[APPNONCELEN];
-	uint8_t netid[NETIDLEN];
-	uint32_t devaddr;
-	uint8_t dlsettings;
-	uint8_t rxdelay;
-	uint8_t cflist[16];
-}__attribute__((packed));
-
 #define LORAWAN_FHDR_FCTRL_FOPTLEN_MASK	0b1111
 #define LORAWAN_FHDR_FCTRL_ADR			(1 << 7)
 #define LORAWAN_FHDR_FCTRL_ADRACKREQ	(1 << 6)
 #define LORAWAN_FHDR_FCTRL_ACK			(1 << 5)
 #define LORAWAN_FHDR_FCTRL_FPENDING		(1 << 4)
-
-struct lorawan_fhdr {
-	uint32_t devaddr;
-	uint8_t fctrl;
-	uint16_t fcnt;
-}__attribute__((packed));

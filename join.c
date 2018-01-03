@@ -67,36 +67,6 @@ static void join_processjoinrequest_createsession(struct context* cntx,
 	database_session_add(cntx, s);
 }
 
-static void join_processjoinrequest_createjoinresponse(const struct session* s,
-		const char* appkey, uint8_t* pkt, gsize* pktlen) {
-
-	gboolean cflist = FALSE;
-
-	uint8_t plainpkt[LORAWAN_PKTSZ(sizeof(struct lorawan_joinaccept))];
-	*pktlen = sizeof(plainpkt) - (cflist ? 0 : 16);
-
-	memset(plainpkt, 0, *pktlen);
-	plainpkt[0] = (MHDR_MTYPE_JOINACK << MHDR_MTYPE_SHIFT);
-
-	struct lorawan_joinaccept* response =
-			(struct lorawan_joinaccept*) &plainpkt[1];
-	utils_hex2bin(s->appnonce, &response->appnonce, sizeof(response->appnonce));
-	utils_hex2bin(s->devaddr, &response->devaddr, sizeof(response->devaddr));
-
-	uint32_t mic = crypto_mic(appkey, KEYLEN, plainpkt, *pktlen - MICLEN);
-	memcpy((plainpkt + *pktlen) - sizeof(mic), &mic, sizeof(mic));
-
-	pkt[0] = (MHDR_MTYPE_JOINACK << MHDR_MTYPE_SHIFT);
-	crypto_encryptfordevice(appkey, plainpkt + 1, *pktlen - 1, pkt + 1);
-
-	gchar* plainpkthex = utils_bin2hex(plainpkt, *pktlen);
-	g_message("plaintext packet: %s", plainpkthex);
-	g_free(plainpkthex);
-	gchar* cryptedpkthex = utils_bin2hex(pkt, *pktlen);
-	g_message("crypted packet: %s", cryptedpkthex);
-	g_free(cryptedpkthex);
-}
-
 void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 		guchar* data, int datalen, const struct pktfwdpkt* rxpkt) {
 
@@ -134,16 +104,16 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 	struct session s;
 	join_processjoinrequest_createsession(cntx, asciieui, asciidevnonce, &s);
 
-	uint8_t joinpkt[LORAWAN_PKTSZ(sizeof(struct lorawan_joinaccept))];
-	gsize joinpktlen;
-	join_processjoinrequest_createjoinresponse(&s, key, joinpkt, &joinpktlen);
+	gsize joinrespktlen;
+	guint8* joinrespkt = packet_build_joinresponse(&s, key, &joinrespktlen);
 
 	printsessionkeys(key, &s);
 
 	g_free((void*) s.appnonce);
 	g_free((void*) s.devaddr);
 
-	downlink_dodownlink(cntx, gateway, joinpkt, joinpktlen, rxpkt, RXW_J2);
+	downlink_dodownlink(cntx, gateway, joinrespkt, joinrespktlen, rxpkt,
+			RXW_J2);
 
 	out: if (key != NULL)
 		g_free(key);
