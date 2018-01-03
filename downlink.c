@@ -5,6 +5,7 @@
 #include "pktfwdbr.h"
 #include "utils.h"
 #include "tlwbe.h"
+#include "regional.h"
 
 static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 		guint64 delay, const struct pktfwdpkt* rxpkt) {
@@ -52,11 +53,11 @@ static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 
 void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 		guint8* pkt, gsize pktlen, const struct pktfwdpkt* rxpkt,
-		enum DOWNLINK_RXWINDOW rxwindow) {
+		enum RXWINDOW rxwindow) {
 	gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, NULL);
 	gsize payloadlen;
-	gchar* payload = downlink_createtxjson(pkt, pktlen, &payloadlen, 2000000,
-			rxpkt);
+	gchar* payload = downlink_createtxjson(pkt, pktlen, &payloadlen,
+			regional_getwindowdelay(rxwindow), rxpkt);
 	mosquitto_publish(cntx->mosq, NULL, topic, payloadlen, payload, 0,
 	false);
 	g_free(topic);
