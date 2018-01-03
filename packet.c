@@ -41,16 +41,14 @@ guint8* packet_build_joinresponse(const struct session* s, const char* appkey,
 	guint8 mhdr = (MHDR_MTYPE_JOINACK << MHDR_MTYPE_SHIFT);
 	packet_appendu8(pkt, mhdr);
 
-	guint32 appnonce = 0;
-	utils_hex2bin(s->appnonce, &appnonce, sizeof(appnonce));
-	packet_appendu24(pkt, GUINT32_FROM_BE(appnonce << 8));
+	guint32 appnonce = utils_hex2u24(s->appnonce);
+	packet_appendu24(pkt, appnonce);
 
 	guint32 netid = 0;
 	packet_appendu24(pkt, netid);
 
-	guint32 devaddr = 0;
-	utils_hex2bin(s->devaddr, &devaddr, sizeof(devaddr));
-	packet_appendu32(pkt, GUINT32_FROM_BE(devaddr));
+	guint32 devaddr = utils_hex2u32(s->devaddr);
+	packet_appendu32(pkt, devaddr);
 
 	guint8 dlsettings = 0;
 	packet_appendu8(pkt, dlsettings);

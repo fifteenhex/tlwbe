@@ -32,16 +32,18 @@ static void uplink_process_rowcallback(const struct keyparts* keyparts,
 	struct sessionkeys* keys = data;
 
 	uint8_t key[KEYLEN];
-	uint8_t appnonce[APPNONCELEN];
-	uint8_t netid[NETIDLEN] = { 0 };
-	uint8_t devnonce[DEVNONCELEN];
-
 	utils_hex2bin(keyparts->key, key, sizeof(key));
-	utils_hex2bin(keyparts->appnonce, appnonce, sizeof(appnonce));
-	utils_hex2bin(keyparts->devnonce, devnonce, sizeof(devnonce));
+	uint32_t appnonce = utils_hex2u24(keyparts->appnonce);
+	uint32_t netid = 0;
+	uint16_t devnonce = utils_hex2u16(keyparts->devnonce);
+
+	g_message("appnonce %"G_GINT32_MODIFIER"x ""devnonce %"G_GINT32_MODIFIER"x",
+			appnonce, devnonce);
 
 	keys->appeui = g_strdup(keyparts->appeui);
 	keys->deveui = g_strdup(keyparts->deveui);
+
+	keys->nwksk[0] = 0xaa;
 
 	crypto_calculatesessionkeys(key, appnonce, netid, devnonce, keys->nwksk,
 			keys->appsk);

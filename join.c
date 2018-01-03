@@ -18,11 +18,9 @@ static void printsessionkeys(const uint8_t* key, const struct session* s) {
 	uint8_t nsk[SESSIONKEYLEN];
 	uint8_t ask[SESSIONKEYLEN];
 
-	uint8_t appnonce[APPNONCELEN];
-	utils_hex2bin(s->appnonce, appnonce, sizeof(appnonce));
-	uint8_t netid[NETIDLEN] = { 0 };
-	uint8_t devnonce[DEVNONCELEN];
-	utils_hex2bin(s->devnonce, devnonce, sizeof(devnonce));
+	uint32_t appnonce = utils_hex2u24(s->appnonce);
+	uint32_t netid = 0;
+	uint16_t devnonce = utils_hex2u16(s->devnonce);
 
 	crypto_calculatesessionkeys(key, appnonce, netid, devnonce, nsk, ask);
 

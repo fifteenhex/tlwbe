@@ -51,6 +51,27 @@ void utils_hex2bin(const gchar* string, void* buff, gsize buffsz) {
 	}
 }
 
+guint16 utils_hex2u16(const gchar* string) {
+	guint16 result = 0;
+	utils_hex2bin(string, &result, sizeof(result));
+	result = GUINT16_FROM_BE(result);
+	return result;
+}
+
+guint32 utils_hex2u24(const gchar* string) {
+	guint32 result = 0;
+	utils_hex2bin(string, ((guint8*) &result) + 1, 3);
+	result = GUINT32_FROM_BE(result);
+	return result;
+}
+
+guint32 utils_hex2u32(const gchar* string) {
+	guint32 result = 0;
+	utils_hex2bin(string, &result, sizeof(result));
+	result = GUINT32_FROM_BE(result);
+	return result;
+}
+
 gchar* utils_jsonbuildertostring(JsonBuilder* jsonbuilder, gsize* jsonlen) {
 	JsonNode* responseroot = json_builder_get_root(jsonbuilder);
 	JsonGenerator* generator = json_generator_new();

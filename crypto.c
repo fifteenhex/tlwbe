@@ -43,36 +43,35 @@ void crypto_encryptfordevice(const char* key, void* data, size_t datalen,
 #define SKEYPAD (SESSIONKEYLEN - (1 + APPNONCELEN + NETIDLEN + DEVNONCELEN))
 
 static void crypto_calculatesessionkeys_key(const uint8_t* key,
-		const uint8_t* appnonce, const uint8_t* netid, const uint8_t* devnonce,
-		uint8_t* skey, uint8_t kb) {
+		uint32_t appnonce, uint32_t netid, uint16_t devnonce, uint8_t* skey,
+		uint8_t kb) {
 
 	uint8_t pad[SKEYPAD] = { 0 };
 
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
 	EVP_CIPHER_CTX_init(ctx);
 	EVP_EncryptInit(ctx, EVP_aes_128_ecb(), key, NULL);
+
 	EVP_CIPHER_CTX_set_padding(ctx, 0);
 
 	int outlen;
 	EVP_EncryptUpdate(ctx, skey, &outlen, &kb, sizeof(kb));
 	skey += outlen;
-	EVP_EncryptUpdate(ctx, skey, &outlen, appnonce, APPNONCELEN);
+	EVP_EncryptUpdate(ctx, skey, &outlen, (void*) &appnonce, APPNONCELEN);
 	skey += outlen;
-	EVP_EncryptUpdate(ctx, skey, &outlen, netid, NETIDLEN);
+	EVP_EncryptUpdate(ctx, skey, &outlen, (void*) &netid, NETIDLEN);
 	skey += outlen;
-	EVP_EncryptUpdate(ctx, skey, &outlen, devnonce, DEVNONCELEN);
+	EVP_EncryptUpdate(ctx, skey, &outlen, (void*) &devnonce, DEVNONCELEN);
 	skey += outlen;
 	EVP_EncryptUpdate(ctx, skey, &outlen, pad, sizeof(pad));
 	skey += outlen;
 	EVP_EncryptFinal(ctx, skey, &outlen);
 	skey += outlen;
 	EVP_CIPHER_CTX_free(ctx);
-
 }
 
-void crypto_calculatesessionkeys(const uint8_t* key, const uint8_t* appnonce,
-		const uint8_t* netid, const uint8_t* devnonce, uint8_t* networkkey,
-		uint8_t* appkey) {
+void crypto_calculatesessionkeys(const uint8_t* key, uint32_t appnonce,
+		uint32_t netid, uint16_t devnonce, uint8_t* networkkey, uint8_t* appkey) {
 
 	const uint8_t nwkbyte = 0x01;
 	const uint8_t appbyte = 0x02;
