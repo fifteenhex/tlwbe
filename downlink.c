@@ -8,7 +8,7 @@
 #include "regional.h"
 
 static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
-		guint64 delay, const struct pktfwdpkt* rxpkt) {
+		guint64 delay, gdouble frequency, const struct pktfwdpkt* rxpkt) {
 
 	JsonBuilder* jsonbuilder = json_builder_new();
 	json_builder_begin_object(jsonbuilder);
@@ -19,7 +19,7 @@ static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_MODU);
 	json_builder_add_string_value(jsonbuilder, rxpkt->modulation);
 	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_FREQ);
-	json_builder_add_double_value(jsonbuilder, rxpkt->frequency);
+	json_builder_add_double_value(jsonbuilder, frequency);
 	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_RFCH);
 	json_builder_add_int_value(jsonbuilder, rxpkt->rfchannel);
 
@@ -28,6 +28,10 @@ static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 	json_builder_add_string_value(jsonbuilder, rxpkt->datarate);
 	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_CODR);
 	json_builder_add_string_value(jsonbuilder, rxpkt->coderate);
+
+	// needed apparently :/
+	json_builder_set_member_name(jsonbuilder, "ipol");
+	json_builder_add_boolean_value(jsonbuilder, true);
 
 	// add in timing stuff
 	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_TMST);
@@ -57,7 +61,8 @@ void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 	gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, NULL);
 	gsize payloadlen;
 	gchar* payload = downlink_createtxjson(pkt, pktlen, &payloadlen,
-			regional_getwindowdelay(rxwindow), rxpkt);
+			regional_getwindowdelay(rxwindow),
+			regional_getfrequency(rxwindow, rxpkt), rxpkt);
 	mosquitto_publish(cntx->mosq, NULL, topic, payloadlen, payload, 0,
 	false);
 	g_free(topic);

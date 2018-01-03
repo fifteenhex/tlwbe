@@ -14,3 +14,15 @@ guint64 regional_getwindowdelay(enum RXWINDOW rxwindow) {
 		return 0;
 	}
 }
+
+gdouble regional_getfrequency(enum RXWINDOW rxwindow,
+		const struct pktfwdpkt* rxpkt) {
+	switch (rxwindow) {
+	case RXW_R2:
+	case RXW_J2:
+		return 923.2;
+	default:
+		return rxpkt->frequency;
+	}
+
+}

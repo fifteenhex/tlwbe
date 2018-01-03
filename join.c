@@ -103,17 +103,16 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 
 	struct session s;
 	join_processjoinrequest_createsession(cntx, asciieui, asciidevnonce, &s);
-
+	printsessionkeys(key, &s);
 	gsize joinrespktlen;
 	guint8* joinrespkt = packet_build_joinresponse(&s, key, &joinrespktlen);
-
-	printsessionkeys(key, &s);
 
 	g_free((void*) s.appnonce);
 	g_free((void*) s.devaddr);
 
 	downlink_dodownlink(cntx, gateway, joinrespkt, joinrespktlen, rxpkt,
 			RXW_J2);
+	g_free(joinrespkt);
 
 	out: if (key != NULL)
 		g_free(key);
