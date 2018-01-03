@@ -12,6 +12,7 @@
 #include "utils.h"
 #include "database.h"
 #include "downlink.h"
+#include "packet.h"
 
 static void printsessionkeys(const uint8_t* key, const struct session* s) {
 	uint8_t nsk[SESSIONKEYLEN];
@@ -99,31 +100,20 @@ static void join_processjoinrequest_createjoinresponse(const struct session* s,
 void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 		guchar* data, int datalen, const struct pktfwdpkt* rxpkt) {
 
-	guchar* pkt = data + 1;
-	int joinreqlen = 1 + sizeof(struct lorawan_joinreq) + 4;
-	if (datalen != joinreqlen) {
-		g_message("join request should be %d bytes long, have %d", joinreqlen,
-				datalen);
-		goto out;
-	}
+	struct packet_unpacked unpacked;
+	packet_unpack(data, datalen, &unpacked);
 
-	struct lorawan_joinreq* joinreq = (struct lorawan_joinreq*) pkt;
-	guint64 appeui = GUINT64_FROM_LE(joinreq->appeui);
-	guint64 deveui = GUINT64_FROM_LE(joinreq->deveui);
-	guint16 devnonce = GUINT16_FROM_LE(joinreq->devnonce);
-	g_message("handling join request for app %"G_GINT64_MODIFIER
-			"x from %"G_GINT64_MODIFIER"x "
-			"nonce %"G_GINT16_MODIFIER"x", appeui, deveui, devnonce);
-
-	pkt += sizeof(*joinreq);
-	guint32 inmic;
-	memcpy(&inmic, pkt, sizeof(inmic));
+	g_message(
+			"handling join request for app %"G_GINT64_MODIFIER "x from %"G_GINT64_MODIFIER"x " "nonce %"G_GINT16_MODIFIER"x",
+			unpacked.joinreq.appeui, unpacked.joinreq.deveui,
+			unpacked.joinreq.devnonce);
 
 	char asciieui[EUIASCIILEN];
-	sprintf(asciieui, "%016"G_GINT64_MODIFIER"x", deveui);
+	sprintf(asciieui, "%016"G_GINT64_MODIFIER"x", unpacked.joinreq.deveui);
 
 	char asciidevnonce[DEVNONCEASCIILEN];
-	sprintf(asciidevnonce, "%04"G_GINT16_MODIFIER"x", devnonce);
+	sprintf(asciidevnonce, "%04"G_GINT16_MODIFIER"x",
+			unpacked.joinreq.devnonce);
 
 	uint8_t* key = NULL;
 	database_dev_get(cntx, asciieui, join_processjoinrequest_rowcallback, &key);
@@ -132,10 +122,12 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 		goto out;
 	}
 
-	guint32 calcedmic = crypto_mic(key, KEYLEN, data, sizeof(*joinreq) + 1);
+	guint32 calcedmic = crypto_mic(key, KEYLEN, data, datalen - 4);
 
-	if (calcedmic != inmic) {
-		g_message("mic should be %"G_GINT32_MODIFIER"x, calculated %"G_GINT32_MODIFIER"x", inmic, calcedmic);
+	if (calcedmic != unpacked.mic) {
+		g_message(
+				"mic should be %"G_GINT32_MODIFIER"x, calculated %"G_GINT32_MODIFIER"x",
+				unpacked.mic, calcedmic);
 		goto out;
 	}
 
@@ -151,12 +143,7 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 	g_free((void*) s.appnonce);
 	g_free((void*) s.devaddr);
 
-	gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, NULL);
-	gsize payloadlen;
-	gchar* payload = downlink_createtxjson(joinpkt, joinpktlen, &payloadlen,
-			5000000, rxpkt);
-	mosquitto_publish(cntx->mosq, NULL, topic, payloadlen, payload, 0, false);
-	g_free(topic);
+	downlink_dodownlink(cntx, gateway, joinpkt, joinpktlen, rxpkt, RXW_J2);
 
 	out: if (key != NULL)
 		g_free(key);

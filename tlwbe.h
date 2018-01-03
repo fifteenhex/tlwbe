@@ -1,7 +1,7 @@
 #pragma once
 
 #include <glib.h>
-#include <sqlite3.h>
+#include "database_context.h"
 
 #define TLWBE_TOPICROOT "tlwbe"
 
@@ -11,21 +11,5 @@ struct context {
 	gint mqttport;
 	GIOChannel* mosqchan;
 	guint mosqsource;
-	//sqlite stuff
-	sqlite3* db;
-	// statements for apps
-	sqlite3_stmt* insertappstmt;
-	sqlite3_stmt* getappsstmt;
-	sqlite3_stmt* listappsstmt;
-	// statements for devs
-	sqlite3_stmt* insertdevstmt;
-	sqlite3_stmt* getdevstmt;
-	sqlite3_stmt* listdevsstmt;
-	// statements for sessions
-	sqlite3_stmt* insertsessionstmt;
-	sqlite3_stmt* getsessionbydeveuistmt;
-	sqlite3_stmt* getsessionbydevaddrstmt;
-	sqlite3_stmt* deletesessionstmt;
-	sqlite3_stmt* getkeyparts;
-	// statements for downlinks
+	struct database_context dbcntx;
 };

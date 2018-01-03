@@ -6,7 +6,7 @@
 #include "utils.h"
 #include "tlwbe.h"
 
-gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
+static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 		guint64 delay, const struct pktfwdpkt* rxpkt) {
 
 	JsonBuilder* jsonbuilder = json_builder_new();
@@ -30,7 +30,7 @@ gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 
 	// add in timing stuff
 	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_TMST);
-	json_builder_add_int_value(jsonbuilder, rxpkt->timestamp + 1000000);
+	json_builder_add_int_value(jsonbuilder, rxpkt->timestamp + delay);
 
 	gchar* b64txdata = g_base64_encode(data, datalen);
 
@@ -48,6 +48,18 @@ gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 	g_free(b64txdata);
 
 	return json;
+}
+
+void downlink_dodownlink(struct context* cntx, const gchar* gateway,
+		guint8* pkt, gsize pktlen, const struct pktfwdpkt* rxpkt,
+		enum DOWNLINK_RXWINDOW rxwindow) {
+	gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, NULL);
+	gsize payloadlen;
+	gchar* payload = downlink_createtxjson(pkt, pktlen, &payloadlen, 2000000,
+			rxpkt);
+	mosquitto_publish(cntx->mosq, NULL, topic, payloadlen, payload, 0,
+	false);
+	g_free(topic);
 }
 
 void downlink_onbrokerconnect(struct context* cntx) {

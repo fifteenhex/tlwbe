@@ -61,40 +61,22 @@ static void uplink_process_rowcallback(const struct keyparts* keyparts,
 void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 		int datalen, const struct pktfwdpkt* rxpkt) {
 
-	gchar* datahex = utils_bin2hex(data, datalen);
-	g_message("raw uplink %s", datahex);
-	g_free(datahex);
+	struct packet_unpacked unpacked;
+	packet_unpack(data, datalen, &unpacked);
 
 	guchar* datastart = data;
 	guchar* dataend = data + (datalen - MICLEN);
 	gsize datasizewithoutmic = dataend - datastart;
 
-	gboolean confirm = LORAWAN_TYPE(*data++) == MHDR_MTYPE_CNFUP;
+	gboolean confirm = unpacked.type == MHDR_MTYPE_CNFUP;
 
-	struct lorawan_fhdr* fhdr = (struct lorawan_fhdr*) data;
-	data += sizeof(*fhdr);
-
-	guint32 devaddr = GUINT32_FROM_LE(fhdr->devaddr);
 	gchar devaddrascii[DEVADDRASCIILEN];
-	sprintf(devaddrascii,"%08"G_GINT32_MODIFIER"x", devaddr);
-
-	int numfopts = fhdr->fctrl & LORAWAN_FHDR_FCTRL_FOPTLEN_MASK;
-	uint8_t* fopts = data;
-	data += numfopts;
-
-	guint16 fcnt = GUINT16_FROM_LE(fhdr->fcnt);
-
-	int fport = *data++;
-
-	gsize payloadlen = dataend - data;
-	guchar* payload = data;
-
-	guint32 mic;
-	memcpy(&mic, dataend, sizeof(mic));
+	sprintf(devaddrascii, "%08"G_GINT32_MODIFIER"x", unpacked.data.devaddr);
 
 	uint8_t b0[BLOCKLEN];
-	guint32 fullfcnt = fcnt;
-	crypto_fillinblock_updownlink(b0, 0, devaddr, fullfcnt, datasizewithoutmic);
+	guint32 fullfcnt = unpacked.data.framecount;
+	crypto_fillinblock_updownlink(b0, 0, unpacked.data.devaddr, fullfcnt,
+			datasizewithoutmic);
 
 	struct sessionkeys keys = { 0 };
 	database_keyparts_get(cntx, devaddrascii, uplink_process_rowcallback,
@@ -104,37 +86,34 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 		return;
 	}
 
+	packet_pack(&unpacked, &keys);
+
 	guint32 calcedmic = crypto_mic_2(keys.nwksk, KEYLEN, b0, sizeof(b0),
 			datastart, datasizewithoutmic);
-	g_message("uplink from %s to port %d (%d fopts, %d fcnt, %d bytes of payload, mic %08"
-			G_GINT32_MODIFIER"x calcedmic %08"G_GINT32_MODIFIER"x)",devaddrascii, fport, numfopts, (int) fcnt, payloadlen, mic, calcedmic);
 
-	if (mic == calcedmic) {
-		uint8_t* key = (uint8_t*) (fport == 0 ? &keys.nwksk : &keys.appsk);
+	if (unpacked.mic == calcedmic) {
+		uint8_t* key = (uint8_t*) (
+				unpacked.data.port == 0 ? &keys.nwksk : &keys.appsk);
 		uint8_t decrypted[128];
-		crypto_decryptpayload(key, devaddr, fullfcnt, payload, decrypted,
-				payloadlen);
-		gchar* decryptedhex = utils_bin2hex(decrypted, payloadlen);
+		crypto_endecryptpayload(key, false, unpacked.data.devaddr, fullfcnt,
+				unpacked.data.payload, decrypted, unpacked.data.payloadlen);
+		gchar* decryptedhex = utils_bin2hex(decrypted,
+				unpacked.data.payloadlen);
 		g_message("decrypted payload: %s", decryptedhex);
 		g_free(decryptedhex);
 
-		uplink_process_publish(cntx, keys.appeui, keys.deveui, fport, decrypted,
-				payloadlen);
+		uplink_process_publish(cntx, keys.appeui, keys.deveui,
+				unpacked.data.port, decrypted, unpacked.data.payloadlen);
 
 		if (confirm) {
 			gsize cnfpktlen;
-			guint8* cnfpkt = packet_build(MHDR_MTYPE_UNCNFDN, devaddr, &keys,
-					&cnfpktlen);
-			gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, NULL);
-			gsize payloadlen;
-			gchar* payload = downlink_createtxjson(cnfpkt, cnfpktlen,
-					&payloadlen, 1000000, rxpkt);
-			mosquitto_publish(cntx->mosq, NULL, topic, payloadlen, payload, 0,
-			false);
-			g_free(topic);
-			datahex = utils_bin2hex(cnfpkt, cnfpktlen);
-			g_message("raw conf %s", datahex);
-			g_free(datahex);
+			gint64 framecounter = database_framecounter_down_getandinc(cntx,
+					devaddrascii);
+			guint8* cnfpkt = packet_build_dataack(MHDR_MTYPE_UNCNFDN,
+					unpacked.data.devaddr, framecounter, &keys, &cnfpktlen);
+			packet_debug(cnfpkt, cnfpktlen);
+			downlink_dodownlink(cntx, gateway, cnfpkt, cnfpktlen, rxpkt,
+					RXW_R2);
 			g_free(cnfpkt);
 		}
 	} else

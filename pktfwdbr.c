@@ -5,6 +5,7 @@
 #include "lorawan.h"
 #include "join.h"
 #include "uplink.h"
+#include "packet.h"
 
 static gboolean pktfwdbr_onmsg_parsepkt(JsonObject* rootobj,
 		struct pktfwdpkt* pkt) {
@@ -75,6 +76,8 @@ void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		goto out;
 	}
 
+	packet_debug(data, datalen);
+
 	uint8_t type = (*data >> MHDR_MTYPE_SHIFT) & MHDR_MTYPE_MASK;
 	switch (type) {
 	case MHDR_MTYPE_JOINREQ:
@@ -85,7 +88,7 @@ void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		uplink_process(cntx, gatewayid, data, datalen, &pkt);
 		break;
 	default:
-		g_message("unhandled message type %d", (int) type);
+		g_message("unhandled message type %d", (int ) type);
 		break;
 	}
 

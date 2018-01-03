@@ -1,5 +1,3 @@
-#include <sqlite3.h>
-
 #include "database.h"
 #include "utils.h"
 
@@ -26,10 +24,12 @@
 							");"
 
 #define CREATETABLE_SESSIONS	"CREATE TABLE IF NOT EXISTS sessions ("\
-								"deveui		TEXT NOT NULL UNIQUE,"\
-								"devnonce	TEXT NOT NULL,"\
-								"appnonce	TEXT NOT NULL,"\
-								"devaddr	TEXT NOT NULL UNIQUE,"\
+								"deveui			TEXT NOT NULL UNIQUE,"\
+								"devnonce		TEXT NOT NULL,"\
+								"appnonce		TEXT NOT NULL,"\
+								"devaddr		TEXT NOT NULL UNIQUE,"\
+								"upcounter		INTEGER DEFAULT 0,"\
+								"downcounter	INTEGER DEFAULT 0,"\
 								"PRIMARY KEY(deveui)"\
 							");"
 
@@ -57,6 +57,10 @@
 #define GET_KEYPARTS		"SELECT key,appnonce,devnonce,appeui,deveui "\
 								"FROM sessions INNER JOIN devs on devs.eui = sessions.deveui WHERE devaddr = ?"
 
+#define GET_FRAMECOUNTER_UP			"SELECT upcounter FROM sessions WHERE devaddr = ?"
+#define GET_FRAMECOUNTER_DOWN		"SELECT downcounter FROM sessions WHERE devaddr = ?"
+#define INC_FRAMECOUNTER_DOWN		"UPDATE sessions SET downcounter = downcounter +  1 WHERE devaddr = ?"
+
 static int database_stepuntilcomplete(sqlite3_stmt* stmt,
 		void (*rowcallback)(sqlite3_stmt* stmt, void* data), void* data) {
 	int ret;
@@ -75,10 +79,10 @@ static int database_stepuntilcomplete(sqlite3_stmt* stmt,
 	return ret;
 }
 
-#define INITSTMT(SQL, STMT) if (sqlite3_prepare_v2(cntx->db, SQL,\
+#define INITSTMT(SQL, STMT) if (sqlite3_prepare_v2(cntx->dbcntx.db, SQL,\
 								-1, &STMT, NULL) != SQLITE_OK) {\
 									g_message("failed to prepare sql; %s -> %s",\
-										SQL, sqlite3_errmsg(cntx->db));\
+										SQL, sqlite3_errmsg(cntx->dbcntx.db));\
 									goto out;\
 								}
 
@@ -90,9 +94,9 @@ static int database_stepuntilcomplete(sqlite3_stmt* stmt,
 			sqlite3_reset(stmt)
 
 void database_init(struct context* cntx, const gchar* databasepath) {
-	int ret = sqlite3_open(databasepath, &cntx->db);
+	int ret = sqlite3_open(databasepath, &cntx->dbcntx.db);
 	if (ret)
-		sqlite3_close(cntx->db);
+		sqlite3_close(cntx->dbcntx.db);
 
 	sqlite3_stmt *createappsstmt = NULL;
 	sqlite3_stmt *createdevsstmt = NULL;
@@ -112,29 +116,35 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	database_stepuntilcomplete(createsessionsstmt, NULL, NULL);
 	database_stepuntilcomplete(createdownlinksstmt, NULL, NULL);
 
-	INITSTMT(INSERT_APP, cntx->insertappstmt);
-	INITSTMT(GET_APP, cntx->getappsstmt);
-	INITSTMT(LIST_APPS, cntx->listappsstmt);
+	INITSTMT(INSERT_APP, cntx->dbcntx.insertappstmt);
+	INITSTMT(GET_APP, cntx->dbcntx.getappsstmt);
+	INITSTMT(LIST_APPS, cntx->dbcntx.listappsstmt);
 
-	INITSTMT(INSERT_DEV, cntx->insertdevstmt);
-	INITSTMT(GET_DEV, cntx->getdevstmt);
-	INITSTMT(LIST_DEVS, cntx->listdevsstmt);
+	INITSTMT(INSERT_DEV, cntx->dbcntx.insertdevstmt);
+	INITSTMT(GET_DEV, cntx->dbcntx.getdevstmt);
+	INITSTMT(LIST_DEVS, cntx->dbcntx.listdevsstmt);
 
-	INITSTMT(INSERT_SESSION, cntx->insertsessionstmt);
-	INITSTMT(GET_SESSIONDEVEUI, cntx->getsessionbydeveuistmt);
-	INITSTMT(GET_SESSIONDEVADDR, cntx->getsessionbydevaddrstmt);
-	INITSTMT(DELETE_SESSION, cntx->deletesessionstmt);
+	INITSTMT(INSERT_SESSION, cntx->dbcntx.insertsessionstmt);
+	INITSTMT(GET_SESSIONDEVEUI, cntx->dbcntx.getsessionbydeveuistmt);
+	INITSTMT(GET_SESSIONDEVADDR, cntx->dbcntx.getsessionbydevaddrstmt);
+	INITSTMT(DELETE_SESSION, cntx->dbcntx.deletesessionstmt);
 
-	INITSTMT(GET_KEYPARTS, cntx->getkeyparts);
+	INITSTMT(GET_KEYPARTS, cntx->dbcntx.getkeyparts);
+
+	INITSTMT(GET_FRAMECOUNTER_UP, cntx->dbcntx.getframecounterup);
+	INITSTMT(GET_FRAMECOUNTER_DOWN, cntx->dbcntx.getframecounterdown);
+	INITSTMT(INC_FRAMECOUNTER_DOWN, cntx->dbcntx.incframecounterdown);
 
 	goto noerr;
 
 	out: {
-		sqlite3_stmt* stmts[] = { cntx->insertappstmt, cntx->getappsstmt,
-				cntx->listappsstmt, cntx->insertdevstmt, cntx->getdevstmt,
-				cntx->listdevsstmt, cntx->insertsessionstmt,
-				cntx->getsessionbydeveuistmt, cntx->getsessionbydevaddrstmt,
-				cntx->deletesessionstmt, cntx->getkeyparts };
+		sqlite3_stmt* stmts[] = { cntx->dbcntx.insertappstmt,
+				cntx->dbcntx.getappsstmt, cntx->dbcntx.listappsstmt,
+				cntx->dbcntx.insertdevstmt, cntx->dbcntx.getdevstmt,
+				cntx->dbcntx.listdevsstmt, cntx->dbcntx.insertsessionstmt,
+				cntx->dbcntx.getsessionbydeveuistmt,
+				cntx->dbcntx.getsessionbydevaddrstmt,
+				cntx->dbcntx.deletesessionstmt, cntx->dbcntx.getkeyparts };
 
 		for (int i = 0; i < G_N_ELEMENTS(stmts); i++) {
 			sqlite3_finalize(stmts[i]);
@@ -154,7 +164,7 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 }
 
 void database_app_add(struct context* cntx, const struct app* app) {
-	sqlite3_stmt* stmt = cntx->insertappstmt;
+	sqlite3_stmt* stmt = cntx->dbcntx.insertappstmt;
 	sqlite3_bind_text(stmt, 1, app->eui, -1, SQLITE_STATIC);
 	sqlite3_bind_text(stmt, 2, app->name, -1, SQLITE_STATIC);
 	sqlite3_bind_int(stmt, 3, app->serial);
@@ -181,7 +191,7 @@ static void database_app_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 
 void database_app_get(struct context* cntx, const char* eui,
 		void (*callback)(const struct app* app, void* data), void* data) {
-	LOOKUPBYSTRING(cntx->getappsstmt, eui, database_app_get_rowcallback);
+	LOOKUPBYSTRING(cntx->dbcntx.getappsstmt, eui, database_app_get_rowcallback);
 }
 
 void database_app_del(struct context* cntx, const char* eui) {
@@ -198,14 +208,14 @@ static void database_apps_list_rowcallback(sqlite3_stmt* stmt, void* data) {
 void database_apps_list(struct context* cntx,
 		void (*callback)(const char* eui, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
-	sqlite3_stmt* stmt = cntx->listappsstmt;
+	sqlite3_stmt* stmt = cntx->dbcntx.listappsstmt;
 	database_stepuntilcomplete(stmt, database_apps_list_rowcallback,
 			(void*) &callbackanddata);
 	sqlite3_reset(stmt);
 }
 
 void database_dev_add(struct context* cntx, const struct dev* dev) {
-	sqlite3_stmt* stmt = cntx->insertdevstmt;
+	sqlite3_stmt* stmt = cntx->dbcntx.insertdevstmt;
 	sqlite3_bind_text(stmt, 1, dev->eui, -1, SQLITE_STATIC);
 	sqlite3_bind_text(stmt, 2, dev->appeui, -1, SQLITE_STATIC);
 	sqlite3_bind_text(stmt, 3, dev->key, -1, SQLITE_STATIC);
@@ -237,7 +247,7 @@ static void database_dev_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 
 void database_dev_get(struct context* cntx, const char* eui,
 		void (*callback)(const struct dev* app, void* data), void* data) {
-	LOOKUPBYSTRING(cntx->getdevstmt, eui, database_dev_get_rowcallback);
+	LOOKUPBYSTRING(cntx->dbcntx.getdevstmt, eui, database_dev_get_rowcallback);
 }
 
 void database_dev_del(struct context* cntx, const char* eui) {
@@ -247,14 +257,14 @@ void database_dev_del(struct context* cntx, const char* eui) {
 void database_devs_list(struct context* cntx,
 		void (*callback)(const char* eui, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
-	sqlite3_stmt* stmt = cntx->listdevsstmt;
+	sqlite3_stmt* stmt = cntx->dbcntx.listdevsstmt;
 	database_stepuntilcomplete(stmt, database_apps_list_rowcallback,
 			(void*) &callbackanddata);
 	sqlite3_reset(stmt);
 }
 
 void database_session_add(struct context* cntx, const struct session* session) {
-	sqlite3_stmt* stmt = cntx->insertsessionstmt;
+	sqlite3_stmt* stmt = cntx->dbcntx.insertsessionstmt;
 	sqlite3_bind_text(stmt, 1, session->deveui, -1, SQLITE_STATIC);
 	sqlite3_bind_text(stmt, 2, session->devnonce, -1, SQLITE_STATIC);
 	sqlite3_bind_text(stmt, 3, session->appnonce, -1, SQLITE_STATIC);
@@ -281,7 +291,7 @@ static void database_session_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 void database_session_get_deveui(struct context* cntx, const char* deveui,
 		void (*callback)(const struct session* session, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
-	sqlite3_stmt* stmt = cntx->getsessionbydeveuistmt;
+	sqlite3_stmt* stmt = cntx->dbcntx.getsessionbydeveuistmt;
 	sqlite3_bind_text(stmt, 1, deveui, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, database_session_get_rowcallback,
 			(void*) &callbackanddata);
@@ -291,7 +301,7 @@ void database_session_get_deveui(struct context* cntx, const char* deveui,
 void database_session_get_devaddr(struct context* cntx, const char* devaddr,
 		void (*callback)(const struct session* session, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
-	sqlite3_stmt* stmt = cntx->getsessionbydevaddrstmt;
+	sqlite3_stmt* stmt = cntx->dbcntx.getsessionbydevaddrstmt;
 	sqlite3_bind_text(stmt, 1, devaddr, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, database_session_get_rowcallback,
 			(void*) &callbackanddata);
@@ -299,7 +309,7 @@ void database_session_get_devaddr(struct context* cntx, const char* devaddr,
 }
 
 void database_session_del(struct context* cntx, const char* deveui) {
-	sqlite3_stmt* stmt = cntx->deletesessionstmt;
+	sqlite3_stmt* stmt = cntx->dbcntx.deletesessionstmt;
 	sqlite3_bind_text(stmt, 1, deveui, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, NULL, NULL);
 	sqlite3_reset(stmt);
@@ -324,6 +334,28 @@ static void database_keyparts_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 void database_keyparts_get(struct context* cntx, const char* devaddr,
 		void (*callback)(const struct keyparts* keyparts, void* data),
 		void* data) {
-	LOOKUPBYSTRING(cntx->getkeyparts, devaddr,
+	LOOKUPBYSTRING(cntx->dbcntx.getkeyparts, devaddr,
 			database_keyparts_get_rowcallback);
+}
+
+static void database_framecounter_get_rowcallback(sqlite3_stmt* stmt,
+		void* data) {
+	int* framecounter = data;
+	*framecounter = sqlite3_column_int(stmt, 0);
+}
+
+int database_framecounter_down_getandinc(struct context* cntx,
+		const char* devaddr) {
+	int framecounter = -1;
+	sqlite3_bind_text(cntx->dbcntx.getframecounterdown, 1, devaddr, -1,
+	SQLITE_STATIC);
+	database_stepuntilcomplete(cntx->dbcntx.getframecounterdown,
+			database_framecounter_get_rowcallback, &framecounter);
+	sqlite3_reset(cntx->dbcntx.getframecounterdown);
+	sqlite3_bind_text(cntx->dbcntx.incframecounterdown, 1, devaddr, -1,
+	SQLITE_STATIC);
+	database_stepuntilcomplete(cntx->dbcntx.incframecounterdown,
+	NULL, NULL);
+	sqlite3_reset(cntx->dbcntx.incframecounterdown);
+	return framecounter;
 }

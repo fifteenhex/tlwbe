@@ -35,12 +35,6 @@
 #define LORAWAN_PAYLOADWITHMIC(payloadsz) (payloadsz + MICLEN)
 #define LORAWAN_PKTSZ(payloadsz) (MHDRLEN + LORAWAN_PAYLOADWITHMIC(payloadsz))
 
-struct lorawan_joinreq {
-	uint64_t appeui;
-	uint64_t deveui;
-	uint16_t devnonce;
-}__attribute__((packed));
-
 struct lorawan_joinaccept {
 	uint8_t appnonce[APPNONCELEN];
 	uint8_t netid[NETIDLEN];

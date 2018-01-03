@@ -6,8 +6,13 @@
 
 #define DOWNLINK_SUBTOPIC "downlink"
 
-gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
-		guint64 delay, const struct pktfwdpkt* rxpkt);
+enum DOWNLINK_RXWINDOW {
+	RXW_R1, RXW_R2, RXW_J1, RXW_J2
+};
+
+void downlink_dodownlink(struct context* cntx, const gchar* gateway,
+		guint8* pkt, gsize pktlen, const struct pktfwdpkt* rxpkt,
+		enum DOWNLINK_RXWINDOW rxwindow);
 
 void downlink_onbrokerconnect(struct context* cntx);
 void downlink_onmsg(struct context* cntx, const struct mosquitto_message* msg,

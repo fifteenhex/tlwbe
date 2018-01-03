@@ -106,7 +106,7 @@ void crypto_fillinblock_updownlink(uint8_t* block, uint8_t dir,
 	crypto_fillinblock(block, 0x49, dir, devaddr, fcnt, lastbyte);
 }
 
-static void crypto_decryptpayload_generates(const uint8_t* key,
+static void crypto_endecryptpayload_generates(const uint8_t* key,
 		const uint8_t* ai, uint8_t* s) {
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
 	EVP_CIPHER_CTX_init(ctx);
@@ -118,13 +118,14 @@ static void crypto_decryptpayload_generates(const uint8_t* key,
 	EVP_CIPHER_CTX_free(ctx);
 }
 
-void crypto_decryptpayload(const uint8_t* key, uint32_t devaddr, uint32_t fcnt,
-		const uint8_t* in, uint8_t* out, size_t len) {
+void crypto_endecryptpayload(const uint8_t* key, bool downlink,
+		uint32_t devaddr, uint32_t fcnt, const uint8_t* in, uint8_t* out,
+		size_t len) {
 	for (int i = 0; (i * 16) < len; i++) {
 		uint8_t ai[BLOCKLEN];
-		crypto_fillinblock(ai, 0x1, 0, devaddr, fcnt, i + 1);
+		crypto_fillinblock(ai, 0x1, downlink ? 1 : 0, devaddr, fcnt, i + 1);
 		uint8_t s[BLOCKLEN];
-		crypto_decryptpayload_generates(key, ai, s);
+		crypto_endecryptpayload_generates(key, ai, s);
 		for (int j = 0; j < 16; j++) {
 			int offset = (i * 16) + j;
 			if (offset == len)

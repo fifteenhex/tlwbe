@@ -18,5 +18,6 @@ void crypto_fillinblock(uint8_t* block, uint8_t firstbyte, uint8_t dir,
 void crypto_fillinblock_updownlink(uint8_t* block, uint8_t dir,
 		uint32_t devaddr, uint32_t fcnt, uint8_t lastbyte);
 
-void crypto_decryptpayload(const uint8_t* key, uint32_t devaddr, uint32_t fcnt,
-		const uint8_t* in, uint8_t* out, size_t len);
+void crypto_endecryptpayload(const uint8_t* key, bool downlink,
+		uint32_t devaddr, uint32_t fcnt, const uint8_t* in, uint8_t* out,
+		size_t len);

@@ -54,12 +54,12 @@ void database_devs_list(struct context* cntx,
 //session
 void database_session_add(struct context* cntx, const struct session* dev);
 void database_session_get_deveui(struct context* cntx, const char* deveui,
-		void (*callback)(const struct session* session, void* data),
-		void* data);
+		void (*callback)(const struct session* session, void* data), void* data);
 void database_session_get_devaddr(struct context* cntx, const char* devaddr,
-		void (*callback)(const struct session* session, void* data),
-		void* data);
+		void (*callback)(const struct session* session, void* data), void* data);
 void database_session_del(struct context* cntx, const char* deveui);
+int database_framecounter_down_getandinc(struct context* cntx,
+		const char* devaddr);
 // dev + session
 void database_keyparts_get(struct context*, const char* devaddr,
 		void (*callback)(const struct keyparts* keyparts, void* data),
