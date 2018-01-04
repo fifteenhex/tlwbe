@@ -9,6 +9,7 @@
 #include "database.h"
 #include "control.h"
 #include "downlink.h"
+#include "config.h"
 
 static gboolean handlemosq(GIOChannel *source, GIOCondition condition,
 		gpointer data) {
@@ -58,10 +59,12 @@ static gboolean mosq_idle(gpointer data) {
 	return TRUE;
 }
 
+#if TLWBE_DEBUG_MOSQUITTO
 static void mosq_log(struct mosquitto* mosq, void* userdata, int level,
 		const char* str) {
 	g_message(str);
 }
+#endif
 
 static void mosq_message(struct mosquitto* mosq, void* userdata,
 		const struct mosquitto_message* msg) {
@@ -122,7 +125,9 @@ int main(int argc, char** argv) {
 
 	mosquitto_lib_init();
 	cntx.mosq = mosquitto_new(NULL, true, &cntx);
+#if TLWBE_DEBUG_MOSQUITTO
 	mosquitto_log_callback_set(cntx.mosq, mosq_log);
+#endif
 	mosquitto_message_callback_set(cntx.mosq, mosq_message);
 
 	g_timeout_add(500, mosq_idle, &cntx);
