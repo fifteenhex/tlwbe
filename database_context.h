@@ -21,5 +21,6 @@ struct database_context {
 	sqlite3_stmt* getframecounterup;
 	sqlite3_stmt* getframecounterdown;
 	sqlite3_stmt* incframecounterdown;
+	sqlite3_stmt* setframecounterup;
 // statements for downlinks
 };

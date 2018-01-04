@@ -96,13 +96,19 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 	if (unpacked.mic == calcedmic) {
 		uint8_t* key = (uint8_t*) (
 				unpacked.data.port == 0 ? &keys.nwksk : &keys.appsk);
+
 		uint8_t decrypted[128];
 		crypto_endecryptpayload(key, false, unpacked.data.devaddr, fullfcnt,
 				unpacked.data.payload, decrypted, unpacked.data.payloadlen);
+
 		gchar* decryptedhex = utils_bin2hex(decrypted,
 				unpacked.data.payloadlen);
 		g_message("decrypted payload: %s", decryptedhex);
 		g_free(decryptedhex);
+
+		//TODO we should OR this onto the top 16 bits AFAIK
+		database_framecounter_up_set(cntx, devaddrascii,
+				unpacked.data.framecount);
 
 		uplink_process_publish(cntx, keys.appeui, keys.deveui,
 				unpacked.data.port, decrypted, unpacked.data.payloadlen);
@@ -115,7 +121,7 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 					unpacked.data.devaddr, framecounter, &keys, &cnfpktlen);
 			packet_debug(cnfpkt, cnfpktlen);
 			downlink_dodownlink(cntx, gateway, cnfpkt, cnfpktlen, rxpkt,
-					RXW_R2);
+					RXW_R1);
 			g_free(cnfpkt);
 		}
 	} else

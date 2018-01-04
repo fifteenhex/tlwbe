@@ -60,6 +60,8 @@ void database_session_get_devaddr(struct context* cntx, const char* devaddr,
 void database_session_del(struct context* cntx, const char* deveui);
 int database_framecounter_down_getandinc(struct context* cntx,
 		const char* devaddr);
+void database_framecounter_up_set(struct context* cntx, const char* devaddr,
+		int framecounter);
 // dev + session
 void database_keyparts_get(struct context*, const char* devaddr,
 		void (*callback)(const struct keyparts* keyparts, void* data),

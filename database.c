@@ -59,6 +59,7 @@
 
 #define GET_FRAMECOUNTER_UP			"SELECT upcounter FROM sessions WHERE devaddr = ?"
 #define GET_FRAMECOUNTER_DOWN		"SELECT downcounter FROM sessions WHERE devaddr = ?"
+#define SET_FRAMECOUNTER_UP		"UPDATE sessions SET upcounter = ? WHERE devaddr = ?"
 #define INC_FRAMECOUNTER_DOWN		"UPDATE sessions SET downcounter = downcounter +  1 WHERE devaddr = ?"
 
 static int database_stepuntilcomplete(sqlite3_stmt* stmt,
@@ -133,18 +134,25 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 
 	INITSTMT(GET_FRAMECOUNTER_UP, cntx->dbcntx.getframecounterup);
 	INITSTMT(GET_FRAMECOUNTER_DOWN, cntx->dbcntx.getframecounterdown);
+	INITSTMT(SET_FRAMECOUNTER_UP, cntx->dbcntx.setframecounterup);
 	INITSTMT(INC_FRAMECOUNTER_DOWN, cntx->dbcntx.incframecounterdown);
 
 	goto noerr;
 
 	out: {
-		sqlite3_stmt* stmts[] = { cntx->dbcntx.insertappstmt,
-				cntx->dbcntx.getappsstmt, cntx->dbcntx.listappsstmt,
-				cntx->dbcntx.insertdevstmt, cntx->dbcntx.getdevstmt,
-				cntx->dbcntx.listdevsstmt, cntx->dbcntx.insertsessionstmt,
-				cntx->dbcntx.getsessionbydeveuistmt,
-				cntx->dbcntx.getsessionbydevaddrstmt,
-				cntx->dbcntx.deletesessionstmt, cntx->dbcntx.getkeyparts };
+		sqlite3_stmt* stmts[] =
+				{ cntx->dbcntx.insertappstmt, cntx->dbcntx.getappsstmt,
+						cntx->dbcntx.listappsstmt, cntx->dbcntx.insertdevstmt,
+						cntx->dbcntx.getdevstmt, cntx->dbcntx.listdevsstmt,
+						cntx->dbcntx.insertsessionstmt,
+						cntx->dbcntx.getsessionbydeveuistmt,
+						cntx->dbcntx.getsessionbydevaddrstmt,
+						cntx->dbcntx.deletesessionstmt,
+						cntx->dbcntx.getkeyparts,
+						cntx->dbcntx.getframecounterup,
+						cntx->dbcntx.getframecounterdown,
+						cntx->dbcntx.setframecounterup,
+						cntx->dbcntx.incframecounterdown };
 
 		for (int i = 0; i < G_N_ELEMENTS(stmts); i++) {
 			sqlite3_finalize(stmts[i]);
@@ -358,4 +366,14 @@ int database_framecounter_down_getandinc(struct context* cntx,
 	NULL, NULL);
 	sqlite3_reset(cntx->dbcntx.incframecounterdown);
 	return framecounter;
+}
+
+void database_framecounter_up_set(struct context* cntx, const char* devaddr,
+		int framecounter) {
+	sqlite3_bind_int(cntx->dbcntx.setframecounterup, 1, framecounter);
+	sqlite3_bind_text(cntx->dbcntx.setframecounterup, 2, devaddr, -1,
+	SQLITE_STATIC);
+	database_stepuntilcomplete(cntx->dbcntx.setframecounterup,
+			database_framecounter_get_rowcallback, &framecounter);
+	sqlite3_reset(cntx->dbcntx.setframecounterup);
 }
