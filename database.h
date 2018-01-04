@@ -33,6 +33,17 @@ struct keyparts {
 	const gchar* deveui;
 };
 
+struct downlink {
+	guint64 timestamp;
+	guint32 deadline;
+	const gchar* appeui;
+	const gchar* deveui;
+	guint8 port;
+	const guint8* payload;
+	gsize payloadlen;
+	const gchar* token;
+};
+
 void database_init(struct context* cntx, const gchar* databasepath);
 
 // app
@@ -66,3 +77,6 @@ void database_framecounter_up_set(struct context* cntx, const char* devaddr,
 void database_keyparts_get(struct context*, const char* devaddr,
 		void (*callback)(const struct keyparts* keyparts, void* data),
 		void* data);
+//downlinks
+void database_downlink_add(struct context* cntx, struct downlink* downlink);
+void database_downlinks_clean(struct context* cntx, guint64 timestamp);

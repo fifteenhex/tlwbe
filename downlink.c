@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "tlwbe.h"
 #include "regional.h"
+#include "database.h"
 
 static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 		guint64 delay, gdouble frequency, const struct pktfwdpkt* rxpkt) {
@@ -70,21 +71,36 @@ void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 
 void downlink_onbrokerconnect(struct context* cntx) {
 	mosquitto_subscribe(cntx->mosq, NULL,
-	TLWBE_TOPICROOT "/" DOWNLINK_SUBTOPIC "/#", 0);
+	TLWBE_TOPICROOT "/" DOWNLINK_SUBTOPIC "/" DOWNLINK_QUEUE "/#", 0);
 }
 
 void downlink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		char** splittopic, int numtopicparts) {
 
-	if (numtopicparts != 5) {
-		g_message("need 5 topic parts, got %d", numtopicparts);
+	if (numtopicparts != 7) {
+		g_message("need 7 topic parts, got %d", numtopicparts);
 		return;
 	}
 
-	const char* appeui = splittopic[2];
-	const char* deveui = splittopic[3];
-	const char* port = splittopic[4];
+	guint64 port;
+	if (!g_ascii_string_to_unsigned(splittopic[5], 10, 0, 255, &port, NULL)) {
+		g_message("port number invalid");
+		return;
+	}
 
-	g_message("have downlink for app %s, dev %s, port %s", appeui, deveui,
-			port);
+	struct downlink downlink = { .timestamp = g_get_real_time(), .deadline =
+			((24 * 60) * 60), .appeui = splittopic[3], .deveui = splittopic[4],
+			.port = (guint8) (port & 0xff), .payload = msg->payload,
+			.payloadlen = msg->payloadlen, .token = splittopic[6] };
+
+	g_message("have downlink for app %s, dev %s, port %d, token %s",
+			downlink.appeui, downlink.deveui, port, downlink.token);
+
+	database_downlink_add(cntx, &downlink);
+}
+
+gboolean downlink_cleanup(gpointer data) {
+	struct context* cntx = data;
+	database_downlinks_clean(cntx, g_get_real_time());
+	return TRUE;
 }
