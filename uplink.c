@@ -110,8 +110,17 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 		database_framecounter_up_set(cntx, devaddrascii,
 				unpacked.data.framecount);
 
+		struct uplink ul = { .timestamp = g_get_real_time(), .appeui =
+				keys.appeui, .deveui = keys.deveui, .port = unpacked.data.port,
+				.payload = decrypted, .payloadlen = unpacked.data.payloadlen };
+		database_uplink_add(cntx, &ul);
+
 		uplink_process_publish(cntx, keys.appeui, keys.deveui,
 				unpacked.data.port, decrypted, unpacked.data.payloadlen);
+
+		int queueddownlinks = database_downlinks_count(cntx, keys.appeui,
+				keys.deveui);
+		g_message("have %d queued downlinks", queueddownlinks);
 
 		if (confirm) {
 			gsize cnfpktlen;
