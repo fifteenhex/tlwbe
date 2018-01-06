@@ -17,3 +17,4 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 		int datalen, const struct pktfwdpkt* rxpkt);
 
 gboolean uplink_havequeueduplink(void);
+gboolean uplink_cleanup(gpointer data);

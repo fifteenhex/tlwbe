@@ -24,6 +24,8 @@ struct database_context {
 	sqlite3_stmt* setframecounterup;
 	//statements for uplinks
 	sqlite3_stmt* insertuplink;
+	sqlite3_stmt* cleanuplinks;
+	sqlite3_stmt* getuplinks_dev;
 	// statements for downlinks
 	sqlite3_stmt* insertdownlink;
 	sqlite3_stmt* cleandownlinks;

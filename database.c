@@ -51,7 +51,7 @@
 								"port		INTEGER NOT NULL,"\
 								"payload	BLOB NOT NULL,"\
 								"token		TEXT NOT NULL UNIQUE"\
-");"
+							");"
 
 //sql for apps
 #define INSERT_APP	"INSERT INTO apps (eui,name,serial) VALUES (?,?,?);"
@@ -77,6 +77,8 @@
 
 //sql for uplinks
 #define INSERT_UPLINK	"INSERT INTO uplinks (timestamp, appeui, deveui, port, payload) VALUES (?,?,?,?,?);"
+#define CLEAN_UPLINKS	"DELETE FROM uplinks WHERE (timestamp < ?);"
+#define GET_UPLINKS_DEV	"SELECT * FROM uplinks WHERE deveui = ?;"
 
 //sql for downlinks
 #define INSERT_DOWNLINK	"INSERT INTO downlinks (timestamp, deadline, appeui, deveui, port, payload, token) VALUES (?,?,?,?,?,?,?);"
@@ -162,6 +164,8 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	INITSTMT(INC_FRAMECOUNTER_DOWN, cntx->dbcntx.incframecounterdown);
 
 	INITSTMT(INSERT_UPLINK, cntx->dbcntx.insertuplink);
+	INITSTMT(GET_UPLINKS_DEV, cntx->dbcntx.getuplinks_dev);
+	INITSTMT(CLEAN_UPLINKS, cntx->dbcntx.cleanuplinks);
 
 	INITSTMT(INSERT_DOWNLINK, cntx->dbcntx.insertdownlink);
 	INITSTMT(CLEAN_DOWNLINKS, cntx->dbcntx.cleandownlinks);
@@ -181,6 +185,7 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 				cntx->dbcntx.getframecounterdown,
 				cntx->dbcntx.setframecounterup,
 				cntx->dbcntx.incframecounterdown, cntx->dbcntx.insertuplink,
+				cntx->dbcntx.getuplinks_dev, cntx->dbcntx.cleanuplinks,
 				cntx->dbcntx.insertdownlink, cntx->dbcntx.cleandownlinks,
 				cntx->dbcntx.countdownlinks };
 
@@ -439,6 +444,13 @@ void database_downlink_add(struct context* cntx, struct downlink* downlink) {
 	database_stepuntilcomplete(cntx->dbcntx.insertdownlink,
 	NULL, NULL);
 	sqlite3_reset(cntx->dbcntx.insertdownlink);
+}
+
+void database_uplinks_clean(struct context* cntx, guint64 timestamp) {
+	sqlite3_bind_int64(cntx->dbcntx.cleanuplinks, 1, timestamp);
+	database_stepuntilcomplete(cntx->dbcntx.cleanuplinks,
+	NULL, NULL);
+	sqlite3_reset(cntx->dbcntx.cleanuplinks);
 }
 
 void database_downlinks_clean(struct context* cntx, guint64 timestamp) {

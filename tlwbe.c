@@ -8,6 +8,7 @@
 #include "pktfwdbr.h"
 #include "database.h"
 #include "control.h"
+#include "uplink.h"
 #include "downlink.h"
 #include "config.h"
 
@@ -131,6 +132,7 @@ int main(int argc, char** argv) {
 	mosquitto_message_callback_set(cntx.mosq, mosq_message);
 
 	g_timeout_add(500, mosq_idle, &cntx);
+	g_timeout_add(5 * 60 * 1000, uplink_cleanup, &cntx);
 	g_timeout_add(5 * 60 * 1000, downlink_cleanup, &cntx);
 
 	GMainLoop* mainloop = g_main_loop_new(NULL, FALSE);

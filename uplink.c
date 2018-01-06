@@ -139,3 +139,10 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 	g_free(keys.appeui);
 	g_free(keys.deveui);
 }
+
+gboolean uplink_cleanup(gpointer data) {
+	guint64 timeout = (((24 * 60) * 60) * (guint64) 1000000);
+	struct context* cntx = data;
+	database_uplinks_clean(cntx, g_get_real_time() - timeout);
+	return TRUE;
+}
