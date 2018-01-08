@@ -48,6 +48,7 @@ static gboolean mosq_idle(gpointer data) {
 
 			control_onbrokerconnect(cntx);
 			downlink_onbrokerconnect(cntx);
+			uplink_onbrokerconnect(cntx);
 			connected = true;
 		}
 	} else
@@ -89,6 +90,8 @@ static void mosq_message(struct mosquitto* mosq, void* userdata,
 		char* subtopic = splittopic[1];
 		if (strcmp(subtopic, CONTROL_SUBTOPIC) == 0)
 			control_onmsg(cntx, msg, splittopic, numtopicparts);
+		else if (strcmp(subtopic, UPLINK_SUBTOPIC_UPLINKS) == 0)
+			uplink_onmsg(cntx, msg, splittopic, numtopicparts);
 		else if (strcmp(subtopic, DOWNLINK_SUBTOPIC) == 0)
 			downlink_onmsg(cntx, msg, splittopic, numtopicparts);
 	} else {

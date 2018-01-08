@@ -88,6 +88,8 @@ void database_keyparts_get(struct context*, const char* devaddr,
 		void* data);
 //uplinks
 void database_uplink_add(struct context* cntx, struct uplink* uplink);
+void database_uplinks_get(struct context* cntx, const char* deveui,
+		void (*callback)(const struct uplink* uplink, void* data), void* data);
 void database_uplinks_clean(struct context* cntx, guint64 timestamp);
 
 //downlinks

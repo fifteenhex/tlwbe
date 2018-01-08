@@ -1,0 +1,12 @@
+Live uplinks from devices
+tlwbe/uplink/<appeui>/<deveui>
+
+Querying stored uplinks
+tlwbe/uplinks/query/<token, probably a uuid>
+{
+}
+
+tlwbe/uplinks/result/<token from query>
+{
+	"token": <token from query>
+}

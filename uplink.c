@@ -146,3 +146,75 @@ gboolean uplink_cleanup(gpointer data) {
 	database_uplinks_clean(cntx, g_get_real_time() - timeout);
 	return TRUE;
 }
+
+void uplink_onbrokerconnect(struct context* cntx) {
+	mosquitto_subscribe(cntx->mosq, NULL,
+			TLWBE_TOPICROOT "/" UPLINK_SUBTOPIC_UPLINKS "/" UPLINK_SUBTOPIC_UPLINKS_QUERY "/#",
+			0);
+}
+
+static void uplink_onmsg_rowcallback(const struct uplink* uplink, void* data) {
+	JsonBuilder* jsonbuilder = data;
+	json_builder_begin_object(jsonbuilder);
+
+	json_builder_set_member_name(jsonbuilder, "timestamp");
+	json_builder_add_int_value(jsonbuilder, uplink->timestamp);
+	json_builder_set_member_name(jsonbuilder, "appeui");
+	json_builder_add_string_value(jsonbuilder, uplink->appeui);
+	json_builder_set_member_name(jsonbuilder, "deveui");
+	json_builder_add_string_value(jsonbuilder, uplink->deveui);
+	json_builder_set_member_name(jsonbuilder, "port");
+	json_builder_add_int_value(jsonbuilder, uplink->port);
+	json_builder_set_member_name(jsonbuilder, "payload");
+	gchar* payloadb64 = g_base64_encode(uplink->payload, uplink->payloadlen);
+	json_builder_add_string_value(jsonbuilder, payloadb64);
+	g_free(payloadb64);
+
+	json_builder_end_object(jsonbuilder);
+}
+
+void uplink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
+		char** splittopic, int numtopicparts) {
+
+	if (numtopicparts != 4) {
+		g_message("expected 4 topic parts, got %d", numtopicparts);
+		return;
+	}
+
+	char* action = splittopic[2];
+	if (strcmp(action, UPLINK_SUBTOPIC_UPLINKS_QUERY) == 0) {
+
+		JsonParser* jsonparser = json_parser_new();
+		json_parser_load_from_data(jsonparser, msg->payload, msg->payloadlen,
+		NULL);
+		JsonNode* rootnode = json_parser_get_root(jsonparser);
+		JsonObject* rootobj = json_node_get_object(rootnode);
+		const gchar* deveui = json_object_get_string_member(rootobj, "deveui");
+
+		char* token = splittopic[3];
+		JsonBuilder* jsonbuilder = json_builder_new();
+		json_builder_begin_object(jsonbuilder);
+		json_builder_set_member_name(jsonbuilder, "uplinks");
+		json_builder_begin_array(jsonbuilder);
+		database_uplinks_get(cntx, deveui, uplink_onmsg_rowcallback,
+				jsonbuilder);
+		json_builder_end_array(jsonbuilder);
+		json_builder_end_object(jsonbuilder);
+
+		gchar* topic = utils_createtopic(TLWBE_TOPICROOT,
+		UPLINK_SUBTOPIC_UPLINKS,
+		UPLINK_SUBTOPIC_UPLINKS_RESULT, token, NULL);
+
+		gsize payloadlen;
+		gchar* payload = utils_jsonbuildertostring(jsonbuilder, &payloadlen);
+
+		mosquitto_publish(cntx->mosq, NULL, topic, payloadlen, payload, 0,
+		false);
+
+		g_free(topic);
+		g_free(payload);
+		g_object_unref(jsonparser);
+	} else {
+		g_message("unexpected action %s", action);
+	}
+}

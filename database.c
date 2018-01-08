@@ -428,6 +428,36 @@ void database_uplink_add(struct context* cntx, struct uplink* uplink) {
 	sqlite3_reset(cntx->dbcntx.insertuplink);
 }
 
+static void database_uplinks_get_rowcallback(sqlite3_stmt* stmt, void* data) {
+	struct pair* callbackanddata = data;
+
+	guint64 timestamp = sqlite3_column_int64(stmt, 1);
+	const char* appeui = sqlite3_column_text(stmt, 2);
+	const char* deveui = sqlite3_column_text(stmt, 3);
+	guint8 port = sqlite3_column_int(stmt, 4);
+	guint8* payload = sqlite3_column_blob(stmt, 5);
+	gsize payloadlen = sqlite3_column_bytes(stmt, 5);
+
+	struct uplink up = { .timestamp = timestamp, .appeui = appeui, .deveui =
+			deveui, .port = port, .payload = payload, .payloadlen = payloadlen };
+
+	((void (*)(const struct uplink*, void*)) callbackanddata->first)(&up,
+			callbackanddata->second);
+}
+
+void database_uplinks_get(struct context* cntx, const char* deveui,
+		void (*callback)(const struct uplink* uplink, void* data), void* data) {
+	LOOKUPBYSTRING(cntx->dbcntx.getuplinks_dev, deveui,
+			database_uplinks_get_rowcallback);
+}
+
+void database_uplinks_clean(struct context* cntx, guint64 timestamp) {
+	sqlite3_bind_int64(cntx->dbcntx.cleanuplinks, 1, timestamp);
+	database_stepuntilcomplete(cntx->dbcntx.cleanuplinks,
+	NULL, NULL);
+	sqlite3_reset(cntx->dbcntx.cleanuplinks);
+}
+
 void database_downlink_add(struct context* cntx, struct downlink* downlink) {
 	sqlite3_bind_int64(cntx->dbcntx.insertdownlink, 1, downlink->timestamp);
 	sqlite3_bind_int(cntx->dbcntx.insertdownlink, 2, downlink->deadline);
@@ -444,13 +474,6 @@ void database_downlink_add(struct context* cntx, struct downlink* downlink) {
 	database_stepuntilcomplete(cntx->dbcntx.insertdownlink,
 	NULL, NULL);
 	sqlite3_reset(cntx->dbcntx.insertdownlink);
-}
-
-void database_uplinks_clean(struct context* cntx, guint64 timestamp) {
-	sqlite3_bind_int64(cntx->dbcntx.cleanuplinks, 1, timestamp);
-	database_stepuntilcomplete(cntx->dbcntx.cleanuplinks,
-	NULL, NULL);
-	sqlite3_reset(cntx->dbcntx.cleanuplinks);
 }
 
 void database_downlinks_clean(struct context* cntx, guint64 timestamp) {
