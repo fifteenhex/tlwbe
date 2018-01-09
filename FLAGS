@@ -1,0 +1,5 @@
+Flags for apps
+
+UPLINK_RAW			-- publish raw uplink payload instead of json wrapped payload and meta data
+UPLINK_NOSTORE		-- don't store uplinks
+UPLINK_NOREALTIME	-- don't publish uplinks in realtime

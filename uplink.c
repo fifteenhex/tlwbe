@@ -8,19 +8,55 @@
 #include "crypto.h"
 #include "packet.h"
 #include "downlink.h"
+#include "flags.h"
 
-static void uplink_process_publish(struct context* cntx, const gchar* appeui,
-		const gchar* deveui, int port, const guint8* payload, gsize payloadlen) {
+static void uplink_tojson(const struct uplink* uplink, JsonBuilder* jsonbuilder) {
+	json_builder_begin_object(jsonbuilder);
+
+	json_builder_set_member_name(jsonbuilder, "timestamp");
+	json_builder_add_int_value(jsonbuilder, uplink->timestamp);
+	json_builder_set_member_name(jsonbuilder, "appeui");
+	json_builder_add_string_value(jsonbuilder, uplink->appeui);
+	json_builder_set_member_name(jsonbuilder, "deveui");
+	json_builder_add_string_value(jsonbuilder, uplink->deveui);
+	json_builder_set_member_name(jsonbuilder, "port");
+	json_builder_add_int_value(jsonbuilder, uplink->port);
+	json_builder_set_member_name(jsonbuilder, "payload");
+	gchar* payloadb64 = g_base64_encode(uplink->payload, uplink->payloadlen);
+	json_builder_add_string_value(jsonbuilder, payloadb64);
+	g_free(payloadb64);
+
+	json_builder_end_object(jsonbuilder);
+}
+
+static void uplink_process_publish(struct context* cntx,
+		const struct uplink* uplink) {
+	struct flags flags;
+	flags_forapp(cntx, uplink->appeui, &flags);
+
 	GString* topicstr = g_string_new(TLWBE_TOPICROOT"/");
 	g_string_append(topicstr, "uplink");
 	g_string_append(topicstr, "/");
-	g_string_append(topicstr, appeui);
+	g_string_append(topicstr, uplink->appeui);
 	g_string_append(topicstr, "/");
-	g_string_append(topicstr, deveui);
+	g_string_append(topicstr, uplink->deveui);
 	g_string_append(topicstr, "/");
-	g_string_append_printf(topicstr, "%d", port);
+	g_string_append_printf(topicstr, "%d", uplink->port);
 	gchar* topic = g_string_free(topicstr, FALSE);
-	mosquitto_publish(cntx->mosq, NULL, topic, payloadlen, payload, 0, false);
+
+	if (flags.uplink.raw)
+		mosquitto_publish(cntx->mosq, NULL, topic, uplink->payloadlen,
+				uplink->payload, 0, false);
+	else {
+		JsonBuilder* jsonbuilder = json_builder_new();
+		uplink_tojson(uplink, jsonbuilder);
+		gsize payloadlen;
+		gchar* payload = utils_jsonbuildertostring(jsonbuilder, &payloadlen);
+		mosquitto_publish(cntx->mosq, NULL, topic, payloadlen, payload, 0,
+		false);
+		g_free(payload);
+	}
+
 	g_free(topic);
 }
 
@@ -113,10 +149,10 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 		struct uplink ul = { .timestamp = g_get_real_time(), .appeui =
 				keys.appeui, .deveui = keys.deveui, .port = unpacked.data.port,
 				.payload = decrypted, .payloadlen = unpacked.data.payloadlen };
+
 		database_uplink_add(cntx, &ul);
 
-		uplink_process_publish(cntx, keys.appeui, keys.deveui,
-				unpacked.data.port, decrypted, unpacked.data.payloadlen);
+		uplink_process_publish(cntx, &ul);
 
 		int queueddownlinks = database_downlinks_count(cntx, keys.appeui,
 				keys.deveui);
@@ -155,22 +191,7 @@ void uplink_onbrokerconnect(struct context* cntx) {
 
 static void uplink_onmsg_rowcallback(const struct uplink* uplink, void* data) {
 	JsonBuilder* jsonbuilder = data;
-	json_builder_begin_object(jsonbuilder);
-
-	json_builder_set_member_name(jsonbuilder, "timestamp");
-	json_builder_add_int_value(jsonbuilder, uplink->timestamp);
-	json_builder_set_member_name(jsonbuilder, "appeui");
-	json_builder_add_string_value(jsonbuilder, uplink->appeui);
-	json_builder_set_member_name(jsonbuilder, "deveui");
-	json_builder_add_string_value(jsonbuilder, uplink->deveui);
-	json_builder_set_member_name(jsonbuilder, "port");
-	json_builder_add_int_value(jsonbuilder, uplink->port);
-	json_builder_set_member_name(jsonbuilder, "payload");
-	gchar* payloadb64 = g_base64_encode(uplink->payload, uplink->payloadlen);
-	json_builder_add_string_value(jsonbuilder, payloadb64);
-	g_free(payloadb64);
-
-	json_builder_end_object(jsonbuilder);
+	uplink_tojson(uplink, jsonbuilder);
 }
 
 void uplink_onmsg(struct context* cntx, const struct mosquitto_message* msg,

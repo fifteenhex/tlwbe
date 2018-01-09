@@ -8,6 +8,12 @@
 								"PRIMARY KEY(eui)"\
 							");"
 
+#define CREATETABLE_APPFLAGS	"CREATE TABLE IF NOT EXISTS appflags ("\
+									"id		INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,"\
+									"appeui	TEXT NOT NULL,"\
+									"flag	TEXT NOT NULL"\
+								");"
+
 #define CREATETABLE_DEVS	"CREATE TABLE IF NOT EXISTS devs ("\
 								"eui	TEXT NOT NULL UNIQUE,"\
 								"appeui	TEXT NOT NULL,"\
@@ -54,14 +60,16 @@
 							");"
 
 //sql for apps
-#define INSERT_APP	"INSERT INTO apps (eui,name,serial) VALUES (?,?,?);"
-#define GET_APP		"SELECT * FROM apps WHERE eui = ?;"
-#define LIST_APPS	"SELECT eui FROM apps;"
+#define INSERT_APP		"INSERT INTO apps (eui,name,serial) VALUES (?,?,?);"
+#define GET_APP			"SELECT * FROM apps WHERE eui = ?;"
+#define LIST_APPS		"SELECT eui FROM apps;"
+#define LIST_APPFLAGS	"SELECT flag FROM appflags WHERE appeui = ?;"
 
 //sql for devs
-#define INSERT_DEV	"INSERT INTO devs (eui, appeui, key, name,serial) VALUES (?,?,?,?,?);"
-#define GET_DEV		"SELECT * FROM devs WHERE eui = ?;"
-#define LIST_DEVS	"SELECT eui FROM devs;"
+#define INSERT_DEV		"INSERT INTO devs (eui, appeui, key, name,serial) VALUES (?,?,?,?,?);"
+#define GET_DEV			"SELECT * FROM devs WHERE eui = ?;"
+#define LIST_DEVS		"SELECT eui FROM devs;"
+#define LIST_DEVFLAGS	"SELECT flag FROM devflags WHERE deveui = ?;"
 
 //sql for sessions
 #define INSERT_SESSION		"INSERT INTO sessions (deveui, devnonce, appnonce, devaddr) VALUES (?,?,?,?);"
@@ -123,6 +131,7 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 		sqlite3_close(cntx->dbcntx.db);
 
 	sqlite3_stmt* createappsstmt = NULL;
+	sqlite3_stmt* createappflagsstmt = NULL;
 	sqlite3_stmt* createdevsstmt = NULL;
 	sqlite3_stmt* createdevflagsstmt = NULL;
 	sqlite3_stmt* createsessionsstmt = NULL;
@@ -130,6 +139,7 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	sqlite3_stmt* createdownlinksstmt = NULL;
 
 	INITSTMT(CREATETABLE_APPS, createappsstmt);
+	INITSTMT(CREATETABLE_APPFLAGS, createappflagsstmt);
 	INITSTMT(CREATETABLE_DEVS, createdevsstmt);
 	INITSTMT(CREATETABLE_DEVFLAGS, createdevflagsstmt);
 	INITSTMT(CREATETABLE_SESSIONS, createsessionsstmt);
@@ -137,6 +147,7 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	INITSTMT(CREATETABLE_DOWNLINKS, createdownlinksstmt);
 
 	database_stepuntilcomplete(createappsstmt, NULL, NULL);
+	database_stepuntilcomplete(createappflagsstmt, NULL, NULL);
 	database_stepuntilcomplete(createdevsstmt, NULL, NULL);
 	database_stepuntilcomplete(createdevflagsstmt, NULL, NULL);
 	database_stepuntilcomplete(createsessionsstmt, NULL, NULL);
@@ -146,6 +157,7 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	INITSTMT(INSERT_APP, cntx->dbcntx.insertappstmt);
 	INITSTMT(GET_APP, cntx->dbcntx.getappsstmt);
 	INITSTMT(LIST_APPS, cntx->dbcntx.listappsstmt);
+	INITSTMT(LIST_APPFLAGS, cntx->dbcntx.listappflagsstmt);
 
 	INITSTMT(INSERT_DEV, cntx->dbcntx.insertdevstmt);
 	INITSTMT(GET_DEV, cntx->dbcntx.getdevstmt);
@@ -176,8 +188,9 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	out: {
 		sqlite3_stmt* stmts[] = { cntx->dbcntx.insertappstmt,
 				cntx->dbcntx.getappsstmt, cntx->dbcntx.listappsstmt,
-				cntx->dbcntx.insertdevstmt, cntx->dbcntx.getdevstmt,
-				cntx->dbcntx.listdevsstmt, cntx->dbcntx.insertsessionstmt,
+				cntx->dbcntx.listappflagsstmt, cntx->dbcntx.insertdevstmt,
+				cntx->dbcntx.getdevstmt, cntx->dbcntx.listdevsstmt,
+				cntx->dbcntx.insertsessionstmt,
 				cntx->dbcntx.getsessionbydeveuistmt,
 				cntx->dbcntx.getsessionbydevaddrstmt,
 				cntx->dbcntx.deletesessionstmt, cntx->dbcntx.getkeyparts,
@@ -195,8 +208,9 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	}
 
 	noerr: {
-		sqlite3_stmt* createstmts[] = { createappsstmt, createdevsstmt,
-				createdevflagsstmt, createsessionsstmt, createdownlinksstmt };
+		sqlite3_stmt* createstmts[] = { createappsstmt, createappflagsstmt,
+				createdevsstmt, createdevflagsstmt, createsessionsstmt,
+				createdownlinksstmt };
 		for (int i = 0; i < G_N_ELEMENTS(createstmts); i++) {
 			if (createstmts[i] != NULL)
 				sqlite3_finalize(createstmts[i]);
@@ -255,6 +269,16 @@ void database_apps_list(struct context* cntx,
 	database_stepuntilcomplete(stmt, database_apps_list_rowcallback,
 			(void*) &callbackanddata);
 	sqlite3_reset(stmt);
+}
+
+static void data_appflags_list_rowcallback(sqlite3_stmt* stmt, void* data) {
+
+}
+
+void database_appflags_list(struct context* cntx, const char* appeui,
+		void (*callback)(const char* flag, void* data), void* data) {
+	LOOKUPBYSTRING(cntx->dbcntx.listappflagsstmt, appeui,
+			data_appflags_list_rowcallback);
 }
 
 void database_dev_add(struct context* cntx, const struct dev* dev) {
@@ -435,7 +459,7 @@ static void database_uplinks_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 	const char* appeui = sqlite3_column_text(stmt, 2);
 	const char* deveui = sqlite3_column_text(stmt, 3);
 	guint8 port = sqlite3_column_int(stmt, 4);
-	guint8* payload = sqlite3_column_blob(stmt, 5);
+	const guint8* payload = sqlite3_column_blob(stmt, 5);
 	gsize payloadlen = sqlite3_column_bytes(stmt, 5);
 
 	struct uplink up = { .timestamp = timestamp, .appeui = appeui, .deveui =

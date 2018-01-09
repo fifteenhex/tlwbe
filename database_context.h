@@ -8,6 +8,7 @@ struct database_context {
 	sqlite3_stmt* insertappstmt;
 	sqlite3_stmt* getappsstmt;
 	sqlite3_stmt* listappsstmt;
+	sqlite3_stmt* listappflagsstmt;
 	// statements for devs
 	sqlite3_stmt* insertdevstmt;
 	sqlite3_stmt* getdevstmt;

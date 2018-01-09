@@ -63,6 +63,8 @@ void database_app_get(struct context* cntx, const char* eui,
 void database_app_del(struct context* cntx, const char* eui);
 void database_apps_list(struct context* cntx,
 		void (*callback)(const char* eui, void* data), void* data);
+void database_appflags_list(struct context* cntx, const char* appeui,
+		void (*callback)(const char* flag, void* data), void* data);
 // dev
 void database_dev_add(struct context* cntx, const struct dev* dev);
 void database_dev_update(struct context* cntx, const struct dev* dev);
