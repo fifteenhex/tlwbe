@@ -30,10 +30,7 @@ static void uplink_tojson(const struct uplink* uplink, JsonBuilder* jsonbuilder)
 }
 
 static void uplink_process_publish(struct context* cntx,
-		const struct uplink* uplink) {
-	struct flags flags;
-	flags_forapp(cntx, uplink->appeui, &flags);
-
+		const struct uplink* uplink, const struct flags* flags) {
 	GString* topicstr = g_string_new(TLWBE_TOPICROOT"/");
 	g_string_append(topicstr, "uplink");
 	g_string_append(topicstr, "/");
@@ -44,7 +41,7 @@ static void uplink_process_publish(struct context* cntx,
 	g_string_append_printf(topicstr, "%d", uplink->port);
 	gchar* topic = g_string_free(topicstr, FALSE);
 
-	if (flags.uplink.raw)
+	if (flags->uplink.raw)
 		mosquitto_publish(cntx->mosq, NULL, topic, uplink->payloadlen,
 				uplink->payload, 0, false);
 	else {
@@ -150,9 +147,14 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 				keys.appeui, .deveui = keys.deveui, .port = unpacked.data.port,
 				.payload = decrypted, .payloadlen = unpacked.data.payloadlen };
 
-		database_uplink_add(cntx, &ul);
+		struct flags flags;
+		flags_forapp(cntx, ul.appeui, &flags);
 
-		uplink_process_publish(cntx, &ul);
+		if (!flags.uplink.nostore)
+			database_uplink_add(cntx, &ul);
+
+		if (!flags.uplink.norealtime)
+			uplink_process_publish(cntx, &ul, &flags);
 
 		int queueddownlinks = database_downlinks_count(cntx, keys.appeui,
 				keys.deveui);
