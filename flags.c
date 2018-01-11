@@ -16,6 +16,6 @@ static void flags_forapp_rowcallback(const char* flag, void* data) {
 
 void flags_forapp(struct context* cntx, const gchar* appeui,
 		struct flags* flags) {
-	memset(flags, 0, sizeof(flags));
+	memset(flags, 0, sizeof(*flags));
 	database_appflags_list(cntx, appeui, flags_forapp_rowcallback, flags);
 }
