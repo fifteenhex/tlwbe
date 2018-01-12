@@ -8,19 +8,20 @@ MOSQUITTO = -lmosquitto
 
 all: tlwbe
 
-tlwbe: tlwbe.c \
-	crypto.c \
-	join.c \
-	database.c \
-	control.c \
-	utils.c \
-	downlink.c \
-	uplink.c \
-	pktfwdbr.c \
-	packet.c \
-	regional.c \
-	flags.c
-	$(CC) $(GLIB) $(JSON) $(LIBCRYPTO) $(SQLITE) $(MOSQUITTO) $(CFLAGS) $^ -o $@
+tlwbe: tlwbe.c tlwbe.h \
+	crypto.c crypto.h \
+	join.c join.h \
+	database.c database.h database_context.h \
+	control.c control.h \
+	utils.c utils.h \
+	downlink.c downlink.h \
+	uplink.c uplink.h \
+	pktfwdbr.c pktfwdbr.h \
+	packet.c packet.h \
+	regional.c regional.h \
+	flags.c flags.h \
+	config.h lorawan.h
+	$(CC) $(GLIB) $(JSON) $(LIBCRYPTO) $(SQLITE) $(MOSQUITTO) $(CFLAGS) $(filter %.c,$^) -o $@
 
 .PHONY: clean
 

@@ -1,3 +1,6 @@
 #pragma once
 
-#define TLWBE_DEBUG_MOSQUITTO	1
+#ifndef TLWBE_DEBUG_MOSQUITTO
+#define TLWBE_DEBUG_MOSQUITTO		0
+#define TWLBE_DEBUG_PRINTPACKETS	0
+#endif
