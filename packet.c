@@ -165,6 +165,7 @@ void packet_unpack(guint8* data, gsize len, struct packet_unpacked* result) {
 			data += result->data.payloadlen;
 		} else {
 			result->data.port = 0;
+			result->data.payload = NULL;
 			result->data.payloadlen = 0;
 		}
 	}
@@ -179,18 +180,31 @@ void packet_unpack(guint8* data, gsize len, struct packet_unpacked* result) {
 
 void packet_pack(struct packet_unpacked* unpacked, struct sessionkeys* keys) {
 	gsize pktlen;
-	guint8* pkt = packet_build_data(unpacked->type, unpacked->data.devaddr,
-			unpacked->data.adr, unpacked->data.ack, unpacked->data.framecount,
-			unpacked->data.port, unpacked->data.payload,
-			unpacked->data.payloadlen, keys, &pktlen);
-	packet_debug(pkt, pktlen);
-	g_free(pkt);
+	guint8* pkt = NULL;
+	switch (unpacked->type) {
+	case MHDR_MTYPE_UNCNFUP:
+	case MHDR_MTYPE_UNCNFDN:
+	case MHDR_MTYPE_CNFUP:
+	case MHDR_MTYPE_CNFDN:
+		pkt = packet_build_data(unpacked->type, unpacked->data.devaddr,
+				unpacked->data.adr, unpacked->data.ack,
+				unpacked->data.framecount, unpacked->data.port,
+				unpacked->data.payload, unpacked->data.payloadlen, keys,
+				&pktlen);
+		packet_debug(pkt, pktlen);
+		break;
+	default:
+		g_message("don't know how to pack type %d", (int ) unpacked->type);
+		break;
+	}
+	if (pkt != NULL)
+		g_free(pkt);
 }
 
 #define PRINTBOOL(b) (b ? "true":"false")
 
 void packet_debug(guint8* data, gsize len) {
-#if TWLBE_DEBUG_PRINTPACKETS
+#if TLWBE_DEBUG_PRINTPACKETS
 	static const char* types[] = {"join request", "join accept",
 		"unconfirmed data up", "unconfirmed data down", "confirmed data up",
 		"confirmed data down", "RFU", "proprietary"};
