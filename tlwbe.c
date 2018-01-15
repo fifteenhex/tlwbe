@@ -12,13 +12,6 @@
 #include "downlink.h"
 #include "config.h"
 
-#if TLWBE_DEBUG_MOSQUITTO
-static void mosq_log(struct mosquitto* mosq, void* userdata, int level,
-		const char* str) {
-	g_message(str);
-}
-#endif
-
 static void mosq_message(struct mosquitto* mosq, void* userdata,
 		const struct mosquitto_message* msg) {
 
@@ -86,11 +79,9 @@ int main(int argc, char** argv) {
 
 	database_init(&cntx, databasepath);
 
-	mosquittomainloop(&cntx.mosqcntx, mqtthost, mqttport, connectcallback,
-			&cntx);
-#if TLWBE_DEBUG_MOSQUITTO
-	mosquitto_log_callback_set(cntx.mosqcntx.mosq, mosq_log);
-#endif
+	mosquittomainloop(&cntx.mosqcntx, mqtthost, mqttport, TLWBE_DEBUG_MOSQUITTO,
+			connectcallback, &cntx);
+
 	mosquitto_message_callback_set(cntx.mosqcntx.mosq, mosq_message);
 
 	g_timeout_add(5 * 60 * 1000, uplink_cleanup, &cntx);
