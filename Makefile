@@ -6,7 +6,7 @@ LIBCRYPTO = `$(PKGCONFIG) --cflags --libs libcrypto`
 SQLITE = `$(PKGCONFIG) --cflags --libs sqlite3`
 MOSQUITTO = -lmosquitto
 
-all: tlwbe
+all: tlwbe tlwbe.stripped
 
 tlwbe: tlwbe.c tlwbe.h \
 	crypto.c crypto.h \
@@ -21,7 +21,11 @@ tlwbe: tlwbe.c tlwbe.h \
 	regional.c regional.h \
 	flags.c flags.h \
 	config.h lorawan.h
-	$(CC) $(GLIB) $(JSON) $(LIBCRYPTO) $(SQLITE) $(MOSQUITTO) $(CFLAGS) $(filter %.c,$^) -o $@
+	$(MAKE) -C mosquittomainloop
+	$(CC) $(GLIB) $(JSON) $(LIBCRYPTO) $(SQLITE) $(MOSQUITTO) $(CFLAGS) $(filter %.c,$^) -o $@ mosquittomainloop/mosquittomainloop.o
+	
+tlwbe.stripped: tlwbe
+	strip -o tlwbe.stripped tlwbe
 
 .PHONY: clean
 

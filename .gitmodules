@@ -1,0 +1,3 @@
+[submodule "mosquittomainloop"]
+	path = mosquittomainloop
+	url = git@github.com:fifteenhex/mosquittomainloop.git
