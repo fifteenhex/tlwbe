@@ -74,9 +74,7 @@ int main(int argc, char** argv) {
 	guint mqttport = 1883;
 
 	GOptionEntry entries[] = { //
-			{ "mqtthost", 'h', 0, G_OPTION_ARG_STRING, &mqtthost, "", "" }, //
-					{ "mqttport", 'p', 0, G_OPTION_ARG_INT, &mqttport, "", "" }, //
-					{ NULL } };
+			MQTTOPTS, { NULL } };
 
 	GOptionContext* context = g_option_context_new("");
 	GError* error = NULL;
