@@ -12,11 +12,9 @@
 #include "downlink.h"
 #include "config.h"
 
-static void mosq_message(struct mosquitto* mosq, void* userdata,
-		const struct mosquitto_message* msg) {
-
+static gboolean messagecallback(MosquittoClient* client,
+		const struct mosquitto_message* msg, gpointer userdata) {
 	struct context* cntx = (struct context*) userdata;
-
 	char** splittopic;
 	int numtopicparts;
 	mosquitto_sub_topic_tokenise(msg->topic, &splittopic, &numtopicparts);
@@ -46,6 +44,7 @@ static void mosq_message(struct mosquitto* mosq, void* userdata,
 	out: if (splittopic != NULL)
 		mosquitto_sub_topic_tokens_free(&splittopic, numtopicparts);
 
+	return TRUE;
 }
 
 static void connectedcallback(MosquittoClient* client, void* something,
@@ -88,6 +87,9 @@ int main(int argc, char** argv) {
 
 	g_signal_connect(cntx.mosqclient, MOSQUITTO_CLIENT_SIGNAL_CONNECTED,
 			(GCallback )connectedcallback, &cntx);
+
+	g_signal_connect(cntx.mosqclient, MOSQUITTO_CLIENT_SIGNAL_MESSAGE,
+			(GCallback )messagecallback, &cntx);
 
 	g_timeout_add(5 * 60 * 1000, uplink_cleanup, &cntx);
 	g_timeout_add(5 * 60 * 1000, downlink_cleanup, &cntx);
