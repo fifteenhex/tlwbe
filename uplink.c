@@ -43,16 +43,17 @@ static void uplink_process_publish(struct context* cntx,
 	gchar* topic = g_string_free(topicstr, FALSE);
 
 	if (flags->uplink.raw)
-		mosquitto_publish(cntx->mosqcntx.mosq, NULL, topic, uplink->payloadlen,
-				uplink->payload, 0, false);
+		mosquitto_publish(
+				mosquitto_client_getmosquittoinstance(cntx->mosqclient), NULL,
+				topic, uplink->payloadlen, uplink->payload, 0, false);
 	else {
 		JsonBuilder* jsonbuilder = json_builder_new();
 		uplink_tojson(uplink, jsonbuilder);
 		gsize payloadlen;
 		gchar* payload = utils_jsonbuildertostring(jsonbuilder, &payloadlen);
-		mosquitto_publish(cntx->mosqcntx.mosq, NULL, topic, payloadlen, payload,
-				0,
-				false);
+		mosquitto_publish(
+				mosquitto_client_getmosquittoinstance(cntx->mosqclient), NULL,
+				topic, payloadlen, payload, 0, false);
 		g_free(payload);
 	}
 
@@ -190,7 +191,8 @@ gboolean uplink_cleanup(gpointer data) {
 }
 
 void uplink_onbrokerconnect(struct context* cntx) {
-	mosquitto_subscribe(cntx->mosqcntx.mosq, NULL,
+	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
+	NULL,
 			TLWBE_TOPICROOT "/" UPLINK_SUBTOPIC_UPLINKS "/" UPLINK_SUBTOPIC_UPLINKS_QUERY "/#",
 			0);
 }
@@ -235,8 +237,9 @@ void uplink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		gsize payloadlen;
 		gchar* payload = utils_jsonbuildertostring(jsonbuilder, &payloadlen);
 
-		mosquitto_publish(cntx->mosqcntx.mosq, NULL, topic, payloadlen, payload,
-				0, false);
+		mosquitto_publish(
+				mosquitto_client_getmosquittoinstance(cntx->mosqclient), NULL,
+				topic, payloadlen, payload, 0, false);
 
 		g_free(topic);
 		g_free(payload);

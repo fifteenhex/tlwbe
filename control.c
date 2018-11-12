@@ -299,18 +299,18 @@ void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 
 	g_object_unref(jsonbuilder);
 
-	mosquitto_publish(cntx->mosqcntx.mosq, NULL,
-	TLWBE_TOPICROOT"/"CONTROL_SUBTOPIC"/"CONTROL_RESULT, payloadlen, payload, 0,
-	false);
+	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
+	NULL, TLWBE_TOPICROOT"/"CONTROL_SUBTOPIC"/"CONTROL_RESULT, payloadlen,
+			payload, 0, false);
 
 	out: if (payload != NULL)
 		g_free(payload);
 }
 
 void control_onbrokerconnect(struct context* cntx) {
-	mosquitto_subscribe(cntx->mosqcntx.mosq, NULL,
-	TLWBE_TOPICROOT"/"CONTROL_SUBTOPIC"/"CONTROL_ENTITY_APP"/#", 0);
-	mosquitto_subscribe(cntx->mosqcntx.mosq, NULL,
-	TLWBE_TOPICROOT"/"CONTROL_SUBTOPIC"/"CONTROL_ENTITY_DEV"/#", 0);
+	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
+	NULL, TLWBE_TOPICROOT"/"CONTROL_SUBTOPIC"/"CONTROL_ENTITY_APP"/#", 0);
+	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
+	NULL, TLWBE_TOPICROOT"/"CONTROL_SUBTOPIC"/"CONTROL_ENTITY_DEV"/#", 0);
 }
 

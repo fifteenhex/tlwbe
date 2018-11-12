@@ -64,14 +64,15 @@ void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 	gchar* payload = downlink_createtxjson(pkt, pktlen, &payloadlen,
 			regional_getwindowdelay(rxwindow),
 			regional_getfrequency(rxwindow, rxpkt), rxpkt);
-	mosquitto_publish(cntx->mosqcntx.mosq, NULL, topic, payloadlen, payload, 0,
-	false);
+	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
+	NULL, topic, payloadlen, payload, 0, false);
 	g_free(topic);
 }
 
 void downlink_onbrokerconnect(struct context* cntx) {
-	mosquitto_subscribe(cntx->mosqcntx.mosq, NULL,
-	TLWBE_TOPICROOT "/" DOWNLINK_SUBTOPIC "/" DOWNLINK_QUEUE "/#", 0);
+	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
+			NULL, TLWBE_TOPICROOT "/" DOWNLINK_SUBTOPIC "/" DOWNLINK_QUEUE "/#",
+			0);
 }
 
 void downlink_onmsg(struct context* cntx, const struct mosquitto_message* msg,

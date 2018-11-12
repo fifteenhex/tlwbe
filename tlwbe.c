@@ -48,9 +48,10 @@ static void mosq_message(struct mosquitto* mosq, void* userdata,
 
 }
 
-static void connectcallback(struct mosquitto* mosq, void* data) {
-	struct context* cntx = data;
-	mosquitto_subscribe(mosq, NULL,
+static void connectedcallback(MosquittoClient* client, void* something,
+		gpointer userdata) {
+	struct context* cntx = (struct context*) userdata;
+	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(client), NULL,
 	PKTFWDBR_TOPIC_ROOT"/+/"PKTFWDBR_TOPIC_RX"/#", 0);
 	control_onbrokerconnect(cntx);
 	downlink_onbrokerconnect(cntx);
@@ -63,8 +64,12 @@ int main(int argc, char** argv) {
 
 	gchar* databasepath = "./tlwbe.sqlite";
 
+	gchar* mqttid = NULL;
 	gchar* mqtthost = "localhost";
 	guint mqttport = 1883;
+	gchar* mqttrootcert = NULL;
+	gchar* mqttdevicecert = NULL;
+	gchar* mqttdevicekey = NULL;
 
 	GOptionEntry entries[] = { //
 			MQTTOPTS, { NULL } };
@@ -77,12 +82,12 @@ int main(int argc, char** argv) {
 		goto out;
 	}
 
+	cntx.mosqclient = mosquitto_client_new_plaintext(mqttid, mqtthost,
+			mqttport);
 	database_init(&cntx, databasepath);
 
-	mosquittomainloop(&cntx.mosqcntx, mqtthost, mqttport, TLWBE_DEBUG_MOSQUITTO,
-			connectcallback, &cntx);
-
-	mosquitto_message_callback_set(cntx.mosqcntx.mosq, mosq_message);
+	g_signal_connect(cntx.mosqclient, MOSQUITTO_CLIENT_SIGNAL_CONNECTED,
+			(GCallback )connectedcallback, &cntx);
 
 	g_timeout_add(5 * 60 * 1000, uplink_cleanup, &cntx);
 	g_timeout_add(5 * 60 * 1000, downlink_cleanup, &cntx);

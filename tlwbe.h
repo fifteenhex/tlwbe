@@ -1,12 +1,12 @@
 #pragma once
 
 #include <glib.h>
-#include "mosquittomainloop/mosquittomainloop.h"
+#include <mosquittomainloop.h>
 #include "database_context.h"
 
 #define TLWBE_TOPICROOT "tlwbe"
 
 struct context {
-	struct mosquitto_context mosqcntx;
+	MosquittoClient* mosqclient;
 	struct database_context dbcntx;
 };
