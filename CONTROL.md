@@ -4,7 +4,13 @@ tlwbe/control/app/add
 tlwbe/control/app/update
 tlwbe/control/app/del
 tlwbe/control/app/list
-tlwbe/control/app/get
+
+## get app
+
+```tlwbe/control/app/get```
+
+```{ "token": "<uuid or other unique string>", "eui": "<app eui>" }```
+
 
 tlwbe/control/dev/add
 tlwbe/control/dev/update

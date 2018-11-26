@@ -230,9 +230,8 @@ void uplink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		json_builder_end_array(jsonbuilder);
 		json_builder_end_object(jsonbuilder);
 
-		gchar* topic = utils_createtopic(TLWBE_TOPICROOT,
-		UPLINK_SUBTOPIC_UPLINKS,
-		UPLINK_SUBTOPIC_UPLINKS_RESULT, token, NULL);
+		gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT,
+		UPLINK_SUBTOPIC_UPLINKS, UPLINK_SUBTOPIC_UPLINKS_RESULT, token, NULL);
 
 		gsize payloadlen;
 		gchar* payload = utils_jsonbuildertostring(jsonbuilder, &payloadlen);
