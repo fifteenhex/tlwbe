@@ -23,8 +23,7 @@ static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 	json_builder_add_string_value(jsonbuilder, rxpkt->modulation);
 	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_FREQ);
 	json_builder_add_double_value(jsonbuilder, frequency);
-	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_RFCH);
-	json_builder_add_int_value(jsonbuilder, rxpkt->rfchannel);
+	JSONBUILDER_ADD_INT(jsonbuilder, PKTFWDBR_JSON_TXPK_RFCH, rxpkt->rfchannel);
 
 	// add in lora stuff
 	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_DATR);
