@@ -4,11 +4,18 @@ This interface allows for you to monitor live uplinks as they
 come in from devs and also query uplinks tlwbe has stored.
 
 ## Live uplinks from devices
-tlwbe/uplink/<appeui>/<deveui>
+
+### publish topic
+
+```tlwbe/uplink/<appeui>/<deveui>```
 
 ## Querying stored uplinks
 
+### publish topic
+
 ```tlwbe/uplinks/query/<token; uuid or other unique string>```
+
+### publish payload
 
 ```
 {
@@ -16,13 +23,14 @@ tlwbe/uplink/<appeui>/<deveui>
 }
 ```
 
+### result topic
+
 ```tlwbe/uplinks/result/<token from query>```
 
-```
-{"uplinks":[...]}
-```
+### result payload
 
-tlwbe/uplinks/result/<token from query>
+```
 {
-	"token": <token from query>
+	"uplinks":[...]
 }
+```
