@@ -10,15 +10,6 @@ from rx import Observable
 rxmqttclient = RxMqttClient("espressobin1")
 
 
-def publishandwaitforresult(topic, payload={}):
-    token = str(uuid4())
-    payload['token'] = token
-    rxmqttclient.mqttclient.publish(topic, json.dumps(payload))
-    return rxmqttclient.publishsubject \
-        .filter(lambda msg: msg.get('payload').get('token') == token) \
-        .first()
-
-
 def publishandwaitforresult_newstyle(topic, payload={}):
     token = str(uuid4())
     rxmqttclient.mqttclient.publish("%s/%s" % (topic, token), json.dumps(payload))
@@ -28,13 +19,13 @@ def publishandwaitforresult_newstyle(topic, payload={}):
 
 class Interpreter(Cmd):
     def do_dev(self, s):
-        devs = publishandwaitforresult("tlwbe/control/dev/list") \
+        devs = publishandwaitforresult_newstyle("tlwbe/control/dev/list") \
             .flat_map(lambda msg: Observable.from_(msg['payload']['result'])) \
             .to_blocking()
 
         for d in devs:
             payload = {'eui': d}
-            dev = publishandwaitforresult("tlwbe/control/dev/get", payload) \
+            dev = publishandwaitforresult_newstyle("tlwbe/control/dev/get", payload) \
                 .to_blocking()
             for dd in dev:
                 print(dd)
@@ -51,13 +42,13 @@ class Interpreter(Cmd):
         pass
 
     def do_app(self, s):
-        apps = publishandwaitforresult("tlwbe/control/app/list") \
+        apps = publishandwaitforresult_newstyle("tlwbe/control/app/list") \
             .flat_map(lambda msg: Observable.from_(msg['payload']['result'])) \
             .to_blocking()
 
         for a in apps:
             payload = {'eui': a}
-            app = publishandwaitforresult("tlwbe/control/app/get", payload) \
+            app = publishandwaitforresult_newstyle("tlwbe/control/app/get", payload) \
                 .to_blocking()
             for aa in app:
                 print(aa)
@@ -67,7 +58,7 @@ class Interpreter(Cmd):
 
 
 if __name__ == '__main__':
-    rxmqttclient.mqttclient.subscribe("tlwbe/control/result")
+    rxmqttclient.mqttclient.subscribe("tlwbe/control/result/#")
     rxmqttclient.mqttclient.subscribe("tlwbe/uplink/#")
     rxmqttclient.mqttclient.subscribe("tlwbe/uplinks/result/#")
 

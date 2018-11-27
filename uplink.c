@@ -45,7 +45,8 @@ static void uplink_process_publish(struct context* cntx,
 		JsonBuilder* jsonbuilder = json_builder_new();
 		uplink_tojson(uplink, jsonbuilder);
 		gsize payloadlen;
-		gchar* payload = utils_jsonbuildertostring(jsonbuilder, &payloadlen);
+		gchar* payload = jsonbuilder_freetostring(jsonbuilder, &payloadlen,
+		FALSE);
 		mosquitto_publish(
 				mosquitto_client_getmosquittoinstance(cntx->mosqclient), NULL,
 				topic, payloadlen, payload, 0, false);
@@ -230,7 +231,8 @@ void uplink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		UPLINK_SUBTOPIC_UPLINKS, UPLINK_SUBTOPIC_UPLINKS_RESULT, token, NULL);
 
 		gsize payloadlen;
-		gchar* payload = utils_jsonbuildertostring(jsonbuilder, &payloadlen);
+		gchar* payload = jsonbuilder_freetostring(jsonbuilder, &payloadlen,
+		FALSE);
 
 		mosquitto_publish(
 				mosquitto_client_getmosquittoinstance(cntx->mosqclient), NULL,

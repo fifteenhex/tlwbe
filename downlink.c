@@ -8,6 +8,8 @@
 #include "regional.h"
 #include "database.h"
 
+#include "json-glib-macros/jsonbuilderutils.h"
+
 static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 		guint64 delay, gdouble frequency, const struct pktfwdpkt* rxpkt) {
 
@@ -48,7 +50,7 @@ static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 	json_builder_end_object(jsonbuilder);
 	json_builder_end_object(jsonbuilder);
 
-	char* json = utils_jsonbuildertostring(jsonbuilder, length);
+	char* json = jsonbuilder_freetostring(jsonbuilder, length, FALSE);
 
 	g_object_unref(jsonbuilder);
 	g_free(b64txdata);

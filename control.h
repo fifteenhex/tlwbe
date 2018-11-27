@@ -12,7 +12,6 @@
 #define CONTROL_ACTION_LIST		"list"
 #define CONTROL_RESULT			"result"
 
-#define CONTROL_JSON_TOKEN		"token"
 #define CONTROL_JSON_NAME		"name"
 #define CONTROL_JSON_EUI		"eui"
 #define CONTROL_JSON_APPEUI		"appeui"

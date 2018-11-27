@@ -1,33 +1,61 @@
 # control interface
 
-tlwbe/control/app/add
-tlwbe/control/app/update
-tlwbe/control/app/del
-tlwbe/control/app/list
+## add app
+
+### publish topic
+
+```tlwbe/control/app/add/<token; uuid or other unique string>```
+
+### publish payload
+
+```{}```
+
+
+## update app
+
+```tlwbe/control/app/update/<token; uuid or other unique string>```
+
+## delete app
+
+```tlwbe/control/app/del/<token; uuid or other unique string>```
+
+## list apps
+
+```tlwbe/control/app/list/<token; uuid or other unique string>```
 
 ## get app
 
-```tlwbe/control/app/get```
+```tlwbe/control/app/get/<token; uuid or other unique string>```
 
-```{ "token": "<uuid or other unique string>", "eui": "<app eui>" }```
+```{ "eui": "<app eui>" }```
 
 
-tlwbe/control/dev/add
-tlwbe/control/dev/update
-tlwbe/control/dev/del
+## add dev
+
+```tlwbe/control/dev/add```
+
+## update dev
+
+```tlwbe/control/dev/update```
+
+## delete dev
+
+```tlwbe/control/dev/del```
 
 ## list devs
 
-```tlwbe/control/dev/list```
+```tlwbe/control/dev/list/<token; uuid or other unique string>```
 
-```{ "token": "<uuid or other unique string>" }```
+```{ }```
 
-```{"token":"<your token>","result":...,"code":0}```
+```{"result":...,"code":0}```
 
 ## get dev
 
-```tlwbe/control/dev/get```
+```tlwbe/control/dev/get/<token; uuid or other unique string>```
 
-```{ "token": "<uuid or other unique string>", "eui": "<device eui>" }```
+```{"eui": "<device eui>" }```
 
-tlwbe/control/result
+## result topic
+
+```tlwbe/control/result/<token; uuid or other unique string>```

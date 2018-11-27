@@ -71,15 +71,3 @@ guint32 utils_hex2u32(const gchar* string) {
 	result = GUINT32_FROM_BE(result);
 	return result;
 }
-
-gchar* utils_jsonbuildertostring(JsonBuilder* jsonbuilder, gsize* jsonlen) {
-	JsonNode* responseroot = json_builder_get_root(jsonbuilder);
-	JsonGenerator* generator = json_generator_new();
-	json_generator_set_root(generator, responseroot);
-
-	gchar* json = json_generator_to_data(generator, jsonlen);
-	json_node_free(responseroot);
-	g_object_unref(generator);
-
-	return json;
-}

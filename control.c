@@ -189,8 +189,15 @@ void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		char** splittopic, int numtopicparts) {
 
 	gchar* payload = NULL;
+
+	if (numtopicparts < 5) {
+		g_message("need 5 or more topic parts, have %d", numtopicparts);
+		goto out;
+	}
+
 	char* entity = splittopic[2];
 	char* action = splittopic[3];
+	char* token = splittopic[4];
 
 	enum entity e = ENTITY_INVALID;
 	for (int i = 0; i < G_N_ELEMENTS(entities); i++) {
@@ -219,25 +226,15 @@ void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		goto out;
 	}
 
-	const gchar* token = NULL;
-
 	JsonNode* rootnode = json_parser_get_root(jsonparser);
 	if (json_node_get_node_type(rootnode) != JSON_NODE_OBJECT) {
 		g_message("control message root should be an object");
 		goto out;
 	}
 	JsonObject* rootobj = json_node_get_object(rootnode);
-	if (!json_object_has_member(rootobj, CONTROL_JSON_TOKEN)) {
-		g_message("control message does not contain token");
-		goto out;
-	}
-	token = json_object_get_string_member(rootobj,
-	CONTROL_JSON_TOKEN);
 
 	JsonBuilder* jsonbuilder = json_builder_new();
 	json_builder_begin_object(jsonbuilder);
-	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_TOKEN);
-	json_builder_add_string_value(jsonbuilder, token);
 
 	int code = -1;
 	switch (e) {
@@ -288,15 +285,12 @@ void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		g_assert(false);
 	}
 
-	json_builder_set_member_name(jsonbuilder, "code");
-	json_builder_add_int_value(jsonbuilder, code);
+	JSONBUILDER_ADD_INT(jsonbuilder, "code", code);
 
 	json_builder_end_object(jsonbuilder);
 
 	gsize payloadlen;
-	payload = utils_jsonbuildertostring(jsonbuilder, &payloadlen);
-
-	g_object_unref(jsonbuilder);
+	payload = jsonbuilder_freetostring(jsonbuilder, &payloadlen, FALSE);
 
 	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT,
 	CONTROL_SUBTOPIC, CONTROL_RESULT, token, NULL);
