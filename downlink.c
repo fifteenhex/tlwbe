@@ -67,6 +67,7 @@ void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 			regional_getfrequency(rxwindow, rxpkt), rxpkt);
 	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
 	NULL, topic, payloadlen, payload, 0, false);
+	g_free(payload);
 	g_free(topic);
 }
 
