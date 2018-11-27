@@ -12,9 +12,11 @@ rxmqttclient = RxMqttClient("espressobin1")
 
 
 def publishandwaitforresult_newstyle(topic, payload={}):
+    # this seems to be asking for a race condition
     token = str(uuid4())
     rxmqttclient.mqttclient.publish("%s/%s" % (topic, token), json.dumps(payload))
     return rxmqttclient.publishsubject \
+        .filter(lambda msg: msg['topic'].split('/')[-1] == token) \
         .first()
 
 
@@ -25,7 +27,7 @@ class Interpreter(cmd2.Cmd):
     actions = ["list", "get", "add", "update", "delete"]
 
     dev_parser = argparse.ArgumentParser()
-    dev_parser.add_argument('--action', type=str, choices=actions, default="list")
+    dev_parser.add_argument('--action', type=str, nargs='?', choices=actions, default="list")
 
     @cmd2.with_argparser(dev_parser)
     def do_dev(self, args):
@@ -42,9 +44,11 @@ class Interpreter(cmd2.Cmd):
                 for dd in dev:
                     devdata = dd['payload']['dev']
                     print("%s\t\t%s\t\t%s\t\t%s" % (devdata['name'], devdata['eui'], devdata['appeui'], devdata['key']))
+        else:
+            print("%s isn't implemented yet" % args.action)
 
     app_parser = argparse.ArgumentParser()
-    app_parser.add_argument('--action', type=str, choices=actions, default="list")
+    app_parser.add_argument('--action', type=str, nargs='?', choices=actions, default="list")
 
     @cmd2.with_argparser(app_parser)
     def do_app(self, args):
@@ -60,31 +64,34 @@ class Interpreter(cmd2.Cmd):
                     .to_blocking()
                 for aa in app:
                     print("%s\t\t%s" % (aa['payload']['app']['name'], aa['payload']['app']['eui']))
+        else:
+            print("%s isn't implemented yet" % args.action)
 
-    def do_uplink(self, s):
-        # payload = {'deveui': d}
-        # uplinks = publishandwaitforresult_newstyle("tlwbe/uplinks/query", payload) \
-        #    .flat_map(lambda msg: Observable.from_(msg['payload']['uplinks'])) \
-        #    .to_blocking()
-        # print("timestamp\tport\tpayload")
-        # for u in uplinks:
-        #    print("%s\t%s\t%s" % (u['timestamp'], u['port'], u['payload']))
-        pass
+    uplink_parser = argparse.ArgumentParser()
+    uplink_parser.add_argument('--deveui', type=str, nargs='?')
+    uplink_parser.add_argument('--appeui', type=str, nargs='?')
 
-    def help_uplink(self):
-        pass
+    @cmd2.with_argparser(uplink_parser)
+    def do_uplink(self, args):
+        if args.deveui is None and args.appeui is None:
+            print("a dev eui or an app eui is required")
+            return
 
-    def do_downlink(self, s):
-        # payload = {'deveui': d}
-        # uplinks = publishandwaitforresult_newstyle("tlwbe/uplinks/query", payload) \
-        #    .flat_map(lambda msg: Observable.from_(msg['payload']['uplinks'])) \
-        #    .to_blocking()
-        # print("timestamp\tport\tpayload")
-        # for u in uplinks:
-        #    print("%s\t%s\t%s" % (u['timestamp'], u['port'], u['payload']))
-        pass
+        payload = {}
+        if args.deveui is not None:
+            payload['deveui'] = args.deveui
 
-    def help_downlink(self):
+        uplinks = publishandwaitforresult_newstyle("tlwbe/uplinks/query", payload) \
+            .flat_map(lambda msg: Observable.from_(msg['payload']['uplinks'])) \
+            .to_blocking()
+        print("timestamp\tport\tpayload")
+        for u in uplinks:
+            print("%s\t%s\t%s" % (u['timestamp'], u['port'], u['payload']))
+
+    downlink_parser = argparse.ArgumentParser()
+
+    @cmd2.with_argparser(downlink_parser)
+    def do_downlink(self, args):
         pass
 
 
