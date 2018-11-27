@@ -7,6 +7,9 @@ from uuid import uuid4
 from rxmqtt import RxMqttClient
 import json
 from rx import Observable
+import datetime
+import base64
+import binascii
 
 rxmqttclient = RxMqttClient("espressobin1")
 
@@ -36,14 +39,14 @@ class Interpreter(cmd2.Cmd):
                 .flat_map(lambda msg: Observable.from_(msg['payload']['result'])) \
                 .to_blocking()
 
-            print("name\t\tdev_eui\t\tapp_eui\t\tkey")
+            print("name\t\tdev_eui\t\tapp_eui")
             for d in devs:
                 payload = {'eui': d}
                 dev = publishandwaitforresult_newstyle("tlwbe/control/dev/get", payload) \
                     .to_blocking()
                 for dd in dev:
                     devdata = dd['payload']['dev']
-                    print("%s\t\t%s\t\t%s\t\t%s" % (devdata['name'], devdata['eui'], devdata['appeui'], devdata['key']))
+                    print("%s\t\t%s\t\t%s" % (devdata['name'], devdata['eui'], devdata['appeui']))
         else:
             print("%s isn't implemented yet" % args.action)
 
@@ -94,11 +97,33 @@ class Interpreter(cmd2.Cmd):
     def do_downlink(self, args):
         pass
 
+    watch_parser = argparse.ArgumentParser()
+
+    @cmd2.with_argparser(watch_parser)
+    def do_watch(self, args):
+        #            .do_action(lambda msg: print(msg)) \
+        msgs = rxmqttclient.publishsubject \
+            .to_blocking()
+        for msg in msgs:
+            topicparts = msg['topic'].split('/')
+            payload = msg['payload']
+            interface = topicparts[1]
+            ts = datetime.datetime.utcfromtimestamp(payload['timestamp'] / 1000000)
+            if interface == "join":
+                print("%s - %s@%s joined the party" % (str(ts), topicparts[-1], topicparts[-2]))
+            elif interface == "uplink":
+                deveui = payload['deveui']
+                appeui = payload['appeui']
+                data = base64.b64decode(payload['payload'])
+                hexeddata = binascii.hexlify(data)
+                print("%s - %s@%s:%d -> %s" % (str(ts), deveui, appeui, payload['port'], hexeddata))
+
 
 if __name__ == '__main__':
     rxmqttclient.mqttclient.subscribe("tlwbe/control/result/#")
     rxmqttclient.mqttclient.subscribe("tlwbe/uplink/#")
     rxmqttclient.mqttclient.subscribe("tlwbe/uplinks/result/#")
+    rxmqttclient.mqttclient.subscribe("tlwbe/join/+/+")
 
     interpreter = Interpreter()
     interpreter.cmdloop()

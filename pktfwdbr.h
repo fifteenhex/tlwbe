@@ -44,6 +44,7 @@ struct pktfwdpkt {
 	// rf
 	const gchar* modulation;
 	gdouble frequency;
+	//fixme this RF chain not chan
 	guint32 rfchannel;
 	// lora stuff
 	const gchar* datarate;

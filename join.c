@@ -14,6 +14,8 @@
 #include "downlink.h"
 #include "packet.h"
 
+#include "json-glib-macros/jsonbuilderutils.h"
+
 static void printsessionkeys(const uint8_t* key, const struct session* s) {
 	uint8_t nsk[SESSIONKEYLEN];
 	uint8_t ask[SESSIONKEYLEN];
@@ -65,6 +67,26 @@ static void join_processjoinrequest_createsession(struct context* cntx,
 	database_session_add(cntx, s);
 }
 
+static void join_announce(struct context* cntx, const gchar* appeui,
+		const gchar* deveui) {
+	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "join", appeui,
+			deveui, NULL);
+	JsonBuilder* jsonbuilder = json_builder_new();
+
+	json_builder_begin_object(jsonbuilder);
+	guint64 ts = g_get_real_time();
+	JSONBUILDER_ADD_INT(jsonbuilder, "timestamp", ts);
+	json_builder_end_object(jsonbuilder);
+
+	gsize payloadlen;
+	gchar* payload = jsonbuilder_freetostring(jsonbuilder, &payloadlen, FALSE);
+
+	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
+	NULL, topic, payloadlen, payload, 0, false);
+
+	g_free(payload);
+}
+
 void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 		guchar* data, int datalen, const struct pktfwdpkt* rxpkt) {
 
@@ -78,6 +100,8 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 
 	char asciieui[EUIASCIILEN];
 	sprintf(asciieui, "%016"G_GINT64_MODIFIER"x", unpacked.joinreq.deveui);
+	char asciiappeui[EUIASCIILEN];
+	sprintf(asciiappeui, "%016"G_GINT64_MODIFIER"x", unpacked.joinreq.appeui);
 
 	char asciidevnonce[DEVNONCEASCIILEN];
 	sprintf(asciidevnonce, "%04"G_GINT16_MODIFIER"x",
@@ -111,6 +135,8 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 	downlink_dodownlink(cntx, gateway, joinrespkt, joinrespktlen, rxpkt,
 			RXW_J2);
 	g_free(joinrespkt);
+
+	join_announce(cntx, asciiappeui, asciieui);
 
 	out: if (key != NULL)
 		g_free(key);
