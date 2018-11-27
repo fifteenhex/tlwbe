@@ -52,7 +52,6 @@ static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 
 	char* json = jsonbuilder_freetostring(jsonbuilder, length, FALSE);
 
-	g_object_unref(jsonbuilder);
 	g_free(b64txdata);
 
 	return json;
