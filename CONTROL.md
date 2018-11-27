@@ -1,5 +1,9 @@
 # control interface
 
+This interface is used it do CRUD operations on apps and devs
+so you can add apps, and then devs to apps, set/update keys
+etc.
+
 ## add app
 
 ### publish topic

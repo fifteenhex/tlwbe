@@ -8,6 +8,10 @@ Should be used together with https://github.com/fifteenhex/pktfwdbr.
 
 ## Interface documentation
 
+All interaction with tlwbe is done via mqtt using the *interfaces*
+listed below. There is a basic *client* with a relatively userfriendly
+interface in the client directory.
+
 [Control interface](CONTROL.md)
 
 [Join interface](JOIN.md)

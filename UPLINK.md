@@ -1,6 +1,9 @@
 # Uplink interface
 
-Live uplinks from devices
+This interface allows for you to monitor live uplinks as they
+come in from devs and also query uplinks tlwbe has stored.
+
+## Live uplinks from devices
 tlwbe/uplink/<appeui>/<deveui>
 
 ## Querying stored uplinks
@@ -9,7 +12,7 @@ tlwbe/uplink/<appeui>/<deveui>
 
 ```
 {
-	"deveui": "<dev eui to get uplinks for"
+	"deveui": "<dev eui to get uplinks for>"
 }
 ```
 

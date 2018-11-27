@@ -10,4 +10,4 @@ This interface is used to track when nodes join the network via OTAA.
 
 ### payload
 
-```{ "timestamp" <what it says on the tin>}```
+```{ "timestamp": <what it says on the tin>}```
