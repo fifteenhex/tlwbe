@@ -71,8 +71,7 @@ void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 
 void downlink_onbrokerconnect(struct context* cntx) {
 	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
-			NULL, TLWBE_TOPICROOT "/" DOWNLINK_SUBTOPIC "/" DOWNLINK_QUEUE "/#",
-			0);
+	NULL, TLWBE_TOPICROOT "/" DOWNLINK_SUBTOPIC "/" DOWNLINK_QUEUE "/#", 0);
 }
 
 void downlink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
@@ -95,7 +94,7 @@ void downlink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 			.payloadlen = msg->payloadlen, .token = splittopic[6] };
 
 	g_message("have downlink for app %s, dev %s, port %d, token %s",
-			downlink.appeui, downlink.deveui, port, downlink.token);
+			downlink.appeui, downlink.deveui, (int )port, downlink.token);
 
 	database_downlink_add(cntx, &downlink);
 }

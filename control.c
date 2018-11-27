@@ -9,6 +9,8 @@
 #include "crypto.h"
 #include "utils.h"
 
+#include "json-glib-macros/jsonbuilderutils.h"
+
 enum entity {
 	ENTITY_APP, ENTITY_DEV, ENTITY_INVALID
 };
@@ -60,14 +62,10 @@ static int control_app_add(struct context* cntx, JsonObject* rootobj,
 
 static void control_app_get_callback(const struct app* app, void* data) {
 	JsonBuilder* jsonbuilder = data;
-	json_builder_set_member_name(jsonbuilder, "app");
-	json_builder_begin_object(jsonbuilder);
-	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_EUI);
-	json_builder_add_string_value(jsonbuilder, app->eui);
-	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_NAME);
-	json_builder_add_string_value(jsonbuilder, app->name);
-	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_SERIAL);
-	json_builder_add_int_value(jsonbuilder, app->serial);
+	JSONBUILDER_START_OBJECT(jsonbuilder, "app");
+	JSONBUILDER_ADD_STRING(jsonbuilder, CONTROL_JSON_EUI, app->eui);
+	JSONBUILDER_ADD_STRING(jsonbuilder, CONTROL_JSON_NAME, app->name);
+	JSONBUILDER_ADD_INT(jsonbuilder, CONTROL_JSON_SERIAL, app->serial);
 	json_builder_end_object(jsonbuilder);
 }
 
@@ -154,18 +152,12 @@ static int control_dev_update(struct context* cntx, JsonObject* rootobj,
 
 static void control_dev_get_callback(const struct dev* dev, void* data) {
 	JsonBuilder* jsonbuilder = data;
-	json_builder_set_member_name(jsonbuilder, "dev");
-	json_builder_begin_object(jsonbuilder);
-	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_EUI);
-	json_builder_add_string_value(jsonbuilder, dev->eui);
-	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_APPEUI);
-	json_builder_add_string_value(jsonbuilder, dev->appeui);
-	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_KEY);
-	json_builder_add_string_value(jsonbuilder, dev->key);
-	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_NAME);
-	json_builder_add_string_value(jsonbuilder, dev->name);
-	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_SERIAL);
-	json_builder_add_int_value(jsonbuilder, dev->serial);
+	JSONBUILDER_START_OBJECT(jsonbuilder, "dev");
+	JSONBUILDER_ADD_STRING(jsonbuilder, CONTROL_JSON_EUI, dev->eui);
+	JSONBUILDER_ADD_STRING(jsonbuilder, CONTROL_JSON_APPEUI, dev->appeui);
+	JSONBUILDER_ADD_STRING(jsonbuilder, CONTROL_JSON_KEY, dev->key);
+	JSONBUILDER_ADD_STRING(jsonbuilder, CONTROL_JSON_NAME, dev->name);
+	JSONBUILDER_ADD_INT(jsonbuilder, CONTROL_JSON_SERIAL, dev->serial);
 	json_builder_end_object(jsonbuilder);
 }
 
@@ -266,7 +258,10 @@ void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		case ACTION_LIST:
 			code = control_apps_list(cntx, rootobj, jsonbuilder);
 			break;
+		default:
+			g_assert(false);
 		}
+
 		break;
 	case ENTITY_DEV:
 		switch (a) {
@@ -285,8 +280,12 @@ void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		case ACTION_LIST:
 			code = control_devs_list(cntx, rootobj, jsonbuilder);
 			break;
+		default:
+			g_assert(false);
 		}
 		break;
+	default:
+		g_assert(false);
 	}
 
 	json_builder_set_member_name(jsonbuilder, "code");
@@ -299,9 +298,13 @@ void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 
 	g_object_unref(jsonbuilder);
 
+	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT,
+	CONTROL_SUBTOPIC, CONTROL_RESULT, token, NULL);
+
 	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
-	NULL, TLWBE_TOPICROOT"/"CONTROL_SUBTOPIC"/"CONTROL_RESULT, payloadlen,
-			payload, 0, false);
+	NULL, topic, payloadlen, payload, 0, false);
+
+	g_free(topic);
 
 	out: if (payload != NULL)
 		g_free(payload);

@@ -11,22 +11,17 @@
 #include "downlink.h"
 #include "flags.h"
 
+#include "json-glib-macros/jsonbuilderutils.h"
+
 static void uplink_tojson(const struct uplink* uplink, JsonBuilder* jsonbuilder) {
 	json_builder_begin_object(jsonbuilder);
-
-	json_builder_set_member_name(jsonbuilder, "timestamp");
-	json_builder_add_int_value(jsonbuilder, uplink->timestamp);
-	json_builder_set_member_name(jsonbuilder, "appeui");
-	json_builder_add_string_value(jsonbuilder, uplink->appeui);
-	json_builder_set_member_name(jsonbuilder, "deveui");
-	json_builder_add_string_value(jsonbuilder, uplink->deveui);
-	json_builder_set_member_name(jsonbuilder, "port");
-	json_builder_add_int_value(jsonbuilder, uplink->port);
-	json_builder_set_member_name(jsonbuilder, "payload");
+	JSONBUILDER_ADD_INT(jsonbuilder, "timestamp", uplink->timestamp);
+	JSONBUILDER_ADD_STRING(jsonbuilder, "appeui", uplink->appeui);
+	JSONBUILDER_ADD_STRING(jsonbuilder, "deveui", uplink->deveui);
+	JSONBUILDER_ADD_INT(jsonbuilder, "port", uplink->port);
 	gchar* payloadb64 = g_base64_encode(uplink->payload, uplink->payloadlen);
-	json_builder_add_string_value(jsonbuilder, payloadb64);
+	JSONBUILDER_ADD_STRING(jsonbuilder, "payload", payloadb64);
 	g_free(payloadb64);
-
 	json_builder_end_object(jsonbuilder);
 }
 
@@ -225,6 +220,7 @@ void uplink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		json_builder_begin_object(jsonbuilder);
 		json_builder_set_member_name(jsonbuilder, "uplinks");
 		json_builder_begin_array(jsonbuilder);
+
 		database_uplinks_get(cntx, deveui, uplink_onmsg_rowcallback,
 				jsonbuilder);
 		json_builder_end_array(jsonbuilder);
