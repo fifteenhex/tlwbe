@@ -19,17 +19,17 @@ static gboolean pktfwdbr_onmsg_parsepkt(JsonObject* rootobj,
 	}
 
 	// pull out the rf stuff
-	pkt->modulation = json_object_get_string_member(rootobj,
+	pkt->rfparams.modulation = json_object_get_string_member(rootobj,
 	PKTFWDBR_JSON_TXPK_MODU);
-	pkt->frequency = json_object_get_double_member(rootobj,
+	pkt->rfparams.frequency = json_object_get_double_member(rootobj,
 	PKTFWDBR_JSON_TXPK_FREQ);
-	pkt->rfchannel = json_object_get_int_member(rootobj,
+	pkt->rfparams.rfchain = json_object_get_int_member(rootobj,
 	PKTFWDBR_JSON_TXPK_RFCH);
 
 	// pull out lora stuff
-	pkt->datarate = json_object_get_string_member(rootobj,
+	pkt->rfparams.datarate = json_object_get_string_member(rootobj,
 	PKTFWDBR_JSON_TXPK_DATR);
-	pkt->coderate = json_object_get_string_member(rootobj,
+	pkt->rfparams.coderate = json_object_get_string_member(rootobj,
 	PKTFWDBR_JSON_TXPK_CODR);
 
 	// pull out the timing stuff

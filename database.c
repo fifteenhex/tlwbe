@@ -1,78 +1,24 @@
+#include <sqlite3.h>
+
 #include "database.h"
 #include "utils.h"
 
-#define CREATETABLE_APPS	"CREATE TABLE IF NOT EXISTS apps ("\
-								"eui	TEXT NOT NULL UNIQUE,"\
-								"name	TEXT,"\
-								"serial	INTEGER,"\
-								"PRIMARY KEY(eui)"\
-							");"
-
-#define CREATETABLE_APPFLAGS	"CREATE TABLE IF NOT EXISTS appflags ("\
-									"id		INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,"\
-									"appeui	TEXT NOT NULL,"\
-									"flag	TEXT NOT NULL"\
-								");"
-
-#define CREATETABLE_DEVS	"CREATE TABLE IF NOT EXISTS devs ("\
-								"eui	TEXT NOT NULL UNIQUE,"\
-								"appeui	TEXT NOT NULL,"\
-								"key	TEXT NOT NULL,"\
-								"name	TEXT,"\
-								"serial	INTEGER NOT NULL,"\
-								"PRIMARY KEY(eui)"\
-							");"
-
-#define CREATETABLE_DEVFLAGS	"CREATE TABLE IF NOT EXISTS devflags ("\
-								"id		INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,"\
-								"deveui	TEXT NOT NULL,"\
-								"flag	TEXT NOT NULL"\
-							");"
-
-#define CREATETABLE_SESSIONS	"CREATE TABLE IF NOT EXISTS sessions ("\
-								"deveui			TEXT NOT NULL UNIQUE,"\
-								"devnonce		TEXT NOT NULL,"\
-								"appnonce		TEXT NOT NULL,"\
-								"devaddr		TEXT NOT NULL UNIQUE,"\
-								"upcounter		INTEGER DEFAULT 0,"\
-								"downcounter	INTEGER DEFAULT 0,"\
-								"PRIMARY KEY(deveui)"\
-							");"
-
-#define CREATETABLE_UPLINKS		"CREATE TABLE IF NOT EXISTS uplinks ("\
-								"id			INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,"\
-								"timestamp	INTEGER NOT NULL,"\
-								"appeui		TEXT NOT NULL,"\
-								"deveui		TEXT NOT NULL,"\
-								"port		INTEGER NOT NULL,"\
-								"payload	BLOB NOT NULL"\
-							");"
-
-#define CREATETABLE_DOWNLINKS	"CREATE TABLE IF NOT EXISTS downlinks ("\
-								"id			INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,"\
-								"timestamp	INTEGER NOT NULL,"\
-								"deadline	INTEGER NOT NULL,"\
-								"appeui		TEXT NOT NULL,"\
-								"deveui		TEXT NOT NULL,"\
-								"port		INTEGER NOT NULL,"\
-								"payload	BLOB NOT NULL,"\
-								"token		TEXT NOT NULL UNIQUE"\
-							");"
+#include "control.sqlite.h"
+#include "join.sqlite.h"
+#include "uplink.sqlite.h"
+#include "downlink.sqlite.h"
 
 //sql for apps
-#define INSERT_APP		"INSERT INTO apps (eui,name,serial) VALUES (?,?,?);"
 #define GET_APP			"SELECT * FROM apps WHERE eui = ?;"
 #define LIST_APPS		"SELECT eui FROM apps;"
-#define LIST_APPFLAGS	"SELECT flag FROM appflags WHERE appeui = ?;"
+#define LIST_APPFLAGS	"SELECT flag FROM appflags WHERE eui = ?;"
 
 //sql for devs
-#define INSERT_DEV		"INSERT INTO devs (eui, appeui, key, name,serial) VALUES (?,?,?,?,?);"
 #define GET_DEV			"SELECT * FROM devs WHERE eui = ?;"
 #define LIST_DEVS		"SELECT eui FROM devs;"
-#define LIST_DEVFLAGS	"SELECT flag FROM devflags WHERE deveui = ?;"
+#define LIST_DEVFLAGS	"SELECT flag FROM devflags WHERE eui = ?;"
 
 //sql for sessions
-#define INSERT_SESSION		"INSERT INTO sessions (deveui, devnonce, appnonce, devaddr) VALUES (?,?,?,?);"
 #define GET_SESSIONDEVEUI	"SELECT * FROM sessions WHERE deveui = ?;"
 #define GET_SESSIONDEVADDR	"SELECT * FROM sessions WHERE devaddr = ?;"
 #define DELETE_SESSION		"DELETE FROM sessions WHERE deveui = ?;"
@@ -84,12 +30,10 @@
 #define INC_FRAMECOUNTER_DOWN		"UPDATE sessions SET downcounter = downcounter +  1 WHERE devaddr = ?"
 
 //sql for uplinks
-#define INSERT_UPLINK	"INSERT INTO uplinks (timestamp, appeui, deveui, port, payload) VALUES (?,?,?,?,?);"
 #define CLEAN_UPLINKS	"DELETE FROM uplinks WHERE (timestamp < ?);"
 #define GET_UPLINKS_DEV	"SELECT * FROM uplinks WHERE deveui = ?;"
 
 //sql for downlinks
-#define INSERT_DOWNLINK	"INSERT INTO downlinks (timestamp, deadline, appeui, deveui, port, payload, token) VALUES (?,?,?,?,?,?,?);"
 #define CLEAN_DOWNLINKS "DELETE FROM downlinks WHERE ((? - timestamp)/1000000) > deadline"
 #define COUNT_DOWNLINKS	"SELECT count(*) FROM downlinks WHERE appeui = ? AND deveui = ?"
 
@@ -125,11 +69,7 @@ static int database_stepuntilcomplete(sqlite3_stmt* stmt,
 					(void*) &callbackanddata);\
 			sqlite3_reset(stmt)
 
-void database_init(struct context* cntx, const gchar* databasepath) {
-	int ret = sqlite3_open(databasepath, &cntx->dbcntx.db);
-	if (ret)
-		sqlite3_close(cntx->dbcntx.db);
-
+static gboolean database_init_createtables(struct context* cntx) {
 	sqlite3_stmt* createappsstmt = NULL;
 	sqlite3_stmt* createappflagsstmt = NULL;
 	sqlite3_stmt* createdevsstmt = NULL;
@@ -138,32 +78,45 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	sqlite3_stmt* createuplinksstmt = NULL;
 	sqlite3_stmt* createdownlinksstmt = NULL;
 
-	INITSTMT(CREATETABLE_APPS, createappsstmt);
-	INITSTMT(CREATETABLE_APPFLAGS, createappflagsstmt);
-	INITSTMT(CREATETABLE_DEVS, createdevsstmt);
-	INITSTMT(CREATETABLE_DEVFLAGS, createdevflagsstmt);
-	INITSTMT(CREATETABLE_SESSIONS, createsessionsstmt);
-	INITSTMT(CREATETABLE_UPLINKS, createuplinksstmt);
-	INITSTMT(CREATETABLE_DOWNLINKS, createdownlinksstmt);
+	INITSTMT(__SQLITEGEN_APPS_TABLE_CREATE, createappsstmt);
+	INITSTMT(__SQLITEGEN_APPFLAGS_TABLE_CREATE, createappflagsstmt);
+	INITSTMT(__SQLITEGEN_DEVS_TABLE_CREATE, createdevsstmt);
+	INITSTMT(__SQLITEGEN_DEVFLAGS_TABLE_CREATE, createdevflagsstmt);
+	INITSTMT(__SQLITEGEN_SESSIONS_TABLE_CREATE, createsessionsstmt);
+	INITSTMT(__SQLITEGEN_UPLINKS_TABLE_CREATE, createuplinksstmt);
+	INITSTMT(__SQLITEGEN_DOWNLINKS_TABLE_CREATE, createdownlinksstmt);
 
-	database_stepuntilcomplete(createappsstmt, NULL, NULL);
-	database_stepuntilcomplete(createappflagsstmt, NULL, NULL);
-	database_stepuntilcomplete(createdevsstmt, NULL, NULL);
-	database_stepuntilcomplete(createdevflagsstmt, NULL, NULL);
-	database_stepuntilcomplete(createsessionsstmt, NULL, NULL);
-	database_stepuntilcomplete(createuplinksstmt, NULL, NULL);
-	database_stepuntilcomplete(createdownlinksstmt, NULL, NULL);
+	sqlite3_stmt* createstmts[] = { createappsstmt, createappflagsstmt,
+			createdevsstmt, createdevflagsstmt, createsessionsstmt,
+			createuplinksstmt, createdownlinksstmt };
 
-	INITSTMT(INSERT_APP, cntx->dbcntx.insertappstmt);
+	for (int i = 0; i < G_N_ELEMENTS(createstmts); i++) {
+		database_stepuntilcomplete(createstmts[i], NULL, NULL);
+		sqlite3_finalize(createstmts[i]);
+	}
+
+	return TRUE;
+
+	out: return FALSE;
+}
+
+void database_init(struct context* cntx, const gchar* databasepath) {
+	int ret = sqlite3_open(databasepath, &cntx->dbcntx.db);
+	if (ret)
+		sqlite3_close(cntx->dbcntx.db);
+
+	g_assert(database_init_createtables(cntx));
+
+	INITSTMT(__SQLITEGEN_APPS_INSERT, cntx->dbcntx.insertappstmt);
 	INITSTMT(GET_APP, cntx->dbcntx.getappsstmt);
 	INITSTMT(LIST_APPS, cntx->dbcntx.listappsstmt);
 	INITSTMT(LIST_APPFLAGS, cntx->dbcntx.listappflagsstmt);
 
-	INITSTMT(INSERT_DEV, cntx->dbcntx.insertdevstmt);
+	INITSTMT(__SQLITEGEN_DEVS_INSERT, cntx->dbcntx.insertdevstmt);
 	INITSTMT(GET_DEV, cntx->dbcntx.getdevstmt);
 	INITSTMT(LIST_DEVS, cntx->dbcntx.listdevsstmt);
 
-	INITSTMT(INSERT_SESSION, cntx->dbcntx.insertsessionstmt);
+	INITSTMT(__SQLITEGEN_SESSIONS_INSERT, cntx->dbcntx.insertsessionstmt);
 	INITSTMT(GET_SESSIONDEVEUI, cntx->dbcntx.getsessionbydeveuistmt);
 	INITSTMT(GET_SESSIONDEVADDR, cntx->dbcntx.getsessionbydevaddrstmt);
 	INITSTMT(DELETE_SESSION, cntx->dbcntx.deletesessionstmt);
@@ -175,11 +128,11 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	INITSTMT(SET_FRAMECOUNTER_UP, cntx->dbcntx.setframecounterup);
 	INITSTMT(INC_FRAMECOUNTER_DOWN, cntx->dbcntx.incframecounterdown);
 
-	INITSTMT(INSERT_UPLINK, cntx->dbcntx.insertuplink);
+	INITSTMT(__SQLITEGEN_UPLINKS_INSERT, cntx->dbcntx.insertuplink);
 	INITSTMT(GET_UPLINKS_DEV, cntx->dbcntx.getuplinks_dev);
 	INITSTMT(CLEAN_UPLINKS, cntx->dbcntx.cleanuplinks);
 
-	INITSTMT(INSERT_DOWNLINK, cntx->dbcntx.insertdownlink);
+	INITSTMT(__SQLITEGEN_DOWNLINKS_INSERT, cntx->dbcntx.insertdownlink);
 	INITSTMT(CLEAN_DOWNLINKS, cntx->dbcntx.cleandownlinks);
 	INITSTMT(COUNT_DOWNLINKS, cntx->dbcntx.countdownlinks);
 
@@ -208,25 +161,16 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	}
 
 	noerr: {
-		sqlite3_stmt* createstmts[] = { createappsstmt, createappflagsstmt,
-				createdevsstmt, createdevflagsstmt, createsessionsstmt,
-				createdownlinksstmt };
-		for (int i = 0; i < G_N_ELEMENTS(createstmts); i++) {
-			if (createstmts[i] != NULL)
-				sqlite3_finalize(createstmts[i]);
-		}
+
 	}
 
 	return;
 }
 
 void database_app_add(struct context* cntx, const struct app* app) {
-	sqlite3_stmt* stmt = cntx->dbcntx.insertappstmt;
-	sqlite3_bind_text(stmt, 1, app->eui, -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 2, app->name, -1, SQLITE_STATIC);
-	sqlite3_bind_int(stmt, 3, app->serial);
-	database_stepuntilcomplete(stmt, NULL, NULL);
-	sqlite3_reset(stmt);
+	__sqlitegen_apps_add(cntx->dbcntx.insertappstmt, app);
+	database_stepuntilcomplete(cntx->dbcntx.insertappstmt, NULL, NULL);
+	sqlite3_reset(cntx->dbcntx.insertappstmt);
 }
 
 void database_app_update(struct context* cntx, const struct app* app) {
@@ -283,11 +227,7 @@ void database_appflags_list(struct context* cntx, const char* appeui,
 
 void database_dev_add(struct context* cntx, const struct dev* dev) {
 	sqlite3_stmt* stmt = cntx->dbcntx.insertdevstmt;
-	sqlite3_bind_text(stmt, 1, dev->eui, -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 2, dev->appeui, -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 3, dev->key, -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 4, dev->name, -1, SQLITE_STATIC);
-	sqlite3_bind_int(stmt, 5, dev->serial);
+	__sqlitegen_devs_add(stmt, dev);
 	database_stepuntilcomplete(stmt, NULL, NULL);
 	sqlite3_reset(stmt);
 }
@@ -438,15 +378,7 @@ void database_framecounter_up_set(struct context* cntx, const char* devaddr,
 }
 
 void database_uplink_add(struct context* cntx, struct uplink* uplink) {
-	sqlite3_bind_int64(cntx->dbcntx.insertuplink, 1, uplink->timestamp);
-	sqlite3_bind_text(cntx->dbcntx.insertuplink, 2, uplink->appeui, -1,
-	SQLITE_STATIC);
-	sqlite3_bind_text(cntx->dbcntx.insertuplink, 3, uplink->deveui, -1,
-	SQLITE_STATIC);
-	sqlite3_bind_int(cntx->dbcntx.insertuplink, 4, uplink->port);
-	sqlite3_bind_blob(cntx->dbcntx.insertuplink, 5, uplink->payload,
-			uplink->payloadlen, NULL);
-
+	__sqlitegen_uplinks_add(cntx->dbcntx.insertuplink, uplink);
 	database_stepuntilcomplete(cntx->dbcntx.insertuplink,
 	NULL, NULL);
 	sqlite3_reset(cntx->dbcntx.insertuplink);
@@ -483,18 +415,7 @@ void database_uplinks_clean(struct context* cntx, guint64 timestamp) {
 }
 
 void database_downlink_add(struct context* cntx, struct downlink* downlink) {
-	sqlite3_bind_int64(cntx->dbcntx.insertdownlink, 1, downlink->timestamp);
-	sqlite3_bind_int(cntx->dbcntx.insertdownlink, 2, downlink->deadline);
-	sqlite3_bind_text(cntx->dbcntx.insertdownlink, 3, downlink->appeui, -1,
-	SQLITE_STATIC);
-	sqlite3_bind_text(cntx->dbcntx.insertdownlink, 4, downlink->deveui, -1,
-	SQLITE_STATIC);
-	sqlite3_bind_int(cntx->dbcntx.insertdownlink, 5, downlink->port);
-	sqlite3_bind_blob(cntx->dbcntx.insertdownlink, 6, downlink->payload,
-			downlink->payloadlen, NULL);
-	sqlite3_bind_text(cntx->dbcntx.insertdownlink, 7, downlink->token, -1,
-	SQLITE_STATIC);
-
+	__sqlitegen_downlinks_add(cntx->dbcntx.insertdownlink, downlink);
 	database_stepuntilcomplete(cntx->dbcntx.insertdownlink,
 	NULL, NULL);
 	sqlite3_reset(cntx->dbcntx.insertdownlink);

@@ -147,6 +147,7 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 		struct uplink ul = { .timestamp = g_get_real_time(), .appeui =
 				keys.appeui, .deveui = keys.deveui, .port = unpacked.data.port,
 				.payload = decrypted, .payloadlen = unpacked.data.payloadlen };
+		memcpy(&ul.rfparams, &rxpkt->rfparams, sizeof(ul.rfparams));
 
 		struct flags flags;
 		flags_forapp(cntx, ul.appeui, &flags);

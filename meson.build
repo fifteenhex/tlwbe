@@ -1,6 +1,12 @@
 project('tlwbe', 'c')
 
 mosquittomainloop = subproject('mosquittomainloop')
+prog_sqlitegen = find_program(meson.source_root() + '/codegen/sqlitegen.py')
+gen_sqlitegen = generator(prog_sqlitegen,
+                 output : ['@BASENAME@.sqlite.h'],
+                 arguments : ['--input=@INPUT@', '--output=@BUILD_DIR@/@BASENAME@.sqlite.h'])
+
+generated_sqlite = gen_sqlitegen.process('control.h','join.h','uplink.h','downlink.h')
 
 src = ['tlwbe.c',
        'crypto.c',
@@ -13,7 +19,9 @@ src = ['tlwbe.c',
        'pktfwdbr.c',
        'packet.c',
        'regional.c',
-       'flags.c']
+       'flags.c',
+       generated_sqlite]
+
 deps = [ dependency('glib-2.0'),
          dependency('json-glib-1.0'),
          dependency('sqlite3'),

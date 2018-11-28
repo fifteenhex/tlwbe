@@ -29,8 +29,23 @@ class Interpreter(cmd2.Cmd):
 
     actions = ["list", "get", "add", "update", "delete"]
 
+    def __adddnamearg(parser):
+        parser.add_argument('--name', type=str, nargs='?')
+
+    def __adddevuiarg(parser):
+        parser.add_argument('--deveui', type=str, nargs='?')
+
+    def __addappeuiarg(parser):
+        parser.add_argument('--appeui', type=str, nargs='?')
+
     dev_parser = argparse.ArgumentParser()
     dev_parser.add_argument('--action', type=str, nargs='?', choices=actions, default="list")
+    __adddnamearg(dev_parser)
+    __adddevuiarg(dev_parser)
+    __addappeuiarg(dev_parser)
+
+    def __printdev(self, dev):
+        print("%s\t\t%s\t\t%s\t\t%s" % (dev['name'], dev['eui'], dev['appeui'], dev['key']))
 
     @cmd2.with_argparser(dev_parser)
     def do_dev(self, args):
@@ -47,11 +62,34 @@ class Interpreter(cmd2.Cmd):
                 for dd in dev:
                     devdata = dd['payload']['dev']
                     print("%s\t\t%s\t\t%s" % (devdata['name'], devdata['eui'], devdata['appeui']))
+        elif args.action == 'get':
+            if args.deveui is None:
+                print("need a dev eui buddy")
+                return
+
+            payload = {'eui': args.deveui}
+            dev = publishandwaitforresult_newstyle("tlwbe/control/dev/get", payload) \
+                .to_blocking()
+            for dd in dev:
+                devdata = dd['payload']['dev']
+                self.__printdev(devdata)
+        elif args.action == 'add':
+            if args.appeui is None or args.name is None:
+                print('need a name and an app eui')
+                return
+            payload = {'name': args.name, 'appeui': args.appeui}
+            result = publishandwaitforresult_newstyle("tlwbe/control/dev/add", payload) \
+                .to_blocking()
+            for rr in result:
+                appdata = rr['payload']
+                print("%s" % str(appdata))
         else:
             print("%s isn't implemented yet" % args.action)
 
     app_parser = argparse.ArgumentParser()
     app_parser.add_argument('--action', type=str, nargs='?', choices=actions, default="list")
+    __adddnamearg(app_parser)
+    __addappeuiarg(app_parser)
 
     @cmd2.with_argparser(app_parser)
     def do_app(self, args):
@@ -67,12 +105,34 @@ class Interpreter(cmd2.Cmd):
                     .to_blocking()
                 for aa in app:
                     print("%s\t\t%s" % (aa['payload']['app']['name'], aa['payload']['app']['eui']))
+        elif args.action == 'get':
+            if args.appeui is None:
+                print("need an app eui buddy")
+                return
+
+            payload = {'eui': args.appeui}
+            app = publishandwaitforresult_newstyle("tlwbe/control/app/get", payload) \
+                .to_blocking()
+            for aa in app:
+                appdata = aa['payload']['app']
+                print("%s\t\t%s" % (appdata['name'], appdata['eui']))
+        elif args.action == 'add':
+            if args.appeui is None or args.name is None:
+                print('need a name and a eui')
+                return
+
+            payload = {'name': args.name, 'eui': args.appeui}
+            result = publishandwaitforresult_newstyle("tlwbe/control/app/add", payload) \
+                .to_blocking()
+            for rr in result:
+                appdata = rr['payload']
+                print("%s" % str(appdata))
         else:
             print("%s isn't implemented yet" % args.action)
 
     uplink_parser = argparse.ArgumentParser()
-    uplink_parser.add_argument('--deveui', type=str, nargs='?')
-    uplink_parser.add_argument('--appeui', type=str, nargs='?')
+    __adddevuiarg(uplink_parser)
+    __addappeuiarg(uplink_parser)
 
     @cmd2.with_argparser(uplink_parser)
     def do_uplink(self, args):

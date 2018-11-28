@@ -1,7 +1,55 @@
 #pragma once
 
+#ifdef __SQLITEGEN
+#include "codegen/fakeglib.h"
+#else
 #include "tlwbe.h"
+#endif
 
+struct flag {
+#ifdef __SQLITEGEN
+	guint64 id;
+#endif
+	const gchar* eui;
+	const gchar* flag;
+#ifdef __SQLITEGEN
+	void __sqlitegen_flags_id_hidden;
+	void __sqlitegen_constraints_id_notnull_primarykey_autoincrement_unique;
+	void __sqlitegen_constraints_eui_notnull;
+	void __sqlitegen_constraints_flag_notnull;
+#endif
+};
+
+struct app {
+	const gchar* eui;
+	const gchar* name;
+	const guint32 serial;
+#ifdef __SQLITEGEN
+	void __sqlitegen_constraints_eui_notnull_primarykey_unique;
+#endif
+};
+#ifdef __SQLITEGEN
+typedef struct app __sqlitegen_table_apps;
+typedef struct flag __sqlitegen_table_appflags;
+#endif
+
+struct dev {
+	const gchar* eui;
+	const gchar* appeui;
+	const gchar* key;
+	const gchar* name;
+	const guint32 serial;
+#ifdef __SQLITEGEN
+	void __sqlitegen_constraints_eui_notnull_primarykey_unique;
+#endif
+};
+#ifdef __SQLITEGEN
+typedef struct dev __sqlitegen_table_devs;
+typedef struct flag __sqlitegen_table_devflags;
+#endif
+
+
+#ifndef __SQLITEGEN
 #define CONTROL_SUBTOPIC		"control"
 #define CONTROL_ENTITY_APP		"app"
 #define CONTROL_ENTITY_DEV		"dev"
@@ -21,3 +69,4 @@
 void control_onbrokerconnect(struct context* cntx);
 void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		char** splittopic, int numtopicparts);
+#endif

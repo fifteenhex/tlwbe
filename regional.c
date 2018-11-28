@@ -22,7 +22,7 @@ gdouble regional_getfrequency(enum RXWINDOW rxwindow,
 	case RXW_J2:
 		return 923.2;
 	default:
-		return rxpkt->frequency;
+		return rxpkt->rfparams.frequency;
 	}
 
 }

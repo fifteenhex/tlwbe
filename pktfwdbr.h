@@ -1,9 +1,22 @@
 #pragma once
 
+#ifndef __SQLITEGEN
 #include <mosquitto.h>
-
 #include "tlwbe.h"
+#endif
 
+struct pktfwdpkt_rfparams {
+	// basic rf bits
+	const gchar* modulation;
+	gdouble frequency;
+	// lora specifc stuff
+	const gchar* datarate;
+	const gchar* coderate;
+	// misc
+	guint32 rfchain;
+};
+
+#ifndef __SQLITEGEN
 /* Basic topic format
  *
  * pktfwdbr/<gatewayid>/[rx|tx]
@@ -41,15 +54,7 @@
 #define PKTFWDBR_JSON_TXPK_NCRC	"ncrc"
 
 struct pktfwdpkt {
-	// rf
-	const gchar* modulation;
-	gdouble frequency;
-	//fixme this RF chain not chan
-	guint32 rfchannel;
-	// lora stuff
-	const gchar* datarate;
-	const gchar* coderate;
-	//
+	struct pktfwdpkt_rfparams rfparams;
 	const gchar* data;
 	gsize size;
 	guint32 timestamp;
@@ -57,3 +62,4 @@ struct pktfwdpkt {
 
 void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		char** splittopic, int numtopicparts);
+#endif
