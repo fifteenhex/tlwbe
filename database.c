@@ -9,11 +9,9 @@
 #include "downlink.sqlite.h"
 
 //sql for apps
-#define LIST_APPS		"SELECT eui FROM apps;"
 #define LIST_APPFLAGS	"SELECT flag FROM appflags WHERE eui = ?;"
 
 //sql for devs
-#define LIST_DEVS		"SELECT eui FROM devs;"
 #define LIST_DEVFLAGS	"SELECT flag FROM devflags WHERE eui = ?;"
 
 //sql for sessions
@@ -104,12 +102,12 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 
 	INITSTMT(__SQLITEGEN_APPS_INSERT, cntx->dbcntx.insertappstmt);
 	INITSTMT(__SQLITEGEN_APPS_GETBY_EUI, cntx->dbcntx.getappsstmt);
-	INITSTMT(LIST_APPS, cntx->dbcntx.listappsstmt);
+	INITSTMT(__SQLITEGEN_APPS_LIST_EUI, cntx->dbcntx.listappsstmt);
 	INITSTMT(LIST_APPFLAGS, cntx->dbcntx.listappflagsstmt);
 
 	INITSTMT(__SQLITEGEN_DEVS_INSERT, cntx->dbcntx.insertdevstmt);
 	INITSTMT(__SQLITEGEN_DEVS_GETBY_EUI, cntx->dbcntx.getdevstmt);
-	INITSTMT(LIST_DEVS, cntx->dbcntx.listdevsstmt);
+	INITSTMT(__SQLITEGEN_DEVS_LIST_EUI, cntx->dbcntx.listdevsstmt);
 
 	INITSTMT(__SQLITEGEN_SESSIONS_INSERT, cntx->dbcntx.insertsessionstmt);
 	INITSTMT(__SQLITEGEN_SESSIONS_GETBY_DEVEUI,

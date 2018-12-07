@@ -59,6 +59,22 @@ def __bind_blob(pos, field):
     return 'sqlite3_bind_blob(stmt, %d, %s, %slen, NULL)' % (pos, field, field)
 
 
+def __fetch_long(pos, field):
+    return '%s = sqlite3_column_int(stmt, %d)' % (field, pos)
+
+
+def __fetch_double(pos, field):
+    return '%s = sqlite3_column_double(stmt, %d)' % (field, pos)
+
+
+def __fetch_string(pos, field):
+    return '%s = sqlite3_column_text(stmt, %d)' % (field, pos)
+
+
+def __fetch_blob(pos, field):
+    return '%s = sqlite3_column_blob(stmt, %d); %slen = sqlite3_column_bytes(stmt, %d)' % (field, pos, field, pos)
+
+
 bindmethodmap = {
     'guint64': __bind_long,
     'guint32': __bind_int,
@@ -69,6 +85,18 @@ bindmethodmap = {
 bind_pointer_type_map = {
     'gchar': __bind_string,
     'guint8': __bind_blob
+}
+
+fetch_type_method_map = {
+    'guint64': __fetch_long,
+    'guint32': __fetch_long,
+    'guint8': __fetch_long,
+    'gdouble': __fetch_double
+}
+
+fetch_pointer_type_method_map = {
+    'gchar': __fetch_string,
+    'guint8': __fetch_blob
 }
 
 
@@ -118,6 +146,13 @@ class ParsedTable:
                 '#define __SQLITEGEN_%s_GETBY_%s "SELECT * FROM %s WHERE %s = ?;"\n\n' % (
                     self.name.upper(), col['name'].upper(), self.name, col['name']))
 
+    def __write_sql_list(self, outputfile):
+        cols = self.__find_searchable_cols()
+        for col in cols:
+            outputfile.write(
+                '#define __SQLITEGEN_%s_LIST_%s "SELECT %s FROM %s;"\n\n' % (
+                    self.name.upper(), col['name'].upper(), col['name'], self.name))
+
     def __write_sql_deleteby(self, outputfile):
         cols = self.__find_searchable_cols()
         for col in cols:
@@ -126,8 +161,33 @@ class ParsedTable:
                     self.name.upper(), col['name'].upper(), self.name, col['name']))
 
     def __write_c_rowcallback(self, outputfile):
-        outputfile.write('static void __attribute__((unused)) __sqlitegen_%s_rowcallback(){\n' % self.name)
-        outputfile.write('}\n')
+
+        callbackbackstructname = '__sqlitegen_%s_rowcallback_callback' % self.name
+
+        outputfile.write('struct %s {\n' % callbackbackstructname)
+        outputfile.write('\t void (*callback)(const struct %s*, void*);\n' % self.struct_type)
+        outputfile.write('\t void* data;\n')
+        outputfile.write('};\n\n')
+
+        outputfile.write(
+            'static void __attribute__((unused)) __sqlitegen_%s_rowcallback(sqlite3_stmt* stmt, struct %s* callback){\n' % (
+                self.name, callbackbackstructname))
+        outputfile.write('\tstruct %s %s = {0};\n' % (self.struct_type, self.struct_type))
+        pos = 1
+        for col in self.cols:
+            if 'hidden' in col['flags']:
+                continue
+
+            path = ""
+            if len(col['path']) != 0:
+                path = ".".join(col['path']) + "."
+            bind = col['fetch_method'](pos, "%s.%s%s" % (self.struct_type, path, col['field_name']))
+            outputfile.write(
+                '\t%s;\n' % bind)
+            pos += 1
+
+        outputfile.write('\tcallback->callback(&%s, callback->data);\n' % self.struct_type)
+        outputfile.write('}\n\n')
 
     def __write_c_add(self, outputfile):
         outputfile.write(
@@ -147,21 +207,14 @@ class ParsedTable:
             bindpos += 1
         outputfile.write('}\n')
 
-    def __write_c_get(self, outputfile):
-
-        outputfile.write(
-            'static void __attribute__((unused)) __sqlitelite_%s_get(struct %s* %s){\n' % (
-                self.name, self.struct_type, self.struct_type))
-        outputfile.write('}\n')
-
     def write(self, outputfile):
         self.__write_sql_create(outputfile)
         self.__write_sql_insert(outputfile)
         self.__write_sql_getby(outputfile)
+        self.__write_sql_list(outputfile)
         self.__write_sql_deleteby(outputfile)
         self.__write_c_rowcallback(outputfile)
         self.__write_c_add(outputfile)
-        self.__write_c_get(outputfile)
 
 
 def __stuctbyname(name: (str)):
@@ -229,10 +282,16 @@ def __add_col(field: TypeDecl, parsedtable: ParsedTable, flags_field=None, const
 
     if pointer:
         bind_mapped_type = bind_pointer_type_map.get(field_type)
+        fetch_method = fetch_pointer_type_method_map.get(field_type)
     else:
         bind_mapped_type = bindmethodmap.get(field_type)
+        fetch_method = fetch_type_method_map.get(field_type)
+
     assert bind_mapped_type is not None, (
             "c type %s(pointer: %s) doesn't have a bind mapping" % (field_type, str(pointer)))
+
+    assert fetch_method is not None, (
+            "c type %s(pointer: %s) doesn't have a fetch mapping" % (field_type, str(pointer)))
 
     field_name = field.declname
     if prefix is not None:
@@ -246,7 +305,7 @@ def __add_col(field: TypeDecl, parsedtable: ParsedTable, flags_field=None, const
 
     parsedtable.cols.append(
         {'name': colname, 'field_name': field_name, 'path': path, 'flags': parsed_flags, 'sql_type': sql_mapped_type,
-         'sql_constraints': flattened_constraints, 'bind_type': bind_mapped_type})
+         'sql_constraints': flattened_constraints, 'bind_type': bind_mapped_type, 'fetch_method': fetch_method})
 
 
 def __flattenfield(field, parsedtable: ParsedTable, path: list, flags_field=None, constraints_field=None, prefix=None,

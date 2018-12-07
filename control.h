@@ -23,7 +23,7 @@ struct flag {
 struct app {
 	const gchar* eui;
 	const gchar* name;
-	const guint32 serial;
+	guint32 serial;
 #ifdef __SQLITEGEN
 	void __sqlitegen_flags_eui_searchable;
 	void __sqlitegen_constraints_eui_notnull_primarykey_unique;
@@ -39,7 +39,7 @@ struct dev {
 	const gchar* appeui;
 	const gchar* key;
 	const gchar* name;
-	const guint32 serial;
+	guint32 serial;
 #ifdef __SQLITEGEN
 	void __sqlitegen_flags_eui_searchable;
 	void __sqlitegen_constraints_eui_notnull_primarykey_unique;
