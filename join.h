@@ -15,6 +15,7 @@ struct session {
 #ifdef __SQLITEGEN
 	guint32	upcounter;
 	guint32 downcounter;
+	void __sqlitegen_flags_deveui_searchable;
 	void __sqlitegen_constraints_deveui_notnull_primarykey_unique;
 	void __sqlitegen_constraints_devnonce_notnull;
 	void __sqlitegen_constraints_appnonce_notnull;

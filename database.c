@@ -9,19 +9,15 @@
 #include "downlink.sqlite.h"
 
 //sql for apps
-#define GET_APP			"SELECT * FROM apps WHERE eui = ?;"
 #define LIST_APPS		"SELECT eui FROM apps;"
 #define LIST_APPFLAGS	"SELECT flag FROM appflags WHERE eui = ?;"
 
 //sql for devs
-#define GET_DEV			"SELECT * FROM devs WHERE eui = ?;"
 #define LIST_DEVS		"SELECT eui FROM devs;"
 #define LIST_DEVFLAGS	"SELECT flag FROM devflags WHERE eui = ?;"
 
 //sql for sessions
-#define GET_SESSIONDEVEUI	"SELECT * FROM sessions WHERE deveui = ?;"
 #define GET_SESSIONDEVADDR	"SELECT * FROM sessions WHERE devaddr = ?;"
-#define DELETE_SESSION		"DELETE FROM sessions WHERE deveui = ?;"
 #define GET_KEYPARTS		"SELECT key,appnonce,devnonce,appeui,deveui "\
 								"FROM sessions INNER JOIN devs on devs.eui = sessions.deveui WHERE devaddr = ?"
 #define GET_FRAMECOUNTER_UP			"SELECT upcounter FROM sessions WHERE devaddr = ?"
@@ -31,7 +27,6 @@
 
 //sql for uplinks
 #define CLEAN_UPLINKS	"DELETE FROM uplinks WHERE (timestamp < ?);"
-#define GET_UPLINKS_DEV	"SELECT * FROM uplinks WHERE deveui = ?;"
 
 //sql for downlinks
 #define CLEAN_DOWNLINKS "DELETE FROM downlinks WHERE ((? - timestamp)/1000000) > deadline"
@@ -108,18 +103,20 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	g_assert(database_init_createtables(cntx));
 
 	INITSTMT(__SQLITEGEN_APPS_INSERT, cntx->dbcntx.insertappstmt);
-	INITSTMT(GET_APP, cntx->dbcntx.getappsstmt);
+	INITSTMT(__SQLITEGEN_APPS_GETBY_EUI, cntx->dbcntx.getappsstmt);
 	INITSTMT(LIST_APPS, cntx->dbcntx.listappsstmt);
 	INITSTMT(LIST_APPFLAGS, cntx->dbcntx.listappflagsstmt);
 
 	INITSTMT(__SQLITEGEN_DEVS_INSERT, cntx->dbcntx.insertdevstmt);
-	INITSTMT(GET_DEV, cntx->dbcntx.getdevstmt);
+	INITSTMT(__SQLITEGEN_DEVS_GETBY_EUI, cntx->dbcntx.getdevstmt);
 	INITSTMT(LIST_DEVS, cntx->dbcntx.listdevsstmt);
 
 	INITSTMT(__SQLITEGEN_SESSIONS_INSERT, cntx->dbcntx.insertsessionstmt);
-	INITSTMT(GET_SESSIONDEVEUI, cntx->dbcntx.getsessionbydeveuistmt);
+	INITSTMT(__SQLITEGEN_SESSIONS_GETBY_DEVEUI,
+			cntx->dbcntx.getsessionbydeveuistmt);
 	INITSTMT(GET_SESSIONDEVADDR, cntx->dbcntx.getsessionbydevaddrstmt);
-	INITSTMT(DELETE_SESSION, cntx->dbcntx.deletesessionstmt);
+	INITSTMT(__SQLITEGEN_SESSIONS_DELETEBY_DEVEUI,
+			cntx->dbcntx.deletesessionstmt);
 
 	INITSTMT(GET_KEYPARTS, cntx->dbcntx.getkeyparts);
 
@@ -129,7 +126,7 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	INITSTMT(INC_FRAMECOUNTER_DOWN, cntx->dbcntx.incframecounterdown);
 
 	INITSTMT(__SQLITEGEN_UPLINKS_INSERT, cntx->dbcntx.insertuplink);
-	INITSTMT(GET_UPLINKS_DEV, cntx->dbcntx.getuplinks_dev);
+	INITSTMT(__SQLITEGEN_UPLINKS_GETBY_DEVEUI, cntx->dbcntx.getuplinks_dev);
 	INITSTMT(CLEAN_UPLINKS, cntx->dbcntx.cleanuplinks);
 
 	INITSTMT(__SQLITEGEN_DOWNLINKS_INSERT, cntx->dbcntx.insertdownlink);

@@ -25,6 +25,7 @@ struct app {
 	const gchar* name;
 	const guint32 serial;
 #ifdef __SQLITEGEN
+	void __sqlitegen_flags_eui_searchable;
 	void __sqlitegen_constraints_eui_notnull_primarykey_unique;
 #endif
 };
@@ -40,6 +41,7 @@ struct dev {
 	const gchar* name;
 	const guint32 serial;
 #ifdef __SQLITEGEN
+	void __sqlitegen_flags_eui_searchable;
 	void __sqlitegen_constraints_eui_notnull_primarykey_unique;
 #endif
 };

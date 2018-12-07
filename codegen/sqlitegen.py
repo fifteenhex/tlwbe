@@ -79,6 +79,13 @@ class ParsedTable:
         self.struct_type = struct_type
         self.cols = []
 
+    def __find_searchable_cols(self):
+        searchablecols = []
+        for col in self.cols:
+            if 'searchable' in col['flags']:
+                searchablecols.append(col)
+        return searchablecols
+
     def __write_sql_create(self, outputfile):
         outputfile.write(
             '#define __SQLITEGEN_%s_TABLE_CREATE "CREATE TABLE IF NOT EXISTS %s ("\\\n' % (
@@ -104,6 +111,20 @@ class ParsedTable:
             '#define __SQLITEGEN_%s_INSERT "INSERT INTO %s (%s) VALUES (%s);"\n\n' % (
                 self.name.upper(), self.name, ",".join(colnames), ",".join(something)))
 
+    def __write_sql_getby(self, outputfile):
+        cols = self.__find_searchable_cols()
+        for col in cols:
+            outputfile.write(
+                '#define __SQLITEGEN_%s_GETBY_%s "SELECT * FROM %s WHERE %s = ?;"\n\n' % (
+                    self.name.upper(), col['name'].upper(), self.name, col['name']))
+
+    def __write_sql_deleteby(self, outputfile):
+        cols = self.__find_searchable_cols()
+        for col in cols:
+            outputfile.write(
+                '#define __SQLITEGEN_%s_DELETEBY_%s "DELETE FROM %s WHERE %s = ?;"\n\n' % (
+                    self.name.upper(), col['name'].upper(), self.name, col['name']))
+
     def __write_c_rowcallback(self, outputfile):
         outputfile.write('static void __attribute__((unused)) __sqlitegen_%s_rowcallback(){\n' % self.name)
         outputfile.write('}\n')
@@ -127,13 +148,17 @@ class ParsedTable:
         outputfile.write('}\n')
 
     def __write_c_get(self, outputfile):
+
         outputfile.write(
-            'static void __attribute__((unused)) __sqlitelite_%s_get(){\n' % (self.name))
+            'static void __attribute__((unused)) __sqlitelite_%s_get(struct %s* %s){\n' % (
+                self.name, self.struct_type, self.struct_type))
         outputfile.write('}\n')
 
     def write(self, outputfile):
         self.__write_sql_create(outputfile)
         self.__write_sql_insert(outputfile)
+        self.__write_sql_getby(outputfile)
+        self.__write_sql_deleteby(outputfile)
         self.__write_c_rowcallback(outputfile)
         self.__write_c_add(outputfile)
         self.__write_c_get(outputfile)
