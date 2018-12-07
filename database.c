@@ -270,14 +270,13 @@ void database_devs_list(struct context* cntx,
 	sqlite3_reset(stmt);
 }
 
-void database_session_add(struct context* cntx, const struct session* session) {
+gboolean database_session_add(struct context* cntx,
+		const struct session* session) {
 	sqlite3_stmt* stmt = cntx->dbcntx.insertsessionstmt;
-	sqlite3_bind_text(stmt, 1, session->deveui, -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 2, session->devnonce, -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 3, session->appnonce, -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 4, session->devaddr, -1, SQLITE_STATIC);
+	__sqlitegen_sessions_add(stmt, session);
 	database_stepuntilcomplete(stmt, NULL, NULL);
 	sqlite3_reset(stmt);
+	return true;
 }
 
 static void database_session_get_rowcallback(sqlite3_stmt* stmt, void* data) {

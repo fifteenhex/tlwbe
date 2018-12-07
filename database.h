@@ -37,7 +37,7 @@ void database_dev_del(struct context* cntx, const char* eui);
 void database_devs_list(struct context* cntx,
 		void (*callback)(const char* eui, void* data), void* data);
 //session
-void database_session_add(struct context* cntx, const struct session* dev);
+gboolean database_session_add(struct context* cntx, const struct session* dev);
 void database_session_get_deveui(struct context* cntx, const char* deveui,
 		void (*callback)(const struct session* session, void* data), void* data);
 void database_session_get_devaddr(struct context* cntx, const char* devaddr,

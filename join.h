@@ -19,9 +19,9 @@ struct session {
 	void __sqlitegen_constraints_devnonce_notnull;
 	void __sqlitegen_constraints_appnonce_notnull;
 	void __sqlitegen_flags_upcounter_hidden;
-	void __sqlitegen_constraints_upcounter_notnull;
+//	void __sqlitegen_constraints_upcounter_notnull;
 	void __sqlitegen_flags_downcounter_hidden;
-	void __sqlitegen_constraints_downcounter_notnull;
+//	void __sqlitegen_constraints_downcounter_notnull;
 #endif
 };
 #ifdef __SQLITEGEN

@@ -77,7 +77,11 @@ class Interpreter(cmd2.Cmd):
             if args.appeui is None or args.name is None:
                 print('need a name and an app eui')
                 return
+
             payload = {'name': args.name, 'appeui': args.appeui}
+            if args.deveui is not None:
+                payload['eui'] = args.deveui
+
             result = publishandwaitforresult_newstyle("tlwbe/control/dev/add", payload) \
                 .to_blocking()
             for rr in result:
