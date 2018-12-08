@@ -1,5 +1,6 @@
 from pycparser import parse_file
-from pycparser.c_ast import Typedef, Struct, Decl
+from pycparser.c_ast import Typedef, TypeDecl, Struct, Decl, IdentifierType, PtrDecl
+from enum import Enum
 
 
 def annotation_type_from_field_name(field_name: str):
@@ -23,6 +24,30 @@ class FieldAnnotation:
         all_parameters = annotation_parameters_from_field_name(field_name)
         self.field_name = all_parameters[0]
         self.parameters = all_parameters[1:]
+
+
+class FieldType(Enum):
+    NORMAL = 1
+    POINTER = 2
+    STRUCT = 3
+
+
+class Field:
+    def __init__(self, field: Decl):
+        field.show()
+
+        self.field = field
+        self.field_name = field.name
+        if type(field.type) == TypeDecl and type(field.type.type) == IdentifierType:
+            self.type = FieldType.NORMAL
+            self.c_type = field.type.type.names[0]
+        elif type(field.type) == PtrDecl:
+            self.type = FieldType.POINTER
+            self.c_type = field.type.type.type.names[0]
+        elif type(field.type) == TypeDecl and type(field.type.type) == Struct:
+            self.type = FieldType.STRUCT
+        else:
+            assert False, ("field type %s not handled" % type(field.type))
 
 
 class CodeBlock:
@@ -84,7 +109,7 @@ def walk_struct(tag: str, struct: Struct, annotation_types=[]):
             annotations.append(FieldAnnotation(field.name))
         else:
             print("found field %s" % field.name)
-            fields.append(field)
+            fields.append(Field(field))
 
     return fields, annotations
 

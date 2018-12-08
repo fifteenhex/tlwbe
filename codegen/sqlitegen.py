@@ -246,27 +246,25 @@ def __constraints_from_field(constraints_annotation: codegen.FieldAnnotation):
     return sql_constraints
 
 
-def __add_col(field: TypeDecl, parsedtable: ParsedTable, flags_annotation=None, constraints_annotation=None,
+def __add_col(field: codegen.Field, parsedtable: ParsedTable, flags_annotation=None, constraints_annotation=None,
               prefix=None, pointer=False, path=None):
     parsed_flags = __flags_from_field(flags_annotation)
     constraints = __constraints_from_field(constraints_annotation)
-    print("add col %s with constraints %s" % (field.declname, str(constraints)))
-
-    field_type = field.type.names[0]
+    print("add col %s with constraints %s" % (field.field_name, str(constraints)))
 
     sql_mapped_type = None
     if pointer:
-        sql_mapped_type = pointertypemap.get(field_type)
+        sql_mapped_type = pointertypemap.get(field.c_type)
     if sql_mapped_type is None:
-        sql_mapped_type = typemap.get(field_type)
+        sql_mapped_type = typemap.get(field.c_type)
     assert sql_mapped_type is not None
 
     if pointer:
-        bind_mapped_type = bind_pointer_type_map.get(field_type)
-        fetch_method = fetch_pointer_type_method_map.get(field_type)
+        bind_mapped_type = bind_pointer_type_map.get(field.c_type)
+        fetch_method = fetch_pointer_type_method_map.get(field.c_type)
     else:
-        bind_mapped_type = bindmethodmap.get(field_type)
-        fetch_method = fetch_type_method_map.get(field_type)
+        bind_mapped_type = bindmethodmap.get(field.c_type)
+        fetch_method = fetch_type_method_map.get(field.c_type)
 
     assert bind_mapped_type is not None, (
             "c type %s(pointer: %s) doesn't have a bind mapping" % (field_type, str(pointer)))
@@ -274,36 +272,35 @@ def __add_col(field: TypeDecl, parsedtable: ParsedTable, flags_annotation=None, 
     assert fetch_method is not None, (
             "c type %s(pointer: %s) doesn't have a fetch mapping" % (field_type, str(pointer)))
 
-    field_name = field.declname
     if prefix is not None:
-        colname = "%s_%s" % (prefix, field_name)
+        colname = "%s_%s" % (prefix, field.field_name)
     else:
-        colname = field_name
+        colname = field.field_name
 
     flattened_constraints = ""
     if constraints is not None:
         flattened_constraints = " ".join(constraints)
 
     parsedtable.cols.append(
-        {'name': colname, 'field_name': field_name, 'path': path, 'flags': parsed_flags, 'sql_type': sql_mapped_type,
+        {'name': colname, 'field_name': field.field_name, 'path': path, 'flags': parsed_flags,
+         'sql_type': sql_mapped_type,
          'sql_constraints': flattened_constraints, 'bind_type': bind_mapped_type, 'fetch_method': fetch_method})
 
 
-def __flattenfield(field, parsedtable: ParsedTable, path: list, flags_annotation, constraints_annotation,
+def __flattenfield(field: codegen.Field, parsedtable: ParsedTable, path: list, flags_annotation, constraints_annotation,
                    prefix=None, pointer=False):
-    # field.show()
-    if type(field.type) == TypeDecl:
-        if type(field.type.type) == IdentifierType:
-            __add_col(field.type, parsedtable, flags_annotation, constraints_annotation, prefix, pointer, path)
-        elif type(field.type.type) == Struct:
-            # field.type.type.show()
-            path.append(field.name)
-            __flatten_struct(parsedtable, codegen.struct_by_name(ast, field.type.type.name), prefix=field.name,
-                             path=path)
-    elif type(field.type) == PtrDecl:
-        __flattenfield(field.type, parsedtable, path, flags_annotation, constraints_annotation, prefix, True)
+    print(field.type)
+    if field.type == codegen.FieldType.NORMAL or field.type == codegen.FieldType.POINTER:
+        __add_col(field, parsedtable, flags_annotation, constraints_annotation, prefix,
+                  field.type == codegen.FieldType.POINTER, path)
+    elif field.type == codegen.FieldType.STRUCT:
+        pass
+        # field.type.type.show()
+        path.append(field.field_name)
+        __flatten_struct(parsedtable, codegen.struct_by_name(ast, field.field.type.type.name), prefix=field.field_name,
+                         path=path)
     else:
-        print("field type %s not handled" % type(field.type))
+        assert False, ('unhandled type %s' % field.type)
 
 
 def __flatten_struct(parsedtable: ParsedTable, struct: Struct, prefix=None, path=[]):
@@ -315,12 +312,12 @@ def __flatten_struct(parsedtable: ParsedTable, struct: Struct, prefix=None, path
         annotations[annotation.annotation_type][annotation.field_name] = annotation
 
     for f in fieldsandannotations[0]:
-        if f.name in annotations['flags']:
-            flags = annotations['flags'].pop(f.name)
+        if f.field_name in annotations['flags']:
+            flags = annotations['flags'].pop(f.field_name)
         else:
             flags = None
-        if f.name in annotations['constraints']:
-            constraints = annotations['constraints'].pop(f.name)
+        if f.field_name in annotations['constraints']:
+            constraints = annotations['constraints'].pop(f.field_name)
         else:
             constraints = None
 
