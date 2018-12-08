@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef __SQLITEGEN
+#if (defined(__SQLITEGEN) || defined(__JSONGEN))
 #include "codegen/fakeglib.h"
 #else
 #include <glib.h>
@@ -34,8 +34,12 @@ struct uplink {
 #ifdef __SQLITEGEN
 typedef struct uplink __sqlitegen_table_uplinks;
 #endif
+#ifdef __JSONGEN
+typedef struct uplink __jsongen_parser;
+typedef struct uplink __jsongen_builder;
+#endif
 
-#ifndef __SQLITEGEN
+#if !(defined(__SQLITEGEN) || defined(__JSONGEN))
 #define UPLINK_SUBTOPIC_UPLINKS			"uplinks"
 #define UPLINK_SUBTOPIC_UPLINKS_QUERY	"query"
 #define UPLINK_SUBTOPIC_UPLINKS_RESULT	"result"

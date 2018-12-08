@@ -1,6 +1,6 @@
 #pragma once
 
-#ifndef __SQLITEGEN
+#if !(defined(__SQLITEGEN) || defined(__JSONGEN))
 #include <mosquitto.h>
 #include "tlwbe.h"
 #endif

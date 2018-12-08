@@ -52,3 +52,8 @@ struct <table> {
 #endif
 };
 ```
+
+### Adding flags to control code generation
+
+hidden - column only exists in SQL, like auto ids
+searchable - code should be generated to use this column for doing search, update, delete operations

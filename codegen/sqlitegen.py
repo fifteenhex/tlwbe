@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
-from pycparser import parse_file
+import codegen
 from pycparser.c_ast import Typedef, TypeDecl, Struct, Decl, IdentifierType, PtrDecl
+
+TAG = 'sqlite'
 
 parser = argparse.ArgumentParser(description='sqlite code gen')
 parser.add_argument('--input', type=str, required=True)
@@ -18,7 +20,7 @@ flag_types = [
     'searchable'
 ]
 
-parametermap = {
+constraint_map = {
     'notnull': 'NOT NULL',
     'primarykey': 'PRIMARY KEY',
     'autoincrement': 'AUTOINCREMENT',
@@ -217,58 +219,37 @@ class ParsedTable:
         self.__write_c_add(outputfile)
 
 
-def __stuctbyname(name: (str)):
-    print('looking for struct %s' % name)
-    for child in ast:
-        if type(child) is Decl:
-            if type(child.type) is Struct:
-                if child.type.name == name:
-                    print('found struct %s' % name)
-                    return child.type
-    return None
-
-
-def __getconstraintfieldname(constraint_field):
-    parts = constraint_field.name[2:].split('_')
-    return parts[2]
-
-
-def __flags_from_field(flags_field):
-    if flags_field is None:
+def __flags_from_field(flags_annotation: codegen.FieldAnnotation):
+    if flags_annotation is None:
         return []
 
-    parts = flags_field.name[2:].split('_')
-
     flags = []
-    for flag in parts[3:]:
+    for flag in flags_annotation.parameters:
         assert flag in flag_types
         flags.append(flag)
 
-    print("flags for %s %s" % (__getconstraintfieldname(flags_field), str(flags)))
+    print("flags for %s %s" % (flags_annotation.field_name, str(flags)))
     return flags
 
 
-def __constraints_from_field(constraints_field):
-    if constraints_field is None:
+def __constraints_from_field(constraints_annotation: codegen.FieldAnnotation):
+    if constraints_annotation is None:
         return None
 
-    parts = constraints_field.name[2:].split('_')
-    constraints = []
+    sql_constraints = []
+    for constraint in constraints_annotation.parameters:
+        sql_constraint = constraint_map.get(constraint)
+        assert sql_constraint is not None
+        sql_constraints.append(sql_constraint)
 
-    for part in parts[3:]:
-        param = parametermap.get(part)
-        assert param is not None
-        constraints.append(param)
-
-    print("constraints for %s %s" % (__getconstraintfieldname(constraints_field), str(constraints)))
-    return constraints
+    print("constraints for %s %s" % (constraints_annotation.field_name, str(sql_constraints)))
+    return sql_constraints
 
 
-def __add_col(field: TypeDecl, parsedtable: ParsedTable, flags_field=None, constraints_field=None, prefix=None,
-              pointer=False,
-              path=None):
-    parsed_flags = __flags_from_field(flags_field)
-    constraints = __constraints_from_field(constraints_field)
+def __add_col(field: TypeDecl, parsedtable: ParsedTable, flags_annotation=None, constraints_annotation=None,
+              prefix=None, pointer=False, path=None):
+    parsed_flags = __flags_from_field(flags_annotation)
+    constraints = __constraints_from_field(constraints_annotation)
     print("add col %s with constraints %s" % (field.declname, str(constraints)))
 
     field_type = field.type.names[0]
@@ -308,90 +289,86 @@ def __add_col(field: TypeDecl, parsedtable: ParsedTable, flags_field=None, const
          'sql_constraints': flattened_constraints, 'bind_type': bind_mapped_type, 'fetch_method': fetch_method})
 
 
-def __flattenfield(field, parsedtable: ParsedTable, path: list, flags_field=None, constraints_field=None, prefix=None,
-                   pointer=False):
+def __flattenfield(field, parsedtable: ParsedTable, path: list, flags_annotation, constraints_annotation,
+                   prefix=None, pointer=False):
     # field.show()
     if type(field.type) == TypeDecl:
         if type(field.type.type) == IdentifierType:
-            __add_col(field.type, parsedtable, flags_field, constraints_field, prefix, pointer, path)
+            __add_col(field.type, parsedtable, flags_annotation, constraints_annotation, prefix, pointer, path)
         elif type(field.type.type) == Struct:
             # field.type.type.show()
             path.append(field.name)
-            __flattenstruct(__stuctbyname(field.type.type.name), parsedtable, field.name, path=path)
+            __flatten_struct(parsedtable, codegen.struct_by_name(ast, field.type.type.name), prefix=field.name,
+                             path=path)
     elif type(field.type) == PtrDecl:
-        __flattenfield(field.type, parsedtable, path, flags_field, constraints_field, prefix, True)
+        __flattenfield(field.type, parsedtable, path, flags_annotation, constraints_annotation, prefix, True)
     else:
         print("field type %s not handled" % type(field.type))
 
 
-def __flattenstruct(struct: Struct, parsedtable: ParsedTable, prefix=None, path=[]):
-    annotations_flags = {}
-    annotations_constraints = {}
-    fields = []
+def __flatten_struct(parsedtable: ParsedTable, struct: Struct, prefix=None, path=[]):
+    fieldsandannotations = codegen.walk_struct(TAG, struct, annotation_types=annotation_types)
 
-    # bucket the fields and the annotations
-    for field in struct:
-        if field.name.startswith('__sqlitegen'):
-            print("found annotation %s" % field.name)
-            annotation_type = field.name[2:].split('_')[1]
-            assert annotation_type in annotation_types
-            field_name = __getconstraintfieldname(field)
-            if annotation_type == 'flags':
-                annotations_flags[field_name] = field
-            elif annotation_type == 'constraints':
-                annotations_constraints[field_name] = field
+    # bucket the annotations
+    annotations = {'flags': {}, 'constraints': {}}
+    for annotation in fieldsandannotations[1]:
+        annotations[annotation.annotation_type][annotation.field_name] = annotation
+
+    for f in fieldsandannotations[0]:
+        if f.name in annotations['flags']:
+            flags = annotations['flags'].pop(f.name)
         else:
-            fields.append(field)
+            flags = None
+        if f.name in annotations['constraints']:
+            constraints = annotations['constraints'].pop(f.name)
+        else:
+            constraints = None
 
-    for f in fields:
-        __flattenfield(f, parsedtable, path.copy(), annotations_flags.get(f.name), annotations_constraints.get(f.name),
-                       prefix)
+        __flattenfield(f, parsedtable, path.copy(), flags, constraints, prefix)
+
+    # check that we don't have any left overs
+    orphans = 0
+    for annotation_type in annotations:
+        orphans += len(annotations[annotation_type])
+    assert orphans == 0
 
 
-def __walktable(name: str, struct: (Struct)):
-    parsedtable = ParsedTable(name, struct.name)
-    __flattenstruct(struct, parsedtable)
-    return parsedtable
+def __walktable(struct: Struct, tables, outputs: list):
+    table_names = tables.get(struct.name)
+    if table_names is not None:
+        print('found struct for %s' % tables[struct.name])
+        for table_name in table_names:
+            parsedtable = ParsedTable(table_name, struct.name)
+            __flatten_struct(parsedtable, struct)
+            outputs.append(parsedtable)
+
+
+def __table_name_from_struct_annotation(tables: dict, annotated_struct: codegen.AnnotatedStruct):
+    if annotated_struct.annotation_type == 'table':
+        assert len(annotated_struct.parameters) == 1
+        table_name = annotated_struct.parameters[0]
+        print('will generate table %s from %s' % (table_name, annotated_struct.struct_name))
+        if tables.get(annotated_struct.struct_name) is None:
+            tables[annotated_struct.struct_name] = []
+        tables[annotated_struct.struct_name].append(table_name)
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    print("processing %s -> %s" % (args.input, args.output))
+    print("sqlitegen processing %s -> %s" % (args.input, args.output))
 
-    ast = parse_file(args.input, use_cpp=True,
-                     cpp_args=['-D__SQLITEGEN', '-I/usr/share/python3-pycparser/fake_libc_include'])
-    # ast.show()
+    ast = codegen.parsefile('sqlitegen', args.input)
+    structs = codegen.find_annotated_structs(TAG, ['table'], ast)
 
     tables = {}
+    for struct in structs:
+        __table_name_from_struct_annotation(tables, struct)
 
-    # first pass to find all of the tables
-    for child in ast.ext:
-        if type(child) is Typedef:
-            if child.name.startswith('__sqlitegen'):
-                nameparts = child.name[2:].split('_')
-                if nameparts[1] == 'table':
-                    if type(child.type.type) is Struct:
-                        tablename = nameparts[2]
-                        structname = child.type.type.name
-                        print('will generate table %s from %s' % (tablename, structname))
-                        if tables.get(structname) is None:
-                            tables[structname] = []
-                        tables[structname].append(tablename)
-
-    outputs = []
-
-    # second pass to find the structs that were pointed at and
-    # generate any tables for them
-    for child in ast.ext:
-        if type(child) is Decl:
-            if type(child.type) is Struct:
-                tablenames = tables.get(child.type.name)
-                if tablenames is not None:
-                    for tablename in tablenames:
-                        print('found struct for %s' % tables[child.type.name])
-                        outputs.append(__walktable(tablename, child.type))
+    outputs = codegen.find_structs(ast, __walktable, tables)
 
     outputfile = open(args.output, 'w+')
     outputfile.write("//generated by sqlitegen from %s\n" % args.input)
     for t in outputs:
         t.write(outputfile)
+
+# if type(child.type.type) is Struct:
