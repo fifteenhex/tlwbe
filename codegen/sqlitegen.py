@@ -287,7 +287,8 @@ def __add_col(field: codegen.Field, parsedtable: ParsedTable, flags_annotation=N
          'fetch_method': fetch_method})
 
 
-def __flattenfield(field: codegen.Field, parsedtable: ParsedTable, path: list, flags_annotation, constraints_annotation,
+def __flattenfield(ast, field: codegen.Field, parsedtable: ParsedTable, path: list, flags_annotation,
+                   constraints_annotation,
                    prefix=None, pointer=False):
     print(field.type)
     if field.type == codegen.FieldType.NORMAL or field.type == codegen.FieldType.POINTER:
@@ -297,14 +298,15 @@ def __flattenfield(field: codegen.Field, parsedtable: ParsedTable, path: list, f
         pass
         # field.type.type.show()
         path.append(field.field_name)
-        __flatten_struct(parsedtable, codegen.struct_by_name(ast, field.field.type.type.name), prefix=field.field_name,
+        __flatten_struct(ast, parsedtable, codegen.struct_by_name(ast, field.field.type.type.name),
+                         prefix=field.field_name,
                          path=path)
     else:
         assert False, ('unhandled type %s' % field.type)
 
 
-def __flatten_struct(parsedtable: ParsedTable, struct: Struct, prefix=None, path=[]):
-    fieldsandannotations = codegen.walk_struct(TAG, struct, annotation_types=annotation_types)
+def __flatten_struct(ast, parsedtable: ParsedTable, struct: Struct, prefix=None, path=[]):
+    fieldsandannotations = codegen.walk_struct(ast, TAG, struct, annotation_types=annotation_types)
 
     # bucket the annotations
     annotations = {'flags': {}, 'constraints': {}}
@@ -321,7 +323,7 @@ def __flatten_struct(parsedtable: ParsedTable, struct: Struct, prefix=None, path
         else:
             constraints = None
 
-        __flattenfield(f, parsedtable, path.copy(), flags, constraints, prefix)
+        __flattenfield(ast, f, parsedtable, path.copy(), flags, constraints, prefix)
 
     # check that we don't have any left overs
     orphans = 0
@@ -330,13 +332,13 @@ def __flatten_struct(parsedtable: ParsedTable, struct: Struct, prefix=None, path
     assert orphans == 0
 
 
-def __walktable(struct: Struct, tables, outputs: list):
+def __walktable(ast, struct: Struct, tables, outputs: list):
     table_names = tables.get(struct.name)
     if table_names is not None:
         print('found struct for %s' % tables[struct.name])
         for table_name in table_names:
             parsedtable = ParsedTable(table_name, struct.name)
-            __flatten_struct(parsedtable, struct)
+            __flatten_struct(ast, parsedtable, struct)
             outputs.append(parsedtable)
 
 
