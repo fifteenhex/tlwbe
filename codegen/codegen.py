@@ -33,6 +33,8 @@ class FieldType(Enum):
 
 
 class Field:
+    __slots__ = ['field', 'field_name', 'type', 'c_type']
+
     def __init__(self, field: Decl):
         field.show()
 

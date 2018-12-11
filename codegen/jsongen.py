@@ -12,6 +12,8 @@ TAG = 'jsongen'
 
 
 class JsonCodeBlock(codegen.CodeBlock):
+    __slots__ = ['struct_name', 'fields_and_annotations']
+
     def __init__(self, struct_name: str, fields_and_annotations):
         self.struct_name = struct_name
         self.fields_and_annotations = fields_and_annotations
@@ -28,13 +30,49 @@ class JsonParser(JsonCodeBlock):
 
 
 class JsonBuilder(JsonCodeBlock):
+
+    def __add_int(self, field: codegen.Field, output):
+        outputfile.write('\tjson_builder_add_int_value(jsonbuilder, %s->%s);\n' % ("uplink", field.field_name));
+
+    def __add_string(self, field: codegen.Field, outputfile):
+        outputfile.write('\tjson_builder_add_string_value(jsonbuilder, %s->%s);\n' % ("uplink", field.field_name));
+
+    def __add_blob(self, field: codegen.Field, outputfile):
+        outputfile.write('\tgchar * payloadb64 = g_base64_encode(%s->%s, %s->%slen);\n' % (
+            "uplink", field.field_name, "uplink", field.field_name))
+        outputfile.write('\tjson_builder_add_string_value(jsonbuilder, payloadb64);\n');
+        outputfile.write('\tg_free(payloadb64);\n')
+
+    __type_mapping = {
+        'guint64': __add_int,
+        'guint8': __add_int,
+        'gsize': __add_int
+    }
+
+    __pointer_type_mapping = {
+        'gchar': __add_string,
+        'guint8': __add_blob
+    }
+
     def __init__(self, struct_name: str, fields_and_annotations):
         super().__init__(struct_name, fields_and_annotations)
 
     def write(self, outputfile):
-        outputfile.write('static void __%s_%s_to_json(struct %s* %s,JsonBuilder* jsonbuilder){\n' % (
+        outputfile.write('static void __%s_%s_to_json(const struct %s* %s, JsonBuilder* jsonbuilder){\n' % (
             TAG, self.struct_name, self.struct_name, self.struct_name))
         outputfile.write('\tjson_builder_begin_object(jsonbuilder);\n')
+
+        for field in self.fields_and_annotations[0]:
+            if field.type == codegen.FieldType.STRUCT:
+                continue
+            elif field.type == codegen.FieldType.POINTER:
+                method = self.__pointer_type_mapping.get(field.c_type)
+            else:
+                method = self.__type_mapping.get(field.c_type)
+            assert method is not None, ('no mapping for %s' % field.c_type)
+
+            outputfile.write('\tjson_builder_set_member_name(jsonbuilder, "%s");\n' % (field.field_name))
+            method(self, field, outputfile)
 
         outputfile.write('\tjson_builder_end_object(jsonbuilder);\n')
         outputfile.write('}\n\n')
@@ -67,7 +105,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print("jsongen processing %s -> %s" % (args.input, args.output))
 
-    ast = codegen.parsefile('jsongen', args.input)
+    ast = codegen.parsefile(TAG, args.input)
     annotated_structs = codegen.find_annotated_structs(TAG, ['parser', 'builder'], ast)
 
     flags = {}

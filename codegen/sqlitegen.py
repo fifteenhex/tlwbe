@@ -283,8 +283,8 @@ def __add_col(field: codegen.Field, parsedtable: ParsedTable, flags_annotation=N
 
     parsedtable.cols.append(
         {'name': colname, 'field_name': field.field_name, 'path': path, 'flags': parsed_flags,
-         'sql_type': sql_mapped_type,
-         'sql_constraints': flattened_constraints, 'bind_type': bind_mapped_type, 'fetch_method': fetch_method})
+         'sql_type': sql_mapped_type, 'sql_constraints': flattened_constraints, 'bind_type': bind_mapped_type,
+         'fetch_method': fetch_method})
 
 
 def __flattenfield(field: codegen.Field, parsedtable: ParsedTable, path: list, flags_annotation, constraints_annotation,

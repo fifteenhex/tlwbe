@@ -13,17 +13,7 @@
 
 #include "json-glib-macros/jsonbuilderutils.h"
 
-static void uplink_tojson(const struct uplink* uplink, JsonBuilder* jsonbuilder) {
-	json_builder_begin_object(jsonbuilder);
-	JSONBUILDER_ADD_INT(jsonbuilder, "timestamp", uplink->timestamp);
-	JSONBUILDER_ADD_STRING(jsonbuilder, "appeui", uplink->appeui);
-	JSONBUILDER_ADD_STRING(jsonbuilder, "deveui", uplink->deveui);
-	JSONBUILDER_ADD_INT(jsonbuilder, "port", uplink->port);
-	gchar* payloadb64 = g_base64_encode(uplink->payload, uplink->payloadlen);
-	JSONBUILDER_ADD_STRING(jsonbuilder, "payload", payloadb64);
-	g_free(payloadb64);
-	json_builder_end_object(jsonbuilder);
-}
+#include "uplink.json.h"
 
 static void uplink_process_publish(struct context* cntx,
 		const struct uplink* uplink, const struct flags* flags) {
@@ -43,7 +33,7 @@ static void uplink_process_publish(struct context* cntx,
 				topic, uplink->payloadlen, uplink->payload, 0, false);
 	else {
 		JsonBuilder* jsonbuilder = json_builder_new();
-		uplink_tojson(uplink, jsonbuilder);
+		__jsongen_uplink_to_json(uplink, jsonbuilder);
 		gsize payloadlen;
 		gchar* payload = jsonbuilder_freetostring(jsonbuilder, &payloadlen,
 		FALSE);
@@ -196,7 +186,7 @@ void uplink_onbrokerconnect(struct context* cntx) {
 
 static void uplink_onmsg_rowcallback(const struct uplink* uplink, void* data) {
 	JsonBuilder* jsonbuilder = data;
-	uplink_tojson(uplink, jsonbuilder);
+	__jsongen_uplink_to_json(uplink, jsonbuilder);
 }
 
 void uplink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
