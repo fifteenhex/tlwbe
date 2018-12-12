@@ -16,6 +16,8 @@
 
 #include "json-glib-macros/jsonbuilderutils.h"
 
+#include "join.json.h"
+
 static void printsessionkeys(const uint8_t* key, const struct session* s) {
 	uint8_t nsk[SESSIONKEYLEN];
 	uint8_t ask[SESSIONKEYLEN];
@@ -71,13 +73,10 @@ static void join_announce(struct context* cntx, const gchar* appeui,
 		const gchar* deveui) {
 	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "join", appeui,
 			deveui, NULL);
+
 	JsonBuilder* jsonbuilder = json_builder_new();
-
-	json_builder_begin_object(jsonbuilder);
-	guint64 ts = g_get_real_time();
-	JSONBUILDER_ADD_INT(jsonbuilder, "timestamp", ts);
-	json_builder_end_object(jsonbuilder);
-
+	struct joinannounce msg = { .timestamp = g_get_real_time() };
+	__jsongen_joinannounce_to_json(&msg, jsonbuilder);
 	gsize payloadlen;
 	gchar* payload = jsonbuilder_freetostring(jsonbuilder, &payloadlen, FALSE);
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef __SQLITEGEN
+#if defined(__SQLITEGEN) || defined(__JSONGEN)
 #include "codegen/fakeglib.h"
 #else
 #include "tlwbe.h"
@@ -29,7 +29,15 @@ struct session {
 typedef struct session __sqlitegen_table_sessions;
 #endif
 
-#ifndef __SQLITEGEN
+
+struct joinannounce {
+	guint64 timestamp;
+};
+#ifdef __JSONGEN
+typedef struct joinannounce __jsongen_builder;
+#endif
+
+#if !defined(__SQLITEGEN) && !defined(__JSONGEN)
 void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 	guchar* data, int datalen, const struct pktfwdpkt* rxpkt);
 #endif
