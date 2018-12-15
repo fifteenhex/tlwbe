@@ -79,7 +79,7 @@ class JsonParser(JsonCodeBlock):
         super().__init__(struct_name, fields_and_annotations)
 
     def write(self, outputfile):
-        outputfile.write('static void __%s_%s_from_json(struct %s* %s){\n' % (
+        outputfile.write('static void __attribute__((unused)) __%s_%s_from_json(struct %s* %s){\n' % (
             TAG, self.struct_name, self.struct_name, self.struct_name))
         outputfile.write('}\n\n')
 
@@ -148,7 +148,7 @@ class JsonBuilder(JsonCodeBlock):
             assert False, ('couldn\'t write json type %s' % field.type)
 
     def write(self, outputfile):
-        outputfile.write('static void __%s_%s_to_json(const struct %s* %s, JsonBuilder* jsonbuilder){\n' % (
+        outputfile.write('static void __attribute__((unused)) __%s_%s_to_json(const struct %s* %s, JsonBuilder* jsonbuilder){\n' % (
             TAG, self.struct_name, self.struct_name, self.struct_name))
         self.__write(self.root)
         outputfile.write('}\n\n')
