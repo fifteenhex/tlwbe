@@ -19,6 +19,8 @@ static gboolean pktfwdbr_onmsg_parsepkt(JsonObject* rootobj,
 	}
 
 	// pull out the rf stuff
+	pkt->rfparams.rssi = json_object_get_int_member(rootobj,
+	PKTFWDBR_JSON_TXPK_RSSI);
 	pkt->rfparams.modulation = json_object_get_string_member(rootobj,
 	PKTFWDBR_JSON_TXPK_MODU);
 	pkt->rfparams.frequency = json_object_get_double_member(rootobj,

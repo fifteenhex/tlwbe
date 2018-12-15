@@ -36,7 +36,12 @@ class JsonCodeBlock(codegen.CodeBlock):
     __type_mapping = {
         'guint64': JsonFieldType.INT,
         'guint32': JsonFieldType.INT,
+        'guint16': JsonFieldType.INT,
         'guint8': JsonFieldType.INT,
+        'gint64': JsonFieldType.INT,
+        'gint32': JsonFieldType.INT,
+        'gint16': JsonFieldType.INT,
+        'gint8': JsonFieldType.INT,
         'gsize': JsonFieldType.INT,
         'gdouble': JsonFieldType.DOUBLE
     }

@@ -29,8 +29,13 @@ constraint_map = {
 
 typemap = {
     'guint8': 'INTEGER',
+    'guint16': 'INTEGER',
     'guint32': 'INTEGER',
     'guint64': 'INTEGER',
+    'gint8': 'INTEGER',
+    'gint16': 'INTEGER',
+    'gint32': 'INTEGER',
+    'gint64': 'INTEGER',
     'gsize': 'INTEGER',
     'gdouble': 'REAL',
     'gchar': 'TEXT'
@@ -80,7 +85,12 @@ def __fetch_blob(pos, field):
 bindmethodmap = {
     'guint64': __bind_long,
     'guint32': __bind_int,
+    'guint16': __bind_int,
     'guint8': __bind_int,
+    'gint64': __bind_long,
+    'gint32': __bind_int,
+    'gint16': __bind_int,
+    'gint8': __bind_int,
     'gdouble': __bind_double
 }
 
@@ -92,7 +102,12 @@ bind_pointer_type_map = {
 fetch_type_method_map = {
     'guint64': __fetch_long,
     'guint32': __fetch_long,
+    'guint16': __fetch_long,
     'guint8': __fetch_long,
+    'gint64': __fetch_long,
+    'gint32': __fetch_long,
+    'gint16': __fetch_long,
+    'gint8': __fetch_long,
     'gdouble': __fetch_double
 }
 
@@ -267,10 +282,10 @@ def __add_col(field: codegen.Field, parsedtable: ParsedTable, flags_annotation=N
         fetch_method = fetch_type_method_map.get(field.c_type)
 
     assert bind_mapped_type is not None, (
-            "c type %s(pointer: %s) doesn't have a bind mapping" % (field_type, str(pointer)))
+            "c type %s(pointer: %s) doesn't have a bind mapping" % (field.c_type, str(pointer)))
 
     assert fetch_method is not None, (
-            "c type %s(pointer: %s) doesn't have a fetch mapping" % (field_type, str(pointer)))
+            "c type %s(pointer: %s) doesn't have a fetch mapping" % (field.c_type, str(pointer)))
 
     if prefix is not None:
         colname = "%s_%s" % (prefix, field.field_name)

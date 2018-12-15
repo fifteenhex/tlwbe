@@ -9,6 +9,7 @@ struct pktfwdpkt_rfparams {
 	// basic rf bits
 	const gchar* modulation;
 	gdouble frequency;
+	gint16 rssi;
 	// lora specifc stuff
 	const gchar* datarate;
 	const gchar* coderate;
@@ -52,6 +53,7 @@ struct pktfwdpkt_rfparams {
 #define PKTFWDBR_JSON_TXPK_SIZE	"size"
 #define PKTFWDBR_JSON_TXPK_DATA "data"
 #define PKTFWDBR_JSON_TXPK_NCRC	"ncrc"
+#define PKTFWDBR_JSON_TXPK_RSSI	"rssi"
 
 struct pktfwdpkt {
 	struct pktfwdpkt_rfparams rfparams;
