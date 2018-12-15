@@ -75,7 +75,7 @@ def __fetch_double(pos, field):
 
 
 def __fetch_string(pos, field):
-    return '%s = sqlite3_column_text(stmt, %d)' % (field, pos)
+    return '%s = (gchar*) sqlite3_column_text(stmt, %d)' % (field, pos)
 
 
 def __fetch_blob(pos, field):
