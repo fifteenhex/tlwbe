@@ -70,8 +70,12 @@ int main(int argc, char** argv) {
 	gchar* mqttdevicecert = NULL;
 	gchar* mqttdevicekey = NULL;
 
+	gchar* region = NULL;
+
 	GOptionEntry entries[] = { //
-			MQTTOPTS, { NULL } };
+			MQTTOPTS, //
+			{ "region", 0, 0, G_OPTION_ARG_STRING, &region, "", "" }, //
+					{ NULL } };
 
 	GOptionContext* context = g_option_context_new("");
 	GError* error = NULL;
@@ -80,6 +84,8 @@ int main(int argc, char** argv) {
 		g_print("option parsing failed: %s\n", error->message);
 		goto out;
 	}
+
+	regional_init(&cntx.regional, region);
 
 	cntx.mosqclient = mosquitto_client_new_plaintext(mqttid, mqtthost,
 			mqttport);

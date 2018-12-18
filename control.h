@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef __SQLITEGEN
+#if  defined(__SQLITEGEN) || defined(__JSONGEN)
 #include "codegen/fakeglib.h"
 #else
 #include "tlwbe.h"
@@ -33,6 +33,9 @@ struct app {
 typedef struct app __sqlitegen_table_apps;
 typedef struct flag __sqlitegen_table_appflags;
 #endif
+#ifdef __JSONGEN
+typedef struct app __jsongen_builder;
+#endif
 
 struct dev {
 	const gchar* eui;
@@ -49,9 +52,12 @@ struct dev {
 typedef struct dev __sqlitegen_table_devs;
 typedef struct flag __sqlitegen_table_devflags;
 #endif
+#ifdef __JSONGEN
+typedef struct dev __jsongen_builder;
+#endif
 
 
-#ifndef __SQLITEGEN
+#if !(defined(__SQLITEGEN) || defined(__JSONGEN))
 #define CONTROL_SUBTOPIC		"control"
 #define CONTROL_ENTITY_APP		"app"
 #define CONTROL_ENTITY_DEV		"dev"

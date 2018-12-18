@@ -126,7 +126,8 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 	join_processjoinrequest_createsession(cntx, asciieui, asciidevnonce, &s);
 	printsessionkeys(key, &s);
 	gsize joinrespktlen;
-	guint8* joinrespkt = packet_build_joinresponse(&s, key, &joinrespktlen);
+	guint8* joinrespkt = packet_build_joinresponse(&s, &cntx->regional, key,
+			&joinrespktlen);
 
 	g_free((void*) s.appnonce);
 	g_free((void*) s.devaddr);

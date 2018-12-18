@@ -32,8 +32,8 @@ static void packet_appendu8(GByteArray* pkt, guint8 value) {
 
 }
 
-guint8* packet_build_joinresponse(const struct session* s, const char* appkey,
-		gsize* pktlen) {
+guint8* packet_build_joinresponse(const struct session* s,
+		const struct regional* r, const char* appkey, gsize* pktlen) {
 
 	gboolean cflist = FALSE;
 
@@ -56,6 +56,13 @@ guint8* packet_build_joinresponse(const struct session* s, const char* appkey,
 
 	guint8 rxdelay = 0;
 	packet_appendu8(pkt, rxdelay);
+
+	if (r->sendcflist) {
+		g_message("sending cflist");
+		for (int i = 0; i < 5; i++)
+			packet_appendu24(pkt, r->extrachannels[i]);
+		packet_appendu8(pkt, 0);
+	}
 
 	uint32_t mic = crypto_mic(appkey, KEYLEN, pkt->data, pkt->len);
 	packet_appendu32(pkt, mic);

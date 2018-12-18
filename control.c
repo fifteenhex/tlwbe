@@ -11,6 +11,8 @@
 
 #include "json-glib-macros/jsonbuilderutils.h"
 
+#include "control.json.h"
+
 enum entity {
 	ENTITY_APP, ENTITY_DEV, ENTITY_INVALID
 };
@@ -62,11 +64,8 @@ static int control_app_add(struct context* cntx, JsonObject* rootobj,
 
 static void control_app_get_callback(const struct app* app, void* data) {
 	JsonBuilder* jsonbuilder = data;
-	JSONBUILDER_START_OBJECT(jsonbuilder, "app");
-	JSONBUILDER_ADD_STRING(jsonbuilder, CONTROL_JSON_EUI, app->eui);
-	JSONBUILDER_ADD_STRING(jsonbuilder, CONTROL_JSON_NAME, app->name);
-	JSONBUILDER_ADD_INT(jsonbuilder, CONTROL_JSON_SERIAL, app->serial);
-	json_builder_end_object(jsonbuilder);
+	json_builder_set_member_name(jsonbuilder, "app");
+	__jsongen_app_to_json(app, jsonbuilder);
 }
 
 static int control_app_get(struct context* cntx, JsonObject* rootobj,
@@ -152,13 +151,8 @@ static int control_dev_update(struct context* cntx, JsonObject* rootobj,
 
 static void control_dev_get_callback(const struct dev* dev, void* data) {
 	JsonBuilder* jsonbuilder = data;
-	JSONBUILDER_START_OBJECT(jsonbuilder, "dev");
-	JSONBUILDER_ADD_STRING(jsonbuilder, CONTROL_JSON_EUI, dev->eui);
-	JSONBUILDER_ADD_STRING(jsonbuilder, CONTROL_JSON_APPEUI, dev->appeui);
-	JSONBUILDER_ADD_STRING(jsonbuilder, CONTROL_JSON_KEY, dev->key);
-	JSONBUILDER_ADD_STRING(jsonbuilder, CONTROL_JSON_NAME, dev->name);
-	JSONBUILDER_ADD_INT(jsonbuilder, CONTROL_JSON_SERIAL, dev->serial);
-	json_builder_end_object(jsonbuilder);
+	json_builder_set_member_name(jsonbuilder, "dev");
+	__jsongen_dev_to_json(dev, jsonbuilder);
 }
 
 static int control_dev_get(struct context* cntx, JsonObject* rootobj,
