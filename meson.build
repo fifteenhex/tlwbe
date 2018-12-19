@@ -27,6 +27,7 @@ src = ['tlwbe.c',
        'packet.c',
        'regional.c',
        'flags.c',
+       'stats.c',
        generated_sqlite,
        generated_json]
 

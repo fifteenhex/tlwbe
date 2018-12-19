@@ -86,6 +86,7 @@ int main(int argc, char** argv) {
 	}
 
 	regional_init(&cntx.regional, region);
+	stats_init(&cntx.stats);
 
 	cntx.mosqclient = mosquitto_client_new_plaintext(mqttid, mqtthost,
 			mqttport);

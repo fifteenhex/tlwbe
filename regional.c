@@ -19,16 +19,19 @@ gboolean regional_init(struct regional* regional, const gchar* region) {
 			JsonObject* parameters = JSON_OBJECT_GET_MEMBER_OBJECT(rootobject,
 					region);
 			if (parameters != NULL) {
-				JsonArray* cflist = JSON_OBJECT_GET_MEMBER_ARRAY(parameters,
-						"cflist");
-				int cflisttype = JSON_OBJECT_GET_MEMBER_INT(parameters,
-						"cflist_type");
-
-				if (cflist != NULL && cflisttype == 0) {
-					g_message("processing cflist...");
-					for (int i = 0; i < json_array_get_length(cflist) && i < 5;
-							i++) {
-						guint32 freq = json_array_get_int_element(cflist, i);
+				JsonArray* extrafrequencies = JSON_OBJECT_GET_MEMBER_ARRAY(
+						parameters, "extra_frequencies");
+				if (extrafrequencies != NULL) {
+					g_message("processing extra channels...");
+					int numchans = json_array_get_length(extrafrequencies);
+					int maxchans = G_N_ELEMENTS(regional->extrachannels);
+					if (numchans < maxchans)
+						g_message(
+								"have %d extra channels, only using the first %d",
+								numchans, maxchans);
+					for (int i = 0; i < numchans && i < maxchans; i++) {
+						guint32 freq = json_array_get_int_element(
+								extrafrequencies, i);
 						guint32 cflistfreq = freq / 100;
 						g_message("adding frequency %d", freq);
 						regional->extrachannels[i] = cflistfreq;
