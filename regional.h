@@ -11,5 +11,7 @@ enum RXWINDOW {
 
 gboolean regional_init(struct regional* regional, const gchar* region);
 guint64 regional_getwindowdelay(enum RXWINDOW rxwindow);
+const gchar* regional_getdatarate(struct regional* regional,
+		enum RXWINDOW rxwindow, const struct pktfwdpkt* rxpkt);
 gdouble regional_getfrequency(struct regional* regional, enum RXWINDOW rxwindow,
 		const struct pktfwdpkt* rxpkt);

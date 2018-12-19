@@ -11,7 +11,8 @@
 #include "json-glib-macros/jsonbuilderutils.h"
 
 static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
-		guint64 delay, gdouble frequency, const struct pktfwdpkt* rxpkt) {
+		guint64 delay, gdouble frequency, const gchar* dr,
+		const struct pktfwdpkt* rxpkt) {
 
 	JsonBuilder* jsonbuilder = json_builder_new();
 	json_builder_begin_object(jsonbuilder);
@@ -28,7 +29,7 @@ static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 
 	// add in lora stuff
 	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_DATR);
-	json_builder_add_string_value(jsonbuilder, rxpkt->rfparams.datarate);
+	json_builder_add_string_value(jsonbuilder, dr);
 	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_CODR);
 	json_builder_add_string_value(jsonbuilder, rxpkt->rfparams.coderate);
 
@@ -64,7 +65,8 @@ void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 	gsize payloadlen;
 	gchar* payload = downlink_createtxjson(pkt, pktlen, &payloadlen,
 			regional_getwindowdelay(rxwindow),
-			regional_getfrequency(&cntx->regional, rxwindow, rxpkt), rxpkt);
+			regional_getfrequency(&cntx->regional, rxwindow, rxpkt),
+			regional_getdatarate(&cntx->regional, rxwindow, rxpkt), rxpkt);
 	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
 	NULL, topic, payloadlen, payload, 0, false);
 	g_free(payload);
