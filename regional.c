@@ -19,25 +19,35 @@ gboolean regional_init(struct regional* regional, const gchar* region) {
 			JsonObject* parameters = JSON_OBJECT_GET_MEMBER_OBJECT(rootobject,
 					region);
 			if (parameters != NULL) {
-				JsonArray* extrafrequencies = JSON_OBJECT_GET_MEMBER_ARRAY(
-						parameters, "extra_frequencies");
-				if (extrafrequencies != NULL) {
+				JsonArray* extrachannels = JSON_OBJECT_GET_MEMBER_ARRAY(
+						parameters, "extra_channels");
+				if (extrachannels != NULL) {
 					g_message("processing extra channels...");
-					int numchans = json_array_get_length(extrafrequencies);
+					int numchans = json_array_get_length(extrachannels);
 					int maxchans = G_N_ELEMENTS(regional->extrachannels);
 					if (numchans < maxchans)
 						g_message(
 								"have %d extra channels, only using the first %d",
 								numchans, maxchans);
 					for (int i = 0; i < numchans && i < maxchans; i++) {
-						guint32 freq = json_array_get_int_element(
-								extrafrequencies, i);
+						guint32 freq = json_array_get_int_element(extrachannels,
+								i);
 						guint32 cflistfreq = freq / 100;
 						g_message("adding frequency %d", freq);
 						regional->extrachannels[i] = cflistfreq;
 					}
 					regional->sendcflist = TRUE;
-				}
+				} else
+					g_message("didn't find any extra channels");
+
+				JsonObject* rx2 = JSON_OBJECT_GET_MEMBER_OBJECT(parameters,
+						"rx2");
+				if (rx2 != NULL) {
+					regional->rx2.frequency = json_object_get_int_member(rx2,
+							"frequency");
+				} else
+					g_message("didn't find rx2 window parameters");
+
 			} else
 				g_message("didn't find parameters for region %s", region);
 		} else
@@ -49,6 +59,10 @@ gboolean regional_init(struct regional* regional, const gchar* region) {
 	return TRUE;
 }
 
+/* in the future these might need to come from
+ * the region config but at the moment these seem to be
+ * the same for all regions
+ */
 guint64 regional_getwindowdelay(enum RXWINDOW rxwindow) {
 	switch (rxwindow) {
 	case RXW_R1:
@@ -64,12 +78,12 @@ guint64 regional_getwindowdelay(enum RXWINDOW rxwindow) {
 	}
 }
 
-gdouble regional_getfrequency(enum RXWINDOW rxwindow,
+gdouble regional_getfrequency(struct regional* regional, enum RXWINDOW rxwindow,
 		const struct pktfwdpkt* rxpkt) {
 	switch (rxwindow) {
 	case RXW_R2:
 	case RXW_J2:
-		return 923.2;
+		return (gdouble) regional->rx2.frequency / 1000000.0;
 	default:
 		return rxpkt->rfparams.frequency;
 	}
