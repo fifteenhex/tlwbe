@@ -432,7 +432,7 @@ int database_downlinks_count(struct context* cntx, const char* appeui,
 	int rows = 0;
 	sqlite3_bind_text(cntx->dbcntx.countdownlinks, 1, appeui, -1,
 	SQLITE_STATIC);
-	sqlite3_bind_text(cntx->dbcntx.countdownlinks, 1, deveui, -1,
+	sqlite3_bind_text(cntx->dbcntx.countdownlinks, 2, deveui, -1,
 	SQLITE_STATIC);
 	database_stepuntilcomplete(cntx->dbcntx.countdownlinks,
 			database_downlinks_count_rowcallback, &rows);

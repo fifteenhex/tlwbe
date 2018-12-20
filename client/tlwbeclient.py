@@ -156,10 +156,25 @@ class Interpreter(cmd2.Cmd):
             print("%s\t%s\t%s" % (u['timestamp'], u['port'], u['payload']))
 
     downlink_parser = argparse.ArgumentParser()
+    __adddevuiarg(downlink_parser)
+    __addappeuiarg(downlink_parser)
 
     @cmd2.with_argparser(downlink_parser)
     def do_downlink(self, args):
-        pass
+        if args.deveui is None or args.appeui is None:
+            print("an app eui and dev eui is required")
+            return
+
+        pl = base64.b64encode(b'omnomnom').decode('ascii')
+        msgjson = {'payload': pl}
+
+        result = publishandwaitforresult_newstyle("tlwbe/downlink/schedule/%s/%s/%d" % (args.appeui, args.deveui, 1),
+                                                  msgjson) \
+            .flat_map(lambda msg: Observable.from_(msg['payload']['uplinks'])) \
+            .to_blocking()
+        print("timestamp\tport\tpayload")
+        for u in result:
+            print("%s\t%s\t%s" % (u['timestamp'], u['port'], u['payload']))
 
     watch_parser = argparse.ArgumentParser()
 

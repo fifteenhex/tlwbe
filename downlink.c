@@ -10,6 +10,8 @@
 
 #include "json-glib-macros/jsonbuilderutils.h"
 
+#include "downlink.json.h"
+
 static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 		guint64 delay, gdouble frequency, const gchar* dr,
 		const struct pktfwdpkt* rxpkt) {
@@ -75,32 +77,48 @@ void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 
 void downlink_onbrokerconnect(struct context* cntx) {
 	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
-	NULL, TLWBE_TOPICROOT "/" DOWNLINK_SUBTOPIC "/" DOWNLINK_QUEUE "/#", 0);
+	NULL, TLWBE_TOPICROOT "/" DOWNLINK_SUBTOPIC "/" DOWNLINK_SCHEDULE "/#", 0);
 }
 
 void downlink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		char** splittopic, int numtopicparts) {
 
-	if (numtopicparts != 7) {
-		g_message("need 7 topic parts, got %d", numtopicparts);
-		return;
-	}
+	const gchar* action = splittopic[0];
 
-	guint64 port;
-	if (!g_ascii_string_to_unsigned(splittopic[5], 10, 0, 255, &port, NULL)) {
-		g_message("port number invalid");
-		return;
-	}
+	if (g_strcmp0(action, DOWNLINK_SCHEDULE) == 0) {
+		//schedule/<appeui>/<deveui>/<port>/<token>
+		if (numtopicparts != 5) {
+			g_message("need 5 topic parts, got %d", numtopicparts);
+			return;
+		}
 
-	struct downlink downlink = { .timestamp = g_get_real_time(), .deadline =
-			((24 * 60) * 60), .appeui = splittopic[3], .deveui = splittopic[4],
-			.port = (guint8) (port & 0xff), .payload = msg->payload,
-			.payloadlen = msg->payloadlen, .token = splittopic[6] };
+		guint64 port;
+		if (!g_ascii_string_to_unsigned(splittopic[3], 10, 0, 255, &port,
+		NULL)) {
+			g_message("port number invalid");
+			return;
+		}
 
-	g_message("have downlink for app %s, dev %s, port %d, token %s",
-			downlink.appeui, downlink.deveui, (int )port, downlink.token);
+		struct downlink downlink = { 0 };
+		JsonParser* parser = json_parser_new_immutable();
+		json_parser_load_from_data(parser, msg->payload, msg->payloadlen, NULL);
+		JsonNode* rootnode = json_parser_get_root(parser);
+		JsonObject* rootobj = json_node_get_object(rootnode);
+		__jsongen_downlink_from_json(&downlink, rootobj);
 
-	database_downlink_add(cntx, &downlink);
+		downlink.timestamp = g_get_real_time();
+		downlink.deadline = ((24 * 60) * 60);
+		downlink.appeui = splittopic[1];
+		downlink.deveui = splittopic[2];
+		downlink.port = (guint8) (port & 0xff);
+		downlink.token = splittopic[4];
+
+		g_message("have downlink for app %s, dev %s, port %d, token %s",
+				downlink.appeui, downlink.deveui, (int )port, downlink.token);
+
+		database_downlink_add(cntx, &downlink);
+	} else
+		g_message("unknown downlink action; %s", action);
 }
 
 gboolean downlink_cleanup(gpointer data) {

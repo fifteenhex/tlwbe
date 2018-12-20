@@ -55,6 +55,45 @@ class Field:
 
 
 class CodeBlock:
+    __slots__ = ['indent']
+
+    def __init__(self):
+        self.indent = 0
+
+    def __do_indent(self, outputfile):
+        tabs = '\t' * self.indent
+        outputfile.write(tabs)
+
+    def start_scope(self, outputfile, prefix=None):
+        self.__do_indent(outputfile)
+        if prefix is not None:
+            outputfile.write(prefix)
+        outputfile.write('{\n')
+        self.indent += 1
+
+    def end_scope(self, outputfile):
+        self.indent -= 1
+        self.__do_indent(outputfile)
+        outputfile.write('}\n')
+
+    def start_condition(self, condition, outputfile):
+        self.__do_indent(outputfile)
+        outputfile.write('if(%s){\n' % condition)
+        self.indent += 1
+
+    def end_condition(self, outputfile):
+        self.indent -= 1
+        self.__do_indent(outputfile)
+        outputfile.write('}\n')
+
+    def add_statement(self, statement: str, outputfile):
+        self.__do_indent(outputfile)
+        outputfile.write('%s;\n' % statement)
+
+    def add_label(self, name: str, outputfile):
+        self.__do_indent(outputfile)
+        outputfile.write('%s:\n' % name)
+
     def write(self, outputfile):
         outputfile.write('// empty code block\n\n')
 
@@ -113,6 +152,14 @@ def find_structs(ast, callback, data):
 
 
 def walk_struct(ast, tag: str, struct: Struct, annotation_types=[]):
+    """
+    walks a struct to find fields and annotations.
+    :param ast:
+    :param tag:
+    :param struct:
+    :param annotation_types:
+    :return: a tuple of the fields and annotations that were found
+    """
     annotations = []
     fields = []
 

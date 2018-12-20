@@ -161,6 +161,8 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 			packet_debug(cnfpkt, cnfpktlen);
 			downlink_dodownlink(cntx, gateway, cnfpkt, cnfpktlen, rxpkt,
 					RXW_R1);
+			downlink_dodownlink(cntx, gateway, cnfpkt, cnfpktlen, rxpkt,
+					RXW_R2);
 			g_free(cnfpkt);
 		}
 	} else

@@ -35,8 +35,6 @@ static void packet_appendu8(GByteArray* pkt, guint8 value) {
 guint8* packet_build_joinresponse(const struct session* s,
 		const struct regional* r, const char* appkey, gsize* pktlen) {
 
-	gboolean cflist = FALSE;
-
 	GByteArray* pkt = g_byte_array_new();
 
 	guint8 mhdr = (MHDR_MTYPE_JOINACK << MHDR_MTYPE_SHIFT);

@@ -133,6 +133,8 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 	g_free((void*) s.devaddr);
 
 	downlink_dodownlink(cntx, gateway, joinrespkt, joinrespktlen, rxpkt,
+			RXW_J1);
+	downlink_dodownlink(cntx, gateway, joinrespkt, joinrespktlen, rxpkt,
 			RXW_J2);
 	g_free(joinrespkt);
 

@@ -37,6 +37,7 @@ typemap = {
     'gint32': 'INTEGER',
     'gint64': 'INTEGER',
     'gsize': 'INTEGER',
+    'gboolean': 'INTEGER',
     'gdouble': 'REAL',
     'gchar': 'TEXT'
 }
@@ -91,6 +92,7 @@ bindmethodmap = {
     'gint32': __bind_int,
     'gint16': __bind_int,
     'gint8': __bind_int,
+    'gboolean': __bind_int,
     'gdouble': __bind_double
 }
 
@@ -108,6 +110,7 @@ fetch_type_method_map = {
     'gint32': __fetch_long,
     'gint16': __fetch_long,
     'gint8': __fetch_long,
+    'gboolean': __fetch_long,
     'gdouble': __fetch_double
 }
 
