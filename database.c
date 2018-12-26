@@ -29,6 +29,7 @@
 //sql for downlinks
 #define CLEAN_DOWNLINKS "DELETE FROM downlinks WHERE ((? - timestamp)/1000000) > deadline"
 #define COUNT_DOWNLINKS	"SELECT count(*) FROM downlinks WHERE appeui = ? AND deveui = ?"
+#define DOWNLINKS_GET_FIRST "SELECT timestamp,deadline,appeui,deveui,port,payload,confirm,token FROM `downlinks` ORDER BY `timestamp` DESC LIMIT 1"
 
 static int database_stepuntilcomplete(sqlite3_stmt* stmt,
 		void (*rowcallback)(sqlite3_stmt* stmt, void* data), void* data) {
@@ -130,6 +131,7 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	INITSTMT(__SQLITEGEN_DOWNLINKS_INSERT, cntx->dbcntx.insertdownlink);
 	INITSTMT(CLEAN_DOWNLINKS, cntx->dbcntx.cleandownlinks);
 	INITSTMT(COUNT_DOWNLINKS, cntx->dbcntx.countdownlinks);
+	INITSTMT(DOWNLINKS_GET_FIRST, cntx->dbcntx.downlinks_get_first);
 
 	goto noerr;
 
@@ -148,7 +150,7 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 				cntx->dbcntx.incframecounterdown, cntx->dbcntx.insertuplink,
 				cntx->dbcntx.getuplinks_dev, cntx->dbcntx.cleanuplinks,
 				cntx->dbcntx.insertdownlink, cntx->dbcntx.cleandownlinks,
-				cntx->dbcntx.countdownlinks };
+				cntx->dbcntx.countdownlinks, cntx->dbcntx.downlinks_get_first };
 
 		for (int i = 0; i < G_N_ELEMENTS(stmts); i++) {
 			sqlite3_finalize(stmts[i]);
@@ -438,4 +440,31 @@ int database_downlinks_count(struct context* cntx, const char* appeui,
 			database_downlinks_count_rowcallback, &rows);
 	sqlite3_reset(cntx->dbcntx.countdownlinks);
 	return rows;
+}
+
+// make a copy that is usable when sqlite has finished
+static void database_downlinks_sqlitegen_callback(
+		const struct downlink* downlink, void* data) {
+	g_message("copying downlink %s", downlink->token);
+	struct downlink* result = data;
+	memcpy(result, downlink, sizeof(*result));
+	result->appeui = g_strdup(downlink->appeui);
+	result->deveui = g_strdup(downlink->deveui);
+	result->payload = g_malloc(downlink->payloadlen);
+	memcpy(result->payload, downlink->payload, downlink->payloadlen);
+	result->token = g_strdup(downlink->token);
+}
+
+gboolean database_downlinks_get_first(struct context* cntx, const char* appeui,
+		const char* deveui, struct downlink* downlink) {
+	sqlite3_bind_text(cntx->dbcntx.downlinks_get_first, 1, appeui, -1,
+	SQLITE_STATIC);
+	sqlite3_bind_text(cntx->dbcntx.downlinks_get_first, 2, deveui, -1,
+	SQLITE_STATIC);
+	struct __sqlitegen_downlinks_rowcallback_callback cb = { .callback =
+			database_downlinks_sqlitegen_callback, .data = downlink };
+	database_stepuntilcomplete(cntx->dbcntx.downlinks_get_first,
+			__sqlitegen_downlinks_rowcallback, &cb);
+	sqlite3_reset(cntx->dbcntx.downlinks_get_first);
+	return TRUE;
 }

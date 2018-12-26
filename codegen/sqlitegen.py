@@ -193,17 +193,15 @@ class ParsedTable:
             'static void __attribute__((unused)) __sqlitegen_%s_rowcallback(sqlite3_stmt* stmt, struct %s* callback){\n' % (
                 self.name, callbackbackstructname))
         outputfile.write('\tstruct %s %s = {0};\n' % (self.struct_type, self.struct_type))
-        pos = 1
+        pos = 0
         for col in self.cols:
             if 'hidden' in col['flags']:
                 continue
-
             path = ""
             if len(col['path']) != 0:
                 path = ".".join(col['path']) + "."
             bind = col['fetch_method'](pos, "%s.%s%s" % (self.struct_type, path, col['field_name']))
-            outputfile.write(
-                '\t%s;\n' % bind)
+            outputfile.write('\t%s;\n' % bind)
             pos += 1
 
         outputfile.write('\tcallback->callback(&%s, callback->data);\n' % self.struct_type)

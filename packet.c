@@ -83,7 +83,7 @@ guint8* packet_build_joinresponse(const struct session* s,
 }
 
 guint8* packet_build_data(guint8 type, guint32 devaddr, gboolean adr,
-		gboolean ack, guint32 framecounter, guint8 port, guint8* payload,
+		gboolean ack, guint32 framecounter, guint8 port, const guint8* payload,
 		gsize payloadlen, struct sessionkeys* keys, gsize* pktlen) {
 
 	uint8_t dir =
@@ -106,8 +106,12 @@ guint8* packet_build_data(guint8 type, guint32 devaddr, gboolean adr,
 	g_byte_array_append(pkt, (const guint8*) &fcnt, sizeof(fcnt));
 
 	if (payload != NULL) {
+		guint8 encryptedpayload[128];
+		uint8_t* key = (uint8_t*) (port == 0 ? &keys->nwksk : &keys->appsk);
+		crypto_endecryptpayload(key, true, devaddr, framecounter, payload,
+				encryptedpayload, payloadlen);
 		g_byte_array_append(pkt, &port, sizeof(port));
-		g_byte_array_append(pkt, payload, payloadlen);
+		g_byte_array_append(pkt, encryptedpayload, payloadlen);
 	}
 
 	uint8_t b0[BLOCKLEN];
@@ -121,11 +125,6 @@ guint8* packet_build_data(guint8 type, guint32 devaddr, gboolean adr,
 
 	*pktlen = pkt->len;
 	return g_byte_array_free(pkt, FALSE);
-}
-guint8* packet_build_dataack(guint8 type, guint32 devaddr, guint32 framecounter,
-		struct sessionkeys* keys, gsize* pktlen) {
-	return packet_build_data(type, devaddr, FALSE, TRUE, framecounter, 0, NULL,
-			0, keys, pktlen);
 }
 
 #define COPYANDINC(dst, src)	memcpy(dst, src, sizeof(*dst));\

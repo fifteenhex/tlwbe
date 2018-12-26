@@ -152,18 +152,47 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 				keys.deveui);
 		g_message("have %d queued downlinks", queueddownlinks);
 
-		if (confirm) {
-			gsize cnfpktlen;
+		// if we need to ack or have a downlink to send we need to
+		// build a packet and send it
+		if (confirm || queueddownlinks > 0) {
+
+			struct downlink downlink;
+			gboolean senddownlink = FALSE;
+			gboolean confirmdownlink = FALSE;
+			if (queueddownlinks > 0) {
+				if (database_downlinks_get_first(cntx, keys.appeui, keys.deveui,
+						&downlink)) {
+					g_message(
+							"going to transmit %d byte downlink %s to port %d",
+							downlink.payloadlen, downlink.token, downlink.port);
+					gchar* messagehex = utils_bin2hex(downlink.payload,
+							downlink.payloadlen);
+					g_message("%s", messagehex);
+					senddownlink = TRUE;
+					confirmdownlink = downlink.confirm;
+				}
+			}
+
+			gsize pktlen;
 			gint64 framecounter = database_framecounter_down_getandinc(cntx,
 					devaddrascii);
-			guint8* cnfpkt = packet_build_dataack(MHDR_MTYPE_UNCNFDN,
-					unpacked.data.devaddr, framecounter, &keys, &cnfpktlen);
-			packet_debug(cnfpkt, cnfpktlen);
-			downlink_dodownlink(cntx, gateway, cnfpkt, cnfpktlen, rxpkt,
-					RXW_R1);
-			downlink_dodownlink(cntx, gateway, cnfpkt, cnfpktlen, rxpkt,
-					RXW_R2);
-			g_free(cnfpkt);
+			guint8* pkt = packet_build_data(
+					confirmdownlink ? MHDR_MTYPE_CNFDN : MHDR_MTYPE_UNCNFDN,
+					unpacked.data.devaddr, FALSE, confirm, framecounter,
+					(senddownlink ? downlink.port : 0),
+					(senddownlink ? downlink.payload : NULL),
+					(senddownlink ? downlink.payloadlen : 0), &keys, &pktlen);
+
+			packet_debug(pkt, pktlen);
+			downlink_dorxwindowdownlink(cntx, gateway, pkt, pktlen, rxpkt);
+			g_free(pkt);
+
+			if (senddownlink) {
+				g_free(downlink.appeui);
+				g_free(downlink.deveui);
+				g_free(downlink.payload);
+				g_free(downlink.token);
+			}
 		}
 	} else
 		g_message("bad mic, dropping");
@@ -228,8 +257,8 @@ void uplink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		FALSE);
 
 		mosquitto_publish(
-				mosquitto_client_getmosquittoinstance(cntx->mosqclient), NULL,
-				topic, payloadlen, payload, 0, false);
+				mosquitto_client_getmosquittoinstance(cntx->mosqclient),
+				NULL, topic, payloadlen, payload, 0, false);
 
 		g_free(topic);
 		g_free(payload);

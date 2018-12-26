@@ -31,4 +31,5 @@ struct database_context {
 	sqlite3_stmt* insertdownlink;
 	sqlite3_stmt* cleandownlinks;
 	sqlite3_stmt* countdownlinks;
+	sqlite3_stmt* downlinks_get_first;
 };

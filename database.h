@@ -62,3 +62,5 @@ void database_downlink_add(struct context* cntx, struct downlink* downlink);
 void database_downlinks_clean(struct context* cntx, guint64 timestamp);
 int database_downlinks_count(struct context* cntx, const char* appeui,
 		const char* deveui);
+gboolean database_downlinks_get_first(struct context* cntx, const char* appeui,
+		const char* deveui, struct downlink* downlink);
