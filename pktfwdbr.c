@@ -45,56 +45,65 @@ static gboolean pktfwdbr_onmsg_parsepkt(JsonObject* rootobj,
 	return TRUE;
 }
 
+void pktfwdbr_onbrokerconnect(struct context* cntx) {
+	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
+	NULL, PKTFWDBR_TOPIC_ROOT"/+/"PKTFWDBR_TOPIC_RX"/#", 0);
+	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
+	NULL, PKTFWDBR_TOPIC_ROOT"/+/"PKTFWDBR_TOPIC_TXACK"/#", 0);
+}
+
 void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		char** splittopic, int numtopicparts) {
 
 	JsonParser* jsonparser = NULL;
 	char* gatewayid = splittopic[1];
 	char* direction = splittopic[2];
+	guchar* data = NULL;
 
-	if (strcmp(direction, PKTFWDBR_TOPIC_RX) != 0) {
-		g_message("unexpected message direction: %s", direction);
-		goto out;
-	}
+	if (strcmp(direction, PKTFWDBR_TOPIC_RX) == 0) {
+		jsonparser = json_parser_new_immutable();
+		if (!json_parser_load_from_data(jsonparser, msg->payload,
+				msg->payloadlen,
+				NULL)) {
+			g_message("failed to parse json");
+			goto out;
+		}
 
-	jsonparser = json_parser_new_immutable();
-	if (!json_parser_load_from_data(jsonparser, msg->payload, msg->payloadlen,
-	NULL)) {
-		g_message("failed to parse json");
-		goto out;
-	}
+		JsonNode* root = json_parser_get_root(jsonparser);
+		JsonObject* rootobj = json_node_get_object(root);
 
-	JsonNode* root = json_parser_get_root(jsonparser);
-	JsonObject* rootobj = json_node_get_object(root);
+		struct pktfwdpkt pkt;
+		pktfwdbr_onmsg_parsepkt(rootobj, &pkt);
 
-	struct pktfwdpkt pkt;
-	pktfwdbr_onmsg_parsepkt(rootobj, &pkt);
+		const gchar* b64data = pkt.data;
+		gsize datalen;
+		data = g_base64_decode(b64data, &datalen);
 
-	const gchar* b64data = pkt.data;
-	gsize datalen;
-	guchar* data = g_base64_decode(b64data, &datalen);
+		if (data == NULL) {
+			g_message("failed to decode data");
+			goto out;
+		}
 
-	if (data == NULL) {
-		g_message("failed to decode data");
-		goto out;
-	}
+		packet_debug(data, datalen);
 
-	packet_debug(data, datalen);
+		uint8_t type = (*data >> MHDR_MTYPE_SHIFT) & MHDR_MTYPE_MASK;
+		switch (type) {
+		case MHDR_MTYPE_JOINREQ:
+			join_processjoinrequest(cntx, gatewayid, data, datalen, &pkt);
+			break;
+		case MHDR_MTYPE_UNCNFUP:
+		case MHDR_MTYPE_CNFUP:
+			mac_process(cntx, gatewayid, data, datalen, &pkt);
+			uplink_process(cntx, gatewayid, data, datalen, &pkt);
+			break;
+		default:
+			g_message("unhandled message type %d", (int ) type);
+			break;
+		}
+	} else if (strcmp(direction, PKTFWDBR_TOPIC_TXACK) == 0) {
 
-	uint8_t type = (*data >> MHDR_MTYPE_SHIFT) & MHDR_MTYPE_MASK;
-	switch (type) {
-	case MHDR_MTYPE_JOINREQ:
-		join_processjoinrequest(cntx, gatewayid, data, datalen, &pkt);
-		break;
-	case MHDR_MTYPE_UNCNFUP:
-	case MHDR_MTYPE_CNFUP:
-		mac_process(cntx, gatewayid, data, datalen, &pkt);
-		uplink_process(cntx, gatewayid, data, datalen, &pkt);
-		break;
-	default:
-		g_message("unhandled message type %d", (int ) type);
-		break;
-	}
+	} else
+		g_message("unexpected action: %s", direction);
 
 	out: if (data != NULL)
 		g_free(data);

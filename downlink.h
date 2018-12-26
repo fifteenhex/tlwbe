@@ -54,6 +54,13 @@ struct downlink_announce_sent {
 	typedef struct downlink_announce_sent __jsongen_builder;
 #endif
 
+struct downlink_schedule_result {
+
+};
+#ifdef __JSONGEN
+	typedef struct downlink_schedule_result __jsongen_builder;
+#endif
+
 #if !(defined(__SQLITEGEN) || defined(__JSONGEN))
 #define DOWNLINK_SUBTOPIC "downlink"
 #define DOWNLINK_SCHEDULE "schedule"

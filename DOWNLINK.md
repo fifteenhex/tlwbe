@@ -4,11 +4,13 @@
 
 ```tlwbe/downlink/schedule/<appeui>/<deveui>/<port>/<token>```
 
-```tlwbe/downlink/schedule/result/<token>```
+```tlwbe/downlink/result/<token>```
 
 ## querying queued downlinks
 
 ```tlwbe/downlink/query/<token>```
+
+```tlwbe/downlink/result/<token>```
 
 ## downlink transmission announcement
 

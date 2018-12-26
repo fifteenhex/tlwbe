@@ -36,6 +36,7 @@ struct pktfwdpkt_rfparams {
 #define PKTFWDBR_TOPIC_ROOT		"pktfwdbr"
 #define PKTFWDBR_TOPIC_RX		"rx"
 #define PKTFWDBR_TOPIC_TX		"tx"
+#define PKTFWDBR_TOPIC_TXACK	"txack"
 
 #define PKTFWDBR_JSON_TXPK_ROOT	"txpk"
 #define PKTFWDBR_JSON_TXPK_IMME "imme"
@@ -62,6 +63,7 @@ struct pktfwdpkt {
 	guint32 timestamp;
 };
 
+void pktfwdbr_onbrokerconnect(struct context* cntx);
 void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		char** splittopic, int numtopicparts);
 #endif

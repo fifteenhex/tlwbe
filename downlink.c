@@ -39,7 +39,8 @@ static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_CODR);
 	json_builder_add_string_value(jsonbuilder, rxpkt->rfparams.coderate);
 
-	// needed apparently :/
+	// all current regions have inverted downlinks
+	// beacons aren't inverted but we don't do beacons
 	json_builder_set_member_name(jsonbuilder, "ipol");
 	json_builder_add_boolean_value(jsonbuilder, true);
 
@@ -91,6 +92,45 @@ void downlink_onbrokerconnect(struct context* cntx) {
 	NULL, TLWBE_TOPICROOT "/" DOWNLINK_SUBTOPIC "/" DOWNLINK_SCHEDULE "/#", 0);
 }
 
+static void downlink_schedule(struct context* cntx, const gchar* appeui,
+		const gchar* deveui, guint8 port, const gchar* token,
+		const struct mosquitto_message* msg) {
+
+	struct downlink downlink = { 0 };
+	JsonParser* parser = json_parser_new_immutable();
+	json_parser_load_from_data(parser, msg->payload, msg->payloadlen, NULL);
+	JsonNode* rootnode = json_parser_get_root(parser);
+	JsonObject* rootobj = json_node_get_object(rootnode);
+	__jsongen_downlink_from_json(&downlink, rootobj);
+
+	downlink.timestamp = g_get_real_time();
+	downlink.deadline = ((24 * 60) * 60);
+	downlink.appeui = appeui;
+	downlink.deveui = deveui;
+	downlink.port = (guint8) (port & 0xff);
+	downlink.token = token;
+
+	g_message("have downlink for app %s, dev %s, port %d, token %s",
+			downlink.appeui, downlink.deveui, (int )port, downlink.token);
+
+	database_downlink_add(cntx, &downlink);
+
+	struct downlink_schedule_result result = { };
+	JsonBuilder* builder = json_builder_new_immutable();
+	__jsongen_downlink_schedule_result_to_json(&result, builder);
+	gsize jsonlen;
+	gchar* json = jsonbuilder_freetostring(builder, &jsonlen, FALSE);
+
+	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "downlink",
+			"result", token, NULL);
+
+	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
+	NULL, topic, jsonlen, json, 0, FALSE);
+
+	g_free(json);
+	g_free(topic);
+}
+
 void downlink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		char** splittopic, int numtopicparts) {
 
@@ -102,32 +142,15 @@ void downlink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 			g_message("need 5 topic parts, got %d", numtopicparts);
 			return;
 		}
-
 		guint64 port;
 		if (!g_ascii_string_to_unsigned(splittopic[3], 10, 0, 255, &port,
 		NULL)) {
 			g_message("port number invalid");
 			return;
 		}
+		downlink_schedule(cntx, splittopic[1], splittopic[2], port,
+				splittopic[4], msg);
 
-		struct downlink downlink = { 0 };
-		JsonParser* parser = json_parser_new_immutable();
-		json_parser_load_from_data(parser, msg->payload, msg->payloadlen, NULL);
-		JsonNode* rootnode = json_parser_get_root(parser);
-		JsonObject* rootobj = json_node_get_object(rootnode);
-		__jsongen_downlink_from_json(&downlink, rootobj);
-
-		downlink.timestamp = g_get_real_time();
-		downlink.deadline = ((24 * 60) * 60);
-		downlink.appeui = splittopic[1];
-		downlink.deveui = splittopic[2];
-		downlink.port = (guint8) (port & 0xff);
-		downlink.token = splittopic[4];
-
-		g_message("have downlink for app %s, dev %s, port %d, token %s",
-				downlink.appeui, downlink.deveui, (int )port, downlink.token);
-
-		database_downlink_add(cntx, &downlink);
 	} else
 		g_message("unknown downlink action; %s", action);
 }
@@ -152,4 +175,5 @@ void downlink_announce_sent(struct context* cntx, const gchar* token) {
 	NULL, topic, payloadlen, payload, 0, false);
 
 	g_free(payload);
+	g_free(topic);
 }

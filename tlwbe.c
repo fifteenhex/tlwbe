@@ -1,4 +1,3 @@
-
 #define GETTEXT_PACKAGE "gtk20"
 #include <glib.h>
 #include <gio/gio.h>
@@ -56,8 +55,7 @@ static gboolean messagecallback(MosquittoClient* client,
 static void connectedcallback(MosquittoClient* client, void* something,
 		gpointer userdata) {
 	struct context* cntx = (struct context*) userdata;
-	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(client), NULL,
-	PKTFWDBR_TOPIC_ROOT"/+/"PKTFWDBR_TOPIC_RX"/#", 0);
+	pktfwdbr_onbrokerconnect(cntx);
 	control_onbrokerconnect(cntx);
 	downlink_onbrokerconnect(cntx);
 	uplink_onbrokerconnect(cntx);
