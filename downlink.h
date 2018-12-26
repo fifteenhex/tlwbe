@@ -36,14 +36,22 @@ struct downlink {
 	void __sqlitegen_constraints_deveui_notnull;
 	void __sqlitegen_constraints_port_notnull;
 	void __sqlitegen_constraints_payload_notnull;
+	void __sqlitegen_flags_token_searchable;
 	void __sqlitegen_constraints_token_notnull_unique;
 #endif
 };
 #ifdef __SQLITEGEN
-typedef struct downlink __sqlitegen_table_downlinks;
+	typedef struct downlink __sqlitegen_table_downlinks;
 #endif
 #ifdef __JSONGEN
-typedef struct downlink __jsongen_parser;
+	typedef struct downlink __jsongen_parser;
+#endif
+
+struct downlink_announce_sent {
+
+};
+#ifdef __JSONGEN
+	typedef struct downlink_announce_sent __jsongen_builder;
 #endif
 
 #if !(defined(__SQLITEGEN) || defined(__JSONGEN))
@@ -54,10 +62,11 @@ void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 	guint8* pkt, gsize pktlen, const struct pktfwdpkt* rxpkt,
 	enum RXWINDOW rxwindow);
 void downlink_dorxwindowdownlink(struct context* cntx, const gchar* gateway,
-		guint8* pkt, gsize pktlen, const struct pktfwdpkt* rxpkt);
+	guint8* pkt, gsize pktlen, const struct pktfwdpkt* rxpkt);
 
 void downlink_onbrokerconnect(struct context* cntx);
 void downlink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 	char** splittopic, int numtopicparts);
 gboolean downlink_cleanup(gpointer data);
+void downlink_announce_sent(struct context* cntx, const gchar* token);
 #endif

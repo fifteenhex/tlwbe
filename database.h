@@ -64,3 +64,5 @@ int database_downlinks_count(struct context* cntx, const char* appeui,
 		const char* deveui);
 gboolean database_downlinks_get_first(struct context* cntx, const char* appeui,
 		const char* deveui, struct downlink* downlink);
+gboolean database_downlinks_delete_by_token(struct context* cntx,
+		const char* token);

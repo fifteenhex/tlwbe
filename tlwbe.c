@@ -1,3 +1,4 @@
+
 #define GETTEXT_PACKAGE "gtk20"
 #include <glib.h>
 #include <gio/gio.h>
@@ -10,7 +11,7 @@
 #include "control.h"
 #include "uplink.h"
 #include "downlink.h"
-#include "config.h"
+#include "config.h.in"
 
 static gboolean messagecallback(MosquittoClient* client,
 		const struct mosquitto_message* msg, gpointer userdata) {

@@ -131,3 +131,19 @@ gboolean downlink_cleanup(gpointer data) {
 	database_downlinks_clean(cntx, g_get_real_time());
 	return TRUE;
 }
+
+void downlink_announce_sent(struct context* cntx, const gchar* token) {
+	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "downlink",
+			"sent", token, NULL);
+
+	JsonBuilder* jsonbuilder = json_builder_new();
+	struct downlink_announce_sent msg;
+	__jsongen_downlink_announce_sent_to_json(&msg, jsonbuilder);
+	gsize payloadlen;
+	gchar* payload = jsonbuilder_freetostring(jsonbuilder, &payloadlen, FALSE);
+
+	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
+	NULL, topic, payloadlen, payload, 0, false);
+
+	g_free(payload);
+}

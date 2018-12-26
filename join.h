@@ -13,6 +13,8 @@ struct session {
 	const gchar* appnonce;
 	const gchar* devaddr;
 #ifdef __SQLITEGEN
+	// the frame counters exist in table but shouldn't be directly manipulated
+	// so they are hidden from code
 	guint32	upcounter;
 	guint32 downcounter;
 	void __sqlitegen_flags_deveui_searchable;
@@ -20,9 +22,11 @@ struct session {
 	void __sqlitegen_constraints_devnonce_notnull;
 	void __sqlitegen_constraints_appnonce_notnull;
 	void __sqlitegen_flags_upcounter_hidden;
-//	void __sqlitegen_constraints_upcounter_notnull;
+	void __sqlitegen_constraints_upcounter_notnull;
+	void __sqlitegen_default_upcounter_0;
 	void __sqlitegen_flags_downcounter_hidden;
-//	void __sqlitegen_constraints_downcounter_notnull;
+	void __sqlitegen_constraints_downcounter_notnull;
+	void __sqlitegen_default_downcounter_0;
 #endif
 };
 #ifdef __SQLITEGEN

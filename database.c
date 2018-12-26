@@ -132,6 +132,8 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	INITSTMT(CLEAN_DOWNLINKS, cntx->dbcntx.cleandownlinks);
 	INITSTMT(COUNT_DOWNLINKS, cntx->dbcntx.countdownlinks);
 	INITSTMT(DOWNLINKS_GET_FIRST, cntx->dbcntx.downlinks_get_first);
+	INITSTMT(__SQLITEGEN_DOWNLINKS_DELETEBY_TOKEN,
+			cntx->dbcntx.downlinks_delete_by_token);
 
 	goto noerr;
 
@@ -177,8 +179,8 @@ void database_app_update(struct context* cntx, const struct app* app) {
 static void database_app_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 	struct pair* callbackanddata = data;
 
-	const unsigned char* eui = sqlite3_column_text(stmt, 0);
-	const unsigned char* name = sqlite3_column_text(stmt, 1);
+	const gchar* eui = (const gchar*) sqlite3_column_text(stmt, 0);
+	const gchar* name = (const gchar*) sqlite3_column_text(stmt, 1);
 	int serial = sqlite3_column_int(stmt, 2);
 
 	const struct app a = { .eui = eui, .name = name, .serial = serial };
@@ -236,10 +238,10 @@ void database_dev_update(struct context* cntx, const struct dev* dev) {
 static void database_dev_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 	struct pair* callbackanddata = data;
 
-	const unsigned char* eui = sqlite3_column_text(stmt, 0);
-	const unsigned char* appeui = sqlite3_column_text(stmt, 1);
-	const unsigned char* key = sqlite3_column_text(stmt, 2);
-	const unsigned char* name = sqlite3_column_text(stmt, 3);
+	const gchar* eui = (const gchar*) sqlite3_column_text(stmt, 0);
+	const gchar* appeui = (const gchar*) sqlite3_column_text(stmt, 1);
+	const gchar* key = (const gchar*) sqlite3_column_text(stmt, 2);
+	const gchar* name = (const gchar*) sqlite3_column_text(stmt, 3);
 	int serial = sqlite3_column_int(stmt, 4);
 
 	const struct dev d = { .eui = eui, .appeui = appeui, .key = key, .name =
@@ -273,16 +275,16 @@ gboolean database_session_add(struct context* cntx,
 	__sqlitegen_sessions_add(stmt, session);
 	database_stepuntilcomplete(stmt, NULL, NULL);
 	sqlite3_reset(stmt);
-	return true;
+	return TRUE;
 }
 
 static void database_session_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 	struct pair* callbackanddata = data;
 
-	const char* deveui = sqlite3_column_text(stmt, 0);
-	const char* devnonce = sqlite3_column_text(stmt, 1);
-	const char* appnonce = sqlite3_column_text(stmt, 2);
-	const char* devaddr = sqlite3_column_text(stmt, 3);
+	const gchar* deveui = (const gchar*) sqlite3_column_text(stmt, 0);
+	const gchar* devnonce = (const gchar*) sqlite3_column_text(stmt, 1);
+	const gchar* appnonce = (const gchar*) sqlite3_column_text(stmt, 2);
+	const gchar* devaddr = (const gchar*) sqlite3_column_text(stmt, 3);
 
 	const struct session s = { .deveui = deveui, .devnonce = devnonce,
 			.appnonce = appnonce, .devaddr = devaddr };
@@ -321,11 +323,11 @@ void database_session_del(struct context* cntx, const char* deveui) {
 static void database_keyparts_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 	struct pair* callbackanddata = data;
 
-	const char* key = sqlite3_column_text(stmt, 0);
-	const char* appnonce = sqlite3_column_text(stmt, 1);
-	const char* devnonce = sqlite3_column_text(stmt, 2);
-	const char* appeui = sqlite3_column_text(stmt, 3);
-	const char* deveui = sqlite3_column_text(stmt, 4);
+	const gchar* key = (const gchar*) sqlite3_column_text(stmt, 0);
+	const gchar* appnonce = (const gchar*) sqlite3_column_text(stmt, 1);
+	const gchar* devnonce = (const gchar*) sqlite3_column_text(stmt, 2);
+	const gchar* appeui = (const gchar*) sqlite3_column_text(stmt, 3);
+	const gchar* deveui = (const gchar*) sqlite3_column_text(stmt, 4);
 
 	const struct keyparts kp = { .key = key, .appnonce = appnonce, .devnonce =
 			devnonce, .appeui = appeui, .deveui = deveui };
@@ -384,8 +386,8 @@ static void database_uplinks_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 	struct pair* callbackanddata = data;
 
 	guint64 timestamp = sqlite3_column_int64(stmt, 1);
-	const char* appeui = sqlite3_column_text(stmt, 2);
-	const char* deveui = sqlite3_column_text(stmt, 3);
+	const gchar* appeui = (const gchar*) sqlite3_column_text(stmt, 2);
+	const gchar* deveui = (const gchar*) sqlite3_column_text(stmt, 3);
 	guint8 port = sqlite3_column_int(stmt, 4);
 	const guint8* payload = sqlite3_column_blob(stmt, 5);
 	gsize payloadlen = sqlite3_column_bytes(stmt, 5);
@@ -466,5 +468,15 @@ gboolean database_downlinks_get_first(struct context* cntx, const char* appeui,
 	database_stepuntilcomplete(cntx->dbcntx.downlinks_get_first,
 			__sqlitegen_downlinks_rowcallback, &cb);
 	sqlite3_reset(cntx->dbcntx.downlinks_get_first);
+	return TRUE;
+}
+
+gboolean database_downlinks_delete_by_token(struct context* cntx,
+		const char* token) {
+	sqlite3_bind_text(cntx->dbcntx.downlinks_delete_by_token, 1, token, -1,
+	SQLITE_STATIC);
+	database_stepuntilcomplete(cntx->dbcntx.downlinks_delete_by_token,
+	NULL, NULL);
+	sqlite3_reset(cntx->dbcntx.downlinks_delete_by_token);
 	return TRUE;
 }

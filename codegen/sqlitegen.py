@@ -12,7 +12,8 @@ parser.add_argument('--output', type=str, required=True)
 
 annotation_types = [
     'flags',
-    'constraints'
+    'constraints',
+    'default'
 ]
 
 flag_types = [
@@ -121,6 +122,7 @@ fetch_pointer_type_method_map = {
 
 
 class ParsedTable:
+    __slots__ = ['name', 'struct_type', 'cols', '__statements']
 
     def __init__(self, name: str, struct_type: str):
         self.name = name
@@ -141,7 +143,11 @@ class ParsedTable:
 
         createbody = []
         for col in self.cols:
-            createbody.append('\t\t\t"%s %s %s' % (col['name'], col['sql_type'], col['sql_constraints']))
+            row_sql = '\t\t\t"%s %s %s' % (col['name'], col['sql_type'], col['sql_constraints'])
+            if col['sql_default'] is not None:
+                row_sql += ' DEFAULT %s' % col['sql_default']
+            createbody.append(row_sql)
+
         outputfile.write(',"\\\n'.join(createbody))
         outputfile.write('"\\\n')
 
@@ -262,11 +268,20 @@ def __constraints_from_field(constraints_annotation: codegen.FieldAnnotation):
     return sql_constraints
 
 
+def __default_from_field(default_annotation: codegen.FieldAnnotation):
+    if default_annotation is None:
+        return None
+    default = default_annotation.parameters[0]
+    print('default for %s is %s' % (default_annotation.field_name, default))
+    return default
+
+
 def __add_col(field: codegen.Field, parsedtable: ParsedTable, flags_annotation=None, constraints_annotation=None,
-              prefix=None, pointer=False, path=None):
+              default_annotation=None, prefix=None, pointer=False, path=None):
     parsed_flags = __flags_from_field(flags_annotation)
     constraints = __constraints_from_field(constraints_annotation)
     print("add col %s with constraints %s" % (field.field_name, str(constraints)))
+    default = __default_from_field(default_annotation)
 
     sql_mapped_type = None
     if pointer:
@@ -300,18 +315,16 @@ def __add_col(field: codegen.Field, parsedtable: ParsedTable, flags_annotation=N
     parsedtable.cols.append(
         {'name': colname, 'field_name': field.field_name, 'path': path, 'flags': parsed_flags,
          'sql_type': sql_mapped_type, 'sql_constraints': flattened_constraints, 'bind_type': bind_mapped_type,
-         'fetch_method': fetch_method})
+         'fetch_method': fetch_method, 'sql_default': default})
 
 
 def __flattenfield(ast, field: codegen.Field, parsedtable: ParsedTable, path: list, flags_annotation,
-                   constraints_annotation,
-                   prefix=None, pointer=False):
+                   constraints_annotation, default_annotation=None, prefix=None, pointer=False):
     print(field.type)
     if field.type == codegen.FieldType.NORMAL or field.type == codegen.FieldType.POINTER:
-        __add_col(field, parsedtable, flags_annotation, constraints_annotation, prefix,
+        __add_col(field, parsedtable, flags_annotation, constraints_annotation, default_annotation, prefix,
                   field.type == codegen.FieldType.POINTER, path)
     elif field.type == codegen.FieldType.STRUCT:
-        pass
         # field.type.type.show()
         path.append(field.field_name)
         __flatten_struct(ast, parsedtable, codegen.struct_by_name(ast, field.field.type.type.name),
@@ -325,7 +338,9 @@ def __flatten_struct(ast, parsedtable: ParsedTable, struct: Struct, prefix=None,
     fieldsandannotations = codegen.walk_struct(ast, TAG, struct, annotation_types=annotation_types)
 
     # bucket the annotations
-    annotations = {'flags': {}, 'constraints': {}}
+    annotations = {}
+    for t in annotation_types:
+        annotations[t] = {}
     for annotation in fieldsandannotations[1]:
         annotations[annotation.annotation_type][annotation.field_name] = annotation
 
@@ -338,14 +353,18 @@ def __flatten_struct(ast, parsedtable: ParsedTable, struct: Struct, prefix=None,
             constraints = annotations['constraints'].pop(f.field_name)
         else:
             constraints = None
+        if f.field_name in annotations['default']:
+            default = annotations['default'].pop(f.field_name)
+        else:
+            default = None
 
-        __flattenfield(ast, f, parsedtable, path.copy(), flags, constraints, prefix)
+        __flattenfield(ast, f, parsedtable, path.copy(), flags, constraints, default, prefix)
 
     # check that we don't have any left overs
     orphans = 0
     for annotation_type in annotations:
         orphans += len(annotations[annotation_type])
-    assert orphans == 0
+    assert orphans == 0, 'have %d orphan annotations' % orphans
 
 
 def __walktable(ast, struct: Struct, tables, outputs: list):

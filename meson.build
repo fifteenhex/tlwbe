@@ -1,4 +1,16 @@
-project('tlwbe', 'c')
+project('tlwbe', 'c', default_options: ['c_std=c11'])
+
+cc = meson.get_compiler('c')
+
+add_global_arguments('-ggdb', language : 'c')
+add_global_arguments('-Werror=implicit-function-declaration', language : 'c')
+
+
+conf_data = configuration_data()
+conf_data.set('debug', get_option('debug') ? 1 : 0)
+configure_file(input : 'config.h.in',
+               output : 'config.h',
+               configuration : conf_data)
 
 mosquittomainloop = subproject('mosquittomainloop')
 

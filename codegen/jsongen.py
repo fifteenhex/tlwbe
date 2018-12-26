@@ -115,7 +115,7 @@ class JsonParser(JsonCodeBlock):
 
     def __get_base64blob(self, field: codegen.Field, path, outputfile):
         self.start_scope(outputfile)
-        self.add_statement('gchar* payloadb64 = json_object_get_string_member(root, "%s")' % field.field_name,
+        self.add_statement('const gchar* payloadb64 = json_object_get_string_member(root, "%s")' % field.field_name,
                            outputfile)
         self.add_statement('%s->%s = g_base64_decode(payloadb64, &%s->%slen)' % (
             self.struct_name, flatten_path(path, field.field_name), self.struct_name,

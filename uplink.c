@@ -154,6 +154,7 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 
 		// if we need to ack or have a downlink to send we need to
 		// build a packet and send it
+		//fixme this shouldn't be in here
 		if (confirm || queueddownlinks > 0) {
 
 			struct downlink downlink;
@@ -163,7 +164,7 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 				if (database_downlinks_get_first(cntx, keys.appeui, keys.deveui,
 						&downlink)) {
 					g_message(
-							"going to transmit %d byte downlink %s to port %d",
+							"going to transmit %"G_GSIZE_FORMAT" byte downlink %s to port %d",
 							downlink.payloadlen, downlink.token, downlink.port);
 					gchar* messagehex = utils_bin2hex(downlink.payload,
 							downlink.payloadlen);
@@ -188,11 +189,14 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 			g_free(pkt);
 
 			if (senddownlink) {
+				database_downlinks_delete_by_token(cntx, downlink.token);
+				downlink_announce_sent(cntx, downlink.token);
 				g_free(downlink.appeui);
 				g_free(downlink.deveui);
 				g_free(downlink.payload);
 				g_free(downlink.token);
 			}
+
 		}
 	} else
 		g_message("bad mic, dropping");
