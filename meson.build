@@ -12,7 +12,7 @@ configure_file(input : 'config.h.in',
                output : 'config.h',
                configuration : conf_data)
 
-mosquittomainloop = subproject('mosquittomainloop')
+mosquitto_glib = subproject('mosquitto_glib')
 
 prog_sqlitegen = find_program(meson.source_root() + '/codegen/sqlitegen.py')
 gen_sqlitegen = generator(prog_sqlitegen,
@@ -47,7 +47,7 @@ deps = [ dependency('glib-2.0'),
          dependency('json-glib-1.0'),
          dependency('sqlite3'),
          dependency('libcrypto'), 
-         mosquittomainloop.get_variable('mosquittomainloop_dep')]
+         mosquitto_glib.get_variable('mosquitto_glib_dep')]
 
 executable('tlwbe', src, 
            dependencies : deps, 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <glib.h>
-#include <mosquittomainloop.h>
+#include <mosquitto_client.h>
 
 #include "database_context.h"
 #include "regional_temp.h"
