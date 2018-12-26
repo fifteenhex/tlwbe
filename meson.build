@@ -40,6 +40,7 @@ src = ['tlwbe.c',
        'regional.c',
        'flags.c',
        'stats.c',
+       'mac.c',
        generated_sqlite,
        generated_json]
 

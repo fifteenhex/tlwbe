@@ -12,4 +12,5 @@ struct regional {
 	guint32 extrachannels[5];
 	gboolean sendcflist;
 	struct regional_rx2 rx2;
+	guint8 txpower;
 };

@@ -72,6 +72,8 @@ gboolean regional_init(struct regional* regional, const gchar* region) {
 				} else
 					g_message("didn't find rx2 window parameters");
 
+				regional->txpower = JSON_OBJECT_GET_MEMBER_INT(parameters,
+						"tx_power");
 			} else
 				g_message("didn't find parameters for region %s", region);
 		} else

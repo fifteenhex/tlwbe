@@ -5,6 +5,7 @@
 #include "lorawan.h"
 #include "join.h"
 #include "uplink.h"
+#include "mac.h"
 #include "packet.h"
 
 static gboolean pktfwdbr_onmsg_parsepkt(JsonObject* rootobj,
@@ -87,6 +88,7 @@ void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		break;
 	case MHDR_MTYPE_UNCNFUP:
 	case MHDR_MTYPE_CNFUP:
+		mac_process(cntx, gatewayid, data, datalen, &pkt);
 		uplink_process(cntx, gatewayid, data, datalen, &pkt);
 		break;
 	default:

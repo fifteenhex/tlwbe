@@ -134,8 +134,8 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 
 	downlink_dodownlink(cntx, gateway, joinrespkt, joinrespktlen, rxpkt,
 			RXW_J1);
-	downlink_dodownlink(cntx, gateway, joinrespkt, joinrespktlen, rxpkt,
-			RXW_J2);
+	//downlink_dodownlink(cntx, gateway, joinrespkt, joinrespktlen, rxpkt,
+	//		RXW_J2);
 	g_free(joinrespkt);
 
 	join_announce(cntx, asciiappeui, asciieui);

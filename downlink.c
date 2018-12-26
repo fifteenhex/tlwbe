@@ -13,7 +13,7 @@
 #include "downlink.json.h"
 
 static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
-		guint64 delay, gdouble frequency, const gchar* dr,
+		guint64 delay, gdouble frequency, const gchar* dr, guint8 txpower,
 		const struct pktfwdpkt* rxpkt) {
 
 	JsonBuilder* jsonbuilder = json_builder_new();
@@ -27,6 +27,11 @@ static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_FREQ);
 	json_builder_add_double_value(jsonbuilder, frequency);
 	JSONBUILDER_ADD_INT(jsonbuilder, PKTFWDBR_JSON_TXPK_RFCH, 0);
+
+	// if this is not set it seems the first tx_lut entry is used
+	// and that usually results in a very weak signal
+	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_POWE);
+	json_builder_add_int_value(jsonbuilder, txpower);
 
 	// add in lora stuff
 	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_DATR);
@@ -67,7 +72,8 @@ void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 	gchar* payload = downlink_createtxjson(pkt, pktlen, &payloadlen,
 			regional_getwindowdelay(rxwindow),
 			regional_getfrequency(&cntx->regional, rxwindow, rxpkt),
-			regional_getdatarate(&cntx->regional, rxwindow, rxpkt), rxpkt);
+			regional_getdatarate(&cntx->regional, rxwindow, rxpkt),
+			cntx->regional.txpower, rxpkt);
 	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
 	NULL, topic, payloadlen, payload, 0, false);
 	g_free(payload);
@@ -77,7 +83,7 @@ void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 void downlink_dorxwindowdownlink(struct context* cntx, const gchar* gateway,
 		guint8* pkt, gsize pktlen, const struct pktfwdpkt* rxpkt) {
 	downlink_dodownlink(cntx, gateway, pkt, pktlen, rxpkt, RXW_R1);
-	downlink_dodownlink(cntx, gateway, pkt, pktlen, rxpkt, RXW_R2);
+	//downlink_dodownlink(cntx, gateway, pkt, pktlen, rxpkt, RXW_R2);
 }
 
 void downlink_onbrokerconnect(struct context* cntx) {

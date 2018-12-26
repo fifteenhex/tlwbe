@@ -19,6 +19,7 @@
     "rx2" : {
     	"frequency": 923200000,
     	"datarate": 2
-    }
+    },
+    "tx_power": 14
   }
 }
