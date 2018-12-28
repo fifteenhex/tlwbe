@@ -224,7 +224,7 @@ static void uplink_onmsg_rowcallback(const struct uplink* uplink, void* data) {
 	__jsongen_uplink_to_json(uplink, jsonbuilder);
 }
 
-void uplink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
+void uplink_onmsg(struct context* cntx, const JsonObject* rootobj,
 		char** splittopic, int numtopicparts) {
 
 	if (numtopicparts != 2) {
@@ -234,12 +234,6 @@ void uplink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 
 	char* action = splittopic[0];
 	if (strcmp(action, UPLINK_SUBTOPIC_UPLINKS_QUERY) == 0) {
-
-		JsonParser* jsonparser = json_parser_new();
-		json_parser_load_from_data(jsonparser, msg->payload, msg->payloadlen,
-		NULL);
-		JsonNode* rootnode = json_parser_get_root(jsonparser);
-		JsonObject* rootobj = json_node_get_object(rootnode);
 		const gchar* deveui = json_object_get_string_member(rootobj, "deveui");
 
 		char* token = splittopic[1];
@@ -266,7 +260,6 @@ void uplink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 
 		g_free(topic);
 		g_free(payload);
-		g_object_unref(jsonparser);
 	} else {
 		g_message("unexpected action %s", action);
 	}

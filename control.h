@@ -3,6 +3,7 @@
 #if  defined(__SQLITEGEN) || defined(__JSONGEN)
 #include "codegen/fakeglib.h"
 #else
+#include <json-glib/json-glib.h>
 #include "tlwbe.h"
 #endif
 
@@ -75,6 +76,6 @@ typedef struct dev __jsongen_builder;
 #define CONTROL_JSON_SERIAL		"serial"
 
 void control_onbrokerconnect(struct context* cntx);
-void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
+void control_onmsg(struct context*,  const JsonObject* rootobj,
 		char** splittopic, int numtopicparts);
 #endif

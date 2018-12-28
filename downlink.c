@@ -42,7 +42,7 @@ static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 	// all current regions have inverted downlinks
 	// beacons aren't inverted but we don't do beacons
 	json_builder_set_member_name(jsonbuilder, "ipol");
-	json_builder_add_boolean_value(jsonbuilder, true);
+	json_builder_add_boolean_value(jsonbuilder, TRUE);
 
 	// add in timing stuff
 	json_builder_set_member_name(jsonbuilder, PKTFWDBR_JSON_TXPK_TMST);
@@ -94,13 +94,9 @@ void downlink_onbrokerconnect(struct context* cntx) {
 
 static void downlink_schedule(struct context* cntx, const gchar* appeui,
 		const gchar* deveui, guint8 port, const gchar* token,
-		const struct mosquitto_message* msg) {
+		const JsonObject* rootobj) {
 
 	struct downlink downlink = { 0 };
-	JsonParser* parser = json_parser_new_immutable();
-	json_parser_load_from_data(parser, msg->payload, msg->payloadlen, NULL);
-	JsonNode* rootnode = json_parser_get_root(parser);
-	JsonObject* rootobj = json_node_get_object(rootnode);
 	__jsongen_downlink_from_json(&downlink, rootobj);
 
 	downlink.timestamp = g_get_real_time();
@@ -131,7 +127,7 @@ static void downlink_schedule(struct context* cntx, const gchar* appeui,
 	g_free(topic);
 }
 
-void downlink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
+void downlink_onmsg(struct context* cntx, const JsonObject* rootobj,
 		char** splittopic, int numtopicparts) {
 
 	const gchar* action = splittopic[0];
@@ -149,7 +145,7 @@ void downlink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 			return;
 		}
 		downlink_schedule(cntx, splittopic[1], splittopic[2], port,
-				splittopic[4], msg);
+				splittopic[4], rootobj);
 
 	} else
 		g_message("unknown downlink action; %s", action);

@@ -45,7 +45,7 @@ static char* control_generatekey() {
 	return utils_bin2hex(key, sizeof(key));
 }
 
-static int control_app_add(struct context* cntx, JsonObject* rootobj,
+static int control_app_add(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
 	if (!json_object_has_member(rootobj, CONTROL_JSON_NAME)
 			|| !json_object_has_member(rootobj, CONTROL_JSON_EUI))
@@ -68,7 +68,7 @@ static void control_app_get_callback(const struct app* app, void* data) {
 	__jsongen_app_to_json(app, jsonbuilder);
 }
 
-static int control_app_get(struct context* cntx, JsonObject* rootobj,
+static int control_app_get(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
 	if (!json_object_has_member(rootobj, CONTROL_JSON_EUI))
 		return -1;
@@ -78,13 +78,13 @@ static int control_app_get(struct context* cntx, JsonObject* rootobj,
 	return 0;
 }
 
-static int control_app_update(struct context* cntx, JsonObject* rootobj,
+static int control_app_update(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
 	database_app_update(cntx, NULL);
 	return 0;
 }
 
-static int control_app_del(struct context* cntx, JsonObject* rootobj,
+static int control_app_del(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
 	database_app_del(cntx, NULL);
 	return 0;
@@ -95,7 +95,7 @@ static void control_apps_list_euicallback(const char* eui, void* data) {
 	json_builder_add_string_value(jsonbuilder, eui);
 }
 
-static int control_apps_list(struct context* cntx, JsonObject* rootobj,
+static int control_apps_list(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
 	json_builder_set_member_name(jsonbuilder, "result");
 	json_builder_begin_array(jsonbuilder);
@@ -104,7 +104,7 @@ static int control_apps_list(struct context* cntx, JsonObject* rootobj,
 	return 0;
 }
 
-static int control_dev_add(struct context* cntx, JsonObject* rootobj,
+static int control_dev_add(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
 	if (!json_object_has_member(rootobj, CONTROL_JSON_NAME)
 			|| !json_object_has_member(rootobj, CONTROL_JSON_APPEUI))
@@ -143,7 +143,7 @@ static int control_dev_add(struct context* cntx, JsonObject* rootobj,
 	return 0;
 }
 
-static int control_dev_update(struct context* cntx, JsonObject* rootobj,
+static int control_dev_update(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
 	database_dev_update(cntx, NULL);
 	return 0;
@@ -155,7 +155,7 @@ static void control_dev_get_callback(const struct dev* dev, void* data) {
 	__jsongen_dev_to_json(dev, jsonbuilder);
 }
 
-static int control_dev_get(struct context* cntx, JsonObject* rootobj,
+static int control_dev_get(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
 	if (!json_object_has_member(rootobj, CONTROL_JSON_EUI))
 		return -1;
@@ -164,13 +164,13 @@ static int control_dev_get(struct context* cntx, JsonObject* rootobj,
 	return 0;
 }
 
-static int control_dev_del(struct context* cntx, JsonObject* rootobj,
+static int control_dev_del(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
 	database_dev_del(cntx, NULL);
 	return 0;
 }
 
-static int control_devs_list(struct context* cntx, JsonObject* rootobj,
+static int control_devs_list(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
 	json_builder_set_member_name(jsonbuilder, "result");
 	json_builder_begin_array(jsonbuilder);
@@ -179,7 +179,7 @@ static int control_devs_list(struct context* cntx, JsonObject* rootobj,
 	return 0;
 }
 
-void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
+void control_onmsg(struct context* cntx, const JsonObject* rootobj,
 		char** splittopic, int numtopicparts) {
 
 	gchar* payload = NULL;
@@ -212,20 +212,6 @@ void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		g_message("invalid action %s", action);
 		goto out;
 	}
-
-	JsonParser* jsonparser = json_parser_new_immutable();
-	if (!json_parser_load_from_data(jsonparser, msg->payload, msg->payloadlen,
-	NULL)) {
-		g_message("failed to parse control message json");
-		goto out;
-	}
-
-	JsonNode* rootnode = json_parser_get_root(jsonparser);
-	if (json_node_get_node_type(rootnode) != JSON_NODE_OBJECT) {
-		g_message("control message root should be an object");
-		goto out;
-	}
-	JsonObject* rootobj = json_node_get_object(rootnode);
 
 	JsonBuilder* jsonbuilder = json_builder_new();
 	json_builder_begin_object(jsonbuilder);

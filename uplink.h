@@ -3,7 +3,7 @@
 #if (defined(__SQLITEGEN) || defined(__JSONGEN))
 #include "codegen/fakeglib.h"
 #else
-#include <glib.h>
+#include <json-glib/json-glib.h>
 #include "tlwbe.h"
 #include "lorawan.h"
 #endif
@@ -58,6 +58,6 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 gboolean uplink_havequeueduplink(void);
 gboolean uplink_cleanup(gpointer data);
 void uplink_onbrokerconnect(struct context* cntx);
-void uplink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
+void uplink_onmsg(struct context* cntx, const JsonObject* rootobj,
 	char** splittopic, int numtopicparts);
 #endif

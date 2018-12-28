@@ -15,6 +15,8 @@
 static gboolean messagecallback(MosquittoClient* client,
 		const struct mosquitto_message* msg, gpointer userdata) {
 	struct context* cntx = (struct context*) userdata;
+	JsonParser* jsonparser = NULL;
+	JsonObject* rootobj = NULL;
 	char** splittopic;
 	int numtopicparts;
 	mosquitto_sub_topic_tokenise(msg->topic, &splittopic, &numtopicparts);
@@ -26,18 +28,36 @@ static gboolean messagecallback(MosquittoClient* client,
 
 	char* roottopic = splittopic[0];
 
+	if (msg->payloadlen != 0) {
+		jsonparser = json_parser_new_immutable();
+		if (!json_parser_load_from_data(jsonparser, msg->payload,
+				msg->payloadlen,
+				NULL)) {
+			g_message("failed to parse message json");
+			goto out;
+		}
+		JsonNode* root = json_parser_get_root(jsonparser);
+		if (json_node_get_node_type(root) != JSON_NODE_OBJECT) {
+			g_message("json message should always be enclosed in an object");
+		}
+		rootobj = json_node_get_object(root);
+	}
+
 	if (strcmp(roottopic, PKTFWDBR_TOPIC_ROOT) == 0)
-		pktfwdbr_onmsg(cntx, msg, splittopic, numtopicparts);
+		pktfwdbr_onmsg(cntx, rootobj, splittopic, numtopicparts);
 	else if (strcmp(roottopic, TLWBE_TOPICROOT) == 0) {
 		char* subtopic = splittopic[1];
 		char** interfacetopic = &splittopic[2];
 		int numinterfacetopicparts = numtopicparts - 2;
+
 		if (strcmp(subtopic, CONTROL_SUBTOPIC) == 0)
-			control_onmsg(cntx, msg, interfacetopic, numinterfacetopicparts);
+			control_onmsg(cntx, rootobj, interfacetopic,
+					numinterfacetopicparts);
 		else if (strcmp(subtopic, UPLINK_SUBTOPIC_UPLINKS) == 0)
-			uplink_onmsg(cntx, msg, interfacetopic, numinterfacetopicparts);
+			uplink_onmsg(cntx, rootobj, interfacetopic, numinterfacetopicparts);
 		else if (strcmp(subtopic, DOWNLINK_SUBTOPIC) == 0)
-			downlink_onmsg(cntx, msg, interfacetopic, numinterfacetopicparts);
+			downlink_onmsg(cntx, rootobj, interfacetopic,
+					numinterfacetopicparts);
 	} else {
 		g_message("unexpected topic root: %s", roottopic);
 		goto out;
@@ -45,7 +65,8 @@ static gboolean messagecallback(MosquittoClient* client,
 
 	out: if (splittopic != NULL)
 		mosquitto_sub_topic_tokens_free(&splittopic, numtopicparts);
-
+	if (jsonparser != NULL)
+		g_object_unref(jsonparser);
 	return TRUE;
 }
 

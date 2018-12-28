@@ -3,7 +3,7 @@
 #if defined(__SQLITEGEN) || defined(__JSONGEN)
 #include "codegen/fakeglib.h"
 #else
-#include <glib.h>
+#include <json-glib/json-glib.h>
 #include "pktfwdbr.h"
 #include "regional.h"
 #endif
@@ -72,7 +72,7 @@ void downlink_dorxwindowdownlink(struct context* cntx, const gchar* gateway,
 	guint8* pkt, gsize pktlen, const struct pktfwdpkt* rxpkt);
 
 void downlink_onbrokerconnect(struct context* cntx);
-void downlink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
+void downlink_onmsg(struct context* cntx, const JsonObject* rootobj,
 	char** splittopic, int numtopicparts);
 gboolean downlink_cleanup(gpointer data);
 void downlink_announce_sent(struct context* cntx, const gchar* token);

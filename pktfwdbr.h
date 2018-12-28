@@ -1,7 +1,7 @@
 #pragma once
 
 #if !(defined(__SQLITEGEN) || defined(__JSONGEN))
-#include <mosquitto.h>
+#include <json-glib/json-glib.h>
 #include "tlwbe.h"
 #endif
 
@@ -17,7 +17,7 @@ struct pktfwdpkt_rfparams {
 	guint32 rfchain;
 };
 
-#ifndef __SQLITEGEN
+#if !(defined(__SQLITEGEN) || defined(__JSONGEN))
 /* Basic topic format
  *
  * pktfwdbr/<gatewayid>/[rx|tx]
@@ -64,6 +64,6 @@ struct pktfwdpkt {
 };
 
 void pktfwdbr_onbrokerconnect(struct context* cntx);
-void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
+void pktfwdbr_onmsg(struct context* cntx, const JsonObject* rootobj,
 		char** splittopic, int numtopicparts);
 #endif

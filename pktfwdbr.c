@@ -1,4 +1,3 @@
-#include <json-glib/json-glib.h>
 #include <string.h>
 
 #include "pktfwdbr.h"
@@ -8,7 +7,7 @@
 #include "mac.h"
 #include "packet.h"
 
-static gboolean pktfwdbr_onmsg_parsepkt(JsonObject* rootobj,
+static gboolean pktfwdbr_onmsg_parsepkt(const JsonObject* rootobj,
 		struct pktfwdpkt* pkt) {
 
 	if (!(json_object_has_member(rootobj, PKTFWDBR_JSON_TXPK_MODU))
@@ -52,7 +51,7 @@ void pktfwdbr_onbrokerconnect(struct context* cntx) {
 	NULL, PKTFWDBR_TOPIC_ROOT"/+/"PKTFWDBR_TOPIC_TXACK"/#", 0);
 }
 
-void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
+void pktfwdbr_onmsg(struct context* cntx, const JsonObject* rootobj,
 		char** splittopic, int numtopicparts) {
 
 	if (numtopicparts < 3) {
@@ -60,23 +59,11 @@ void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		return;
 	}
 
-	JsonParser* jsonparser = NULL;
 	char* gatewayid = splittopic[1];
 	char* direction = splittopic[2];
 	guchar* data = NULL;
 
 	if (strcmp(direction, PKTFWDBR_TOPIC_RX) == 0) {
-		jsonparser = json_parser_new_immutable();
-		if (!json_parser_load_from_data(jsonparser, msg->payload,
-				msg->payloadlen,
-				NULL)) {
-			g_message("failed to parse json");
-			goto out;
-		}
-
-		JsonNode* root = json_parser_get_root(jsonparser);
-		JsonObject* rootobj = json_node_get_object(root);
-
 		struct pktfwdpkt pkt;
 		pktfwdbr_onmsg_parsepkt(rootobj, &pkt);
 
@@ -112,6 +99,4 @@ void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 
 	out: if (data != NULL)
 		g_free(data);
-	if (jsonparser != NULL)
-		g_object_unref(jsonparser);
 }
