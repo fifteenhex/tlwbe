@@ -44,7 +44,7 @@ static gboolean pktfwdbr_onmsg_parsepkt(const JsonObject* rootobj,
 	return TRUE;
 }
 
-void pktfwdbr_onbrokerconnect(struct context* cntx) {
+void pktfwdbr_onbrokerconnect(const struct context* cntx) {
 	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
 	NULL, PKTFWDBR_TOPIC_ROOT"/+/"PKTFWDBR_TOPIC_RX"/#", 0);
 	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),

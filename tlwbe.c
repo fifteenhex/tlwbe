@@ -12,17 +12,20 @@
 #include "downlink.h"
 #include "config.h.in"
 
+typedef void (*interface_onconnected)(const struct context* cntx);
 typedef void (*interface_onmsg)(struct context* cntx, char** splittopic,
 		int numtopicparts, const JsonObject* rootobj);
 
 struct interface {
 	const gchar* subtopic;
+	const interface_onconnected onconnected;
 	const interface_onmsg onmsg;
 };
 
-static const struct interface interfaces[] = {
-		{ CONTROL_SUBTOPIC, control_onmsg }, { UPLINK_SUBTOPIC_UPLINKS,
-				uplink_onmsg }, { DOWNLINK_SUBTOPIC, downlink_onmsg } };
+static const struct interface interfaces[] = { { CONTROL_SUBTOPIC,
+		control_onbrokerconnect, control_onmsg }, { UPLINK_SUBTOPIC_UPLINKS,
+		uplink_onbrokerconnect, uplink_onmsg }, { DOWNLINK_SUBTOPIC,
+		downlink_onbrokerconnect, downlink_onmsg } };
 
 static gboolean messagecallback(MosquittoClient* client,
 		const struct mosquitto_message* msg, gpointer userdata) {
@@ -88,10 +91,9 @@ static gboolean messagecallback(MosquittoClient* client,
 static void connectedcallback(MosquittoClient* client, void* something,
 		gpointer userdata) {
 	struct context* cntx = (struct context*) userdata;
+	for (int i = 0; i < G_N_ELEMENTS(interfaces); i++)
+		interfaces[i].onconnected(cntx);
 	pktfwdbr_onbrokerconnect(cntx);
-	control_onbrokerconnect(cntx);
-	downlink_onbrokerconnect(cntx);
-	uplink_onbrokerconnect(cntx);
 }
 
 int main(int argc, char** argv) {

@@ -212,7 +212,7 @@ gboolean uplink_cleanup(gpointer data) {
 	return TRUE;
 }
 
-void uplink_onbrokerconnect(struct context* cntx) {
+void uplink_onbrokerconnect(const struct context* cntx) {
 	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
 	NULL,
 			TLWBE_TOPICROOT "/" UPLINK_SUBTOPIC_UPLINKS "/" UPLINK_SUBTOPIC_UPLINKS_QUERY "/#",

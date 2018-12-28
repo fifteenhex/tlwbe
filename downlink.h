@@ -71,7 +71,7 @@ void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 void downlink_dorxwindowdownlink(struct context* cntx, const gchar* gateway,
 	guint8* pkt, gsize pktlen, const struct pktfwdpkt* rxpkt);
 
-void downlink_onbrokerconnect(struct context* cntx);
+void downlink_onbrokerconnect(const struct context* cntx);
 void downlink_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
 	const JsonObject* rootobj);
 gboolean downlink_cleanup(gpointer data);

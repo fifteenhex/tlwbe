@@ -87,7 +87,7 @@ void downlink_dorxwindowdownlink(struct context* cntx, const gchar* gateway,
 	//downlink_dodownlink(cntx, gateway, pkt, pktlen, rxpkt, RXW_R2);
 }
 
-void downlink_onbrokerconnect(struct context* cntx) {
+void downlink_onbrokerconnect(const struct context* cntx) {
 	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
 	NULL, TLWBE_TOPICROOT "/" DOWNLINK_SUBTOPIC "/" DOWNLINK_SCHEDULE "/#", 0);
 }

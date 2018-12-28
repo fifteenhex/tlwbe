@@ -63,7 +63,7 @@ struct pktfwdpkt {
 	guint32 timestamp;
 };
 
-void pktfwdbr_onbrokerconnect(struct context* cntx);
+void pktfwdbr_onbrokerconnect(const struct context* cntx);
 void pktfwdbr_onmsg(struct context* cntx, const JsonObject* rootobj,
 		char** splittopic, int numtopicparts);
 #endif

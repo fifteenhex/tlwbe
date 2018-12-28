@@ -284,7 +284,7 @@ void control_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
 		g_free(payload);
 }
 
-void control_onbrokerconnect(struct context* cntx) {
+void control_onbrokerconnect(const struct context* cntx) {
 	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
 	NULL, TLWBE_TOPICROOT"/"CONTROL_SUBTOPIC"/"CONTROL_ENTITY_APP"/#", 0);
 	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),

@@ -57,7 +57,7 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 
 gboolean uplink_havequeueduplink(void);
 gboolean uplink_cleanup(gpointer data);
-void uplink_onbrokerconnect(struct context* cntx);
+void uplink_onbrokerconnect(const struct context* cntx);
 void uplink_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
 	const JsonObject* rootobj);
 #endif

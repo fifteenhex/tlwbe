@@ -75,7 +75,7 @@ typedef struct dev __jsongen_builder;
 #define CONTROL_JSON_KEY		"key"
 #define CONTROL_JSON_SERIAL		"serial"
 
-void control_onbrokerconnect(struct context* cntx);
+void control_onbrokerconnect(const struct context* cntx);
 void control_onmsg(struct context*, char** splittopic, int numtopicparts,
 const JsonObject* rootobj);
 #endif
