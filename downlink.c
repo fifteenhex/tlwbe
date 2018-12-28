@@ -127,8 +127,8 @@ static void downlink_schedule(struct context* cntx, const gchar* appeui,
 	g_free(topic);
 }
 
-void downlink_onmsg(struct context* cntx, const JsonObject* rootobj,
-		char** splittopic, int numtopicparts) {
+void downlink_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
+		const JsonObject* rootobj) {
 
 	const gchar* action = splittopic[0];
 

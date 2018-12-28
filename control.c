@@ -179,8 +179,8 @@ static int control_devs_list(struct context* cntx, const JsonObject* rootobj,
 	return 0;
 }
 
-void control_onmsg(struct context* cntx, const JsonObject* rootobj,
-		char** splittopic, int numtopicparts) {
+void control_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
+		const JsonObject* rootobj) {
 
 	gchar* payload = NULL;
 

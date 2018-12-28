@@ -224,8 +224,8 @@ static void uplink_onmsg_rowcallback(const struct uplink* uplink, void* data) {
 	__jsongen_uplink_to_json(uplink, jsonbuilder);
 }
 
-void uplink_onmsg(struct context* cntx, const JsonObject* rootobj,
-		char** splittopic, int numtopicparts) {
+void uplink_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
+		const JsonObject* rootobj) {
 
 	if (numtopicparts != 2) {
 		g_message("expected 2 topic parts, got %d", numtopicparts);

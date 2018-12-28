@@ -12,6 +12,18 @@
 #include "downlink.h"
 #include "config.h.in"
 
+typedef void (*interface_onmsg)(struct context* cntx, char** splittopic,
+		int numtopicparts, const JsonObject* rootobj);
+
+struct interface {
+	const gchar* subtopic;
+	const interface_onmsg onmsg;
+};
+
+static const struct interface interfaces[] = {
+		{ CONTROL_SUBTOPIC, control_onmsg }, { UPLINK_SUBTOPIC_UPLINKS,
+				uplink_onmsg }, { DOWNLINK_SUBTOPIC, downlink_onmsg } };
+
 static gboolean messagecallback(MosquittoClient* client,
 		const struct mosquitto_message* msg, gpointer userdata) {
 	struct context* cntx = (struct context*) userdata;
@@ -50,14 +62,17 @@ static gboolean messagecallback(MosquittoClient* client,
 		char** interfacetopic = &splittopic[2];
 		int numinterfacetopicparts = numtopicparts - 2;
 
-		if (strcmp(subtopic, CONTROL_SUBTOPIC) == 0)
-			control_onmsg(cntx, rootobj, interfacetopic,
-					numinterfacetopicparts);
-		else if (strcmp(subtopic, UPLINK_SUBTOPIC_UPLINKS) == 0)
-			uplink_onmsg(cntx, rootobj, interfacetopic, numinterfacetopicparts);
-		else if (strcmp(subtopic, DOWNLINK_SUBTOPIC) == 0)
-			downlink_onmsg(cntx, rootobj, interfacetopic,
-					numinterfacetopicparts);
+		gboolean handled = FALSE;
+		for (int i = 0; i < G_N_ELEMENTS(interfaces); i++)
+			if (strcmp(interfaces[i].subtopic, subtopic) == 0) {
+				interfaces[i].onmsg(cntx, interfacetopic,
+						numinterfacetopicparts, rootobj);
+				handled = TRUE;
+				break;
+			}
+
+		if (!handled)
+			g_message("unexpected sub topic: %s", subtopic);
 	} else {
 		g_message("unexpected topic root: %s", roottopic);
 		goto out;
