@@ -227,12 +227,12 @@ static void uplink_onmsg_rowcallback(const struct uplink* uplink, void* data) {
 void uplink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		char** splittopic, int numtopicparts) {
 
-	if (numtopicparts != 4) {
-		g_message("expected 4 topic parts, got %d", numtopicparts);
+	if (numtopicparts != 2) {
+		g_message("expected 2 topic parts, got %d", numtopicparts);
 		return;
 	}
 
-	char* action = splittopic[2];
+	char* action = splittopic[0];
 	if (strcmp(action, UPLINK_SUBTOPIC_UPLINKS_QUERY) == 0) {
 
 		JsonParser* jsonparser = json_parser_new();
@@ -242,7 +242,7 @@ void uplink_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		JsonObject* rootobj = json_node_get_object(rootnode);
 		const gchar* deveui = json_object_get_string_member(rootobj, "deveui");
 
-		char* token = splittopic[3];
+		char* token = splittopic[1];
 		JsonBuilder* jsonbuilder = json_builder_new();
 		json_builder_begin_object(jsonbuilder);
 		json_builder_set_member_name(jsonbuilder, "uplinks");

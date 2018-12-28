@@ -26,19 +26,16 @@ static gboolean messagecallback(MosquittoClient* client,
 
 	char* roottopic = splittopic[0];
 
-	//todo make everything use only the topic parts after the
-	//prefix so the prefix could be user configured in the future
-	char** interfacetopic = &splittopic[2];
-	int numinterfacetopicparts = numtopicparts - 2;
-
 	if (strcmp(roottopic, PKTFWDBR_TOPIC_ROOT) == 0)
 		pktfwdbr_onmsg(cntx, msg, splittopic, numtopicparts);
 	else if (strcmp(roottopic, TLWBE_TOPICROOT) == 0) {
 		char* subtopic = splittopic[1];
+		char** interfacetopic = &splittopic[2];
+		int numinterfacetopicparts = numtopicparts - 2;
 		if (strcmp(subtopic, CONTROL_SUBTOPIC) == 0)
-			control_onmsg(cntx, msg, splittopic, numtopicparts);
+			control_onmsg(cntx, msg, interfacetopic, numinterfacetopicparts);
 		else if (strcmp(subtopic, UPLINK_SUBTOPIC_UPLINKS) == 0)
-			uplink_onmsg(cntx, msg, splittopic, numtopicparts);
+			uplink_onmsg(cntx, msg, interfacetopic, numinterfacetopicparts);
 		else if (strcmp(subtopic, DOWNLINK_SUBTOPIC) == 0)
 			downlink_onmsg(cntx, msg, interfacetopic, numinterfacetopicparts);
 	} else {

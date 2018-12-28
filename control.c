@@ -184,14 +184,14 @@ void control_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 
 	gchar* payload = NULL;
 
-	if (numtopicparts < 5) {
-		g_message("need 5 or more topic parts, have %d", numtopicparts);
+	if (numtopicparts < 3) {
+		g_message("need 3 or more topic parts, have %d", numtopicparts);
 		goto out;
 	}
 
-	char* entity = splittopic[2];
-	char* action = splittopic[3];
-	char* token = splittopic[4];
+	char* entity = splittopic[0];
+	char* action = splittopic[1];
+	char* token = splittopic[2];
 
 	enum entity e = ENTITY_INVALID;
 	for (int i = 0; i < G_N_ELEMENTS(entities); i++) {

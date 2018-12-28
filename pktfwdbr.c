@@ -55,6 +55,11 @@ void pktfwdbr_onbrokerconnect(struct context* cntx) {
 void pktfwdbr_onmsg(struct context* cntx, const struct mosquitto_message* msg,
 		char** splittopic, int numtopicparts) {
 
+	if (numtopicparts < 3) {
+		g_message("not enough topic parts");
+		return;
+	}
+
 	JsonParser* jsonparser = NULL;
 	char* gatewayid = splittopic[1];
 	char* direction = splittopic[2];
