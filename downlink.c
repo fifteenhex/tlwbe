@@ -118,7 +118,8 @@ static void downlink_schedule(struct context* cntx, const gchar* appeui,
 	__jsongen_downlink_schedule_result_to_json(&result, builder);
 	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "downlink",
 			"result", token, NULL);
-	mosquitto_client_publish_json_builder(cntx->mosqclient, builder, topic);
+	mosquitto_client_publish_json_builder(cntx->mosqclient, builder, topic,
+	TRUE);
 
 	g_free(topic);
 }
@@ -159,6 +160,7 @@ void downlink_announce_sent(struct context* cntx, const gchar* token) {
 	JsonBuilder* jsonbuilder = json_builder_new();
 	struct downlink_announce_sent msg;
 	__jsongen_downlink_announce_sent_to_json(&msg, jsonbuilder);
-	mosquitto_client_publish_json_builder(cntx->mosqclient, jsonbuilder, topic);
+	mosquitto_client_publish_json_builder(cntx->mosqclient, jsonbuilder, topic,
+	TRUE);
 	g_free(topic);
 }

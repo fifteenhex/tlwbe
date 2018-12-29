@@ -35,7 +35,7 @@ static void uplink_process_publish(struct context* cntx,
 		JsonBuilder* jsonbuilder = json_builder_new();
 		__jsongen_uplink_to_json(uplink, jsonbuilder);
 		mosquitto_client_publish_json_builder(cntx->mosqclient, jsonbuilder,
-				topic);
+				topic, TRUE);
 	}
 
 	g_free(topic);
@@ -245,7 +245,7 @@ void uplink_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
 		gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT,
 		UPLINK_SUBTOPIC_UPLINKS, UPLINK_SUBTOPIC_UPLINKS_RESULT, token, NULL);
 		mosquitto_client_publish_json_builder(cntx->mosqclient, jsonbuilder,
-				topic);
+				topic, TRUE);
 		g_free(topic);
 	} else {
 		g_message("unexpected action %s", action);

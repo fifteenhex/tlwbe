@@ -73,12 +73,11 @@ static void join_announce(struct context* cntx, const gchar* appeui,
 		const gchar* deveui) {
 	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "join", appeui,
 			deveui, NULL);
-
-	JsonBuilder* jsonbuilder = json_builder_new();
+	JsonBuilder* jsonbuilder = json_builder_new_immutable();
 	struct joinannounce msg = { .timestamp = g_get_real_time() };
 	__jsongen_joinannounce_to_json(&msg, jsonbuilder);
-	mosquitto_client_publish_json_builder(cntx->mosqclient, jsonbuilder, topic);
-
+	mosquitto_client_publish_json_builder(cntx->mosqclient, jsonbuilder, topic,
+	TRUE);
 	g_free(topic);
 }
 

@@ -269,9 +269,8 @@ void control_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
 
 	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT,
 	CONTROL_SUBTOPIC, CONTROL_RESULT, token, NULL);
-
-	mosquitto_client_publish_json_builder(cntx->mosqclient, jsonbuilder, topic);
-
+	mosquitto_client_publish_json_builder(cntx->mosqclient, jsonbuilder, topic,
+	TRUE);
 	g_free(topic);
 
 	out: return;
