@@ -68,7 +68,8 @@ static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 		guint8* pkt, gsize pktlen, const struct pktfwdpkt* rxpkt,
 		enum RXWINDOW rxwindow) {
-	gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, NULL);
+	gchar* token = g_uuid_string_random();
+	gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, token, NULL);
 	gsize payloadlen;
 	gchar* payload = downlink_createtxjson(pkt, pktlen, &payloadlen,
 			regional_getwindowdelay(rxwindow),
@@ -78,6 +79,7 @@ void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
 	NULL, topic, payloadlen, payload, 0, false);
 	g_free(payload);
+	g_free(token);
 	g_free(topic);
 }
 
@@ -114,16 +116,10 @@ static void downlink_schedule(struct context* cntx, const gchar* appeui,
 	struct downlink_schedule_result result = { };
 	JsonBuilder* builder = json_builder_new_immutable();
 	__jsongen_downlink_schedule_result_to_json(&result, builder);
-	gsize jsonlen;
-	gchar* json = jsonbuilder_freetostring(builder, &jsonlen, FALSE);
-
 	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "downlink",
 			"result", token, NULL);
+	mosquitto_client_publish_json_builder(cntx->mosqclient, builder, topic);
 
-	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
-	NULL, topic, jsonlen, json, 0, FALSE);
-
-	g_free(json);
 	g_free(topic);
 }
 
@@ -160,16 +156,9 @@ gboolean downlink_cleanup(gpointer data) {
 void downlink_announce_sent(struct context* cntx, const gchar* token) {
 	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "downlink",
 			"sent", token, NULL);
-
 	JsonBuilder* jsonbuilder = json_builder_new();
 	struct downlink_announce_sent msg;
 	__jsongen_downlink_announce_sent_to_json(&msg, jsonbuilder);
-	gsize payloadlen;
-	gchar* payload = jsonbuilder_freetostring(jsonbuilder, &payloadlen, FALSE);
-
-	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
-	NULL, topic, payloadlen, payload, 0, false);
-
-	g_free(payload);
+	mosquitto_client_publish_json_builder(cntx->mosqclient, jsonbuilder, topic);
 	g_free(topic);
 }
