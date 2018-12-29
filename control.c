@@ -182,8 +182,6 @@ static int control_devs_list(struct context* cntx, const JsonObject* rootobj,
 void control_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
 		const JsonObject* rootobj) {
 
-	gchar* payload = NULL;
-
 	if (numtopicparts < 3) {
 		g_message("need 3 or more topic parts, have %d", numtopicparts);
 		goto out;
@@ -269,19 +267,14 @@ void control_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
 
 	json_builder_end_object(jsonbuilder);
 
-	gsize payloadlen;
-	payload = jsonbuilder_freetostring(jsonbuilder, &payloadlen, FALSE);
-
 	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT,
 	CONTROL_SUBTOPIC, CONTROL_RESULT, token, NULL);
 
-	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
-	NULL, topic, payloadlen, payload, 0, false);
+	mosquitto_client_publish_json_builder(cntx->mosqclient, jsonbuilder, topic);
 
 	g_free(topic);
 
-	out: if (payload != NULL)
-		g_free(payload);
+	out: return;
 }
 
 void control_onbrokerconnect(const struct context* cntx) {

@@ -77,13 +77,9 @@ static void join_announce(struct context* cntx, const gchar* appeui,
 	JsonBuilder* jsonbuilder = json_builder_new();
 	struct joinannounce msg = { .timestamp = g_get_real_time() };
 	__jsongen_joinannounce_to_json(&msg, jsonbuilder);
-	gsize payloadlen;
-	gchar* payload = jsonbuilder_freetostring(jsonbuilder, &payloadlen, FALSE);
+	mosquitto_client_publish_json_builder(cntx->mosqclient, jsonbuilder, topic);
 
-	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
-	NULL, topic, payloadlen, payload, 0, false);
-
-	g_free(payload);
+	g_free(topic);
 }
 
 void join_processjoinrequest(struct context* cntx, const gchar* gateway,
