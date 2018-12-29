@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
 
 	GOptionEntry entries[] = { //
 			MQTTOPTS, //
-			{ "region", 0, 0, G_OPTION_ARG_STRING, &region, "", "" }, //
+					{ "region", 0, 0, G_OPTION_ARG_STRING, &region, "", "" }, //
 					{ NULL } };
 
 	GOptionContext* context = g_option_context_new("");
@@ -124,6 +124,7 @@ int main(int argc, char** argv) {
 		goto out;
 	}
 
+	downlink_init(&cntx);
 	regional_init(&cntx.regional, region);
 	stats_init(&cntx.stats);
 

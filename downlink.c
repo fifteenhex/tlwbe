@@ -66,9 +66,8 @@ static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 }
 
 void downlink_dodownlink(struct context* cntx, const gchar* gateway,
-		guint8* pkt, gsize pktlen, const struct pktfwdpkt* rxpkt,
-		enum RXWINDOW rxwindow) {
-	gchar* token = g_uuid_string_random();
+		const gchar* token, guint8* pkt, gsize pktlen,
+		const struct pktfwdpkt* rxpkt, enum RXWINDOW rxwindow) {
 	gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, token, NULL);
 	gsize payloadlen;
 	gchar* payload = downlink_createtxjson(pkt, pktlen, &payloadlen,
@@ -79,14 +78,14 @@ void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 	mosquitto_publish(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
 	NULL, topic, payloadlen, payload, 0, false);
 	g_free(payload);
-	g_free(token);
 	g_free(topic);
 }
 
 void downlink_dorxwindowdownlink(struct context* cntx, const gchar* gateway,
-		guint8* pkt, gsize pktlen, const struct pktfwdpkt* rxpkt) {
-	downlink_dodownlink(cntx, gateway, pkt, pktlen, rxpkt, RXW_R1);
-	//downlink_dodownlink(cntx, gateway, pkt, pktlen, rxpkt, RXW_R2);
+		const gchar* token, guint8* pkt, gsize pktlen,
+		const struct pktfwdpkt* rxpkt) {
+	downlink_dodownlink(cntx, gateway, token, pkt, pktlen, rxpkt, RXW_R1);
+	//downlink_dodownlink(cntx, gateway, token, pkt, pktlen, rxpkt, RXW_R2);
 }
 
 void downlink_onbrokerconnect(const struct context* cntx) {
@@ -163,4 +162,20 @@ void downlink_announce_sent(struct context* cntx, const gchar* token) {
 	mosquitto_client_publish_json_builder(cntx->mosqclient, jsonbuilder, topic,
 	TRUE);
 	g_free(topic);
+}
+
+void downlink_process_txack(const struct context* cntx, const gchar* token,
+		enum pktfwdbr_txack_error error) {
+	if (token != NULL) {
+		switch (error) {
+		case PKTFWDBR_TXACK_ERROR_NONE:
+			database_downlinks_delete_by_token(cntx, token);
+			downlink_announce_sent(cntx, token);
+			break;
+		}
+	}
+}
+
+void downlink_init(struct context* cntx) {
+
 }

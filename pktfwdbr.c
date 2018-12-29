@@ -6,6 +6,7 @@
 #include "uplink.h"
 #include "mac.h"
 #include "packet.h"
+#include "downlink.h"
 
 static gboolean pktfwdbr_onmsg_parsepkt(const JsonObject* rootobj,
 		struct pktfwdpkt* pkt) {
@@ -93,7 +94,10 @@ void pktfwdbr_onmsg(struct context* cntx, const JsonObject* rootobj,
 			break;
 		}
 	} else if (strcmp(direction, PKTFWDBR_TOPIC_TXACK) == 0) {
-
+		const gchar* token = NULL;
+		if (numtopicparts >= 4)
+			token = splittopic[3];
+		downlink_process_txack(cntx, token, PKTFWDBR_TXACK_ERROR_NONE);
 	} else
 		g_message("unexpected action: %s", direction);
 

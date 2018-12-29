@@ -180,12 +180,11 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 					(senddownlink ? downlink.payloadlen : 0), &keys, &pktlen);
 
 			packet_debug(pkt, pktlen);
-			downlink_dorxwindowdownlink(cntx, gateway, pkt, pktlen, rxpkt);
+			downlink_dorxwindowdownlink(cntx, gateway, downlink.token, pkt,
+					pktlen, rxpkt);
 			g_free(pkt);
 
 			if (senddownlink) {
-				database_downlinks_delete_by_token(cntx, downlink.token);
-				downlink_announce_sent(cntx, downlink.token);
 				g_free(downlink.appeui);
 				g_free(downlink.deveui);
 				g_free(downlink.payload);
