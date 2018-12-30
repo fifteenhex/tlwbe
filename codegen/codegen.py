@@ -56,7 +56,6 @@ class Field:
                 self.type = FieldType.ENUM
                 self.c_type = field.type.type.name
                 self.enum = enum_by_name(ast, self.c_type)
-                self.enum.show()
             else:
                 field.show()
                 assert False, ("TypeDecl type %s not handled" % decl_type)

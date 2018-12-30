@@ -16,7 +16,7 @@ in ```#ifndef __SQLITEGEN``` so that it's removed before being parsed.
 
 ## Creating a table
 
-A table is defined by creating a typedef to a struct with a special name as demostrated below.
+A table is defined by creating a typedef to a struct with a special name as demonstrated below.
 
 ```
 struct <table> {
