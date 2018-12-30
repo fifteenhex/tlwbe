@@ -5,6 +5,7 @@
 #else
 #include <json-glib/json-glib.h>
 #include "pktfwdbr.h"
+#include "pktfwdbr_txack.h"
 #include "regional.h"
 #endif
 
@@ -66,16 +67,18 @@ struct downlink_schedule_result {
 #define DOWNLINK_SCHEDULE "schedule"
 
 void downlink_dodownlink(struct context* cntx, const gchar* gateway,
-	const gchar* token, guint8* pkt, gsize pktlen, const struct pktfwdpkt* rxpkt,
-	enum RXWINDOW rxwindow);
+	const gchar* token, guint8* pkt, gsize pktlen,
+	const struct pktfwdpkt* rxpkt, enum RXWINDOW rxwindow);
 void downlink_dorxwindowdownlink(struct context* cntx, const gchar* gateway,
-	const gchar* token, guint8* pkt, gsize pktlen, const struct pktfwdpkt* rxpkt);
+	const gchar* token, guint8* pkt, gsize pktlen,
+	const struct pktfwdpkt* rxpkt);
 
 void downlink_onbrokerconnect(const struct context* cntx);
 void downlink_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
 	const JsonObject* rootobj);
 gboolean downlink_cleanup(gpointer data);
 void downlink_announce_sent(struct context* cntx, const gchar* token);
-void downlink_process_txack(const struct context* cntx, const gchar* token, enum pktfwdbr_txack_error error);
+void downlink_process_txack(const struct context* cntx, const gchar* token,
+	enum pktfwdbr_txack_error error);
 void downlink_init(struct context* cntx);
 #endif

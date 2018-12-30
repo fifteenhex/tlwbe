@@ -1,6 +1,8 @@
 #include <string.h>
 
 #include "pktfwdbr.h"
+#include "pktfwdbr_txack.h"
+#include "pktfwdbr_txack.json.h"
 #include "lorawan.h"
 #include "join.h"
 #include "uplink.h"
@@ -97,7 +99,14 @@ void pktfwdbr_onmsg(struct context* cntx, const JsonObject* rootobj,
 		const gchar* token = NULL;
 		if (numtopicparts >= 4)
 			token = splittopic[3];
-		downlink_process_txack(cntx, token, PKTFWDBR_TXACK_ERROR_NONE);
+
+		enum pktfwdbr_txack_error error = PKTFWDBR_TXACK_ERROR_NONE;
+		if (rootobj != NULL) {
+			struct pktfwdbr_txack_wrapper wrapper;
+			__jsongen_pktfwdbr_txack_wrapper_from_json(&wrapper, rootobj);
+			error = wrapper.tx_ack.error;
+		}
+		downlink_process_txack(cntx, token, error);
 	} else
 		g_message("unexpected action: %s", direction);
 

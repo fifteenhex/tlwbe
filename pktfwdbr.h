@@ -56,19 +56,6 @@ struct pktfwdpkt_rfparams {
 #define PKTFWDBR_JSON_TXPK_NCRC	"ncrc"
 #define PKTFWDBR_JSON_TXPK_RSSI	"rssi"
 
-#define PKTFWDBR_JSON_ERROR						"error"
-#define PKTFWDBR_JSON_ERROR_TOO_LATE			"TOO_LATE"
-#define PKTFWDBR_JSON_ERROR_TOO_EARLY			"TOO_EARLY"
-#define PKTFWDBR_JSON_ERROR_COLLISION_PACKET	"COLLISION_PACKET"
-#define PKTFWDBR_JSON_ERROR_COLLISION_BEACON	"COLLISION_BEACON"
-#define PKTFWDBR_JSON_ERROR_TX_FREQ				"TX_FREQ"
-#define PKTFWDBR_JSON_ERROR_TX_POWER			"TX_POWER"
-#define PKTFWDBR_JSON_ERROR_GPS_UNLOCKED		"GPS_UNLOCKED"
-
-enum pktfwdbr_txack_error {
-	PKTFWDBR_TXACK_ERROR_NONE
-};
-
 struct pktfwdpkt {
 	struct pktfwdpkt_rfparams rfparams;
 	const gchar* data;

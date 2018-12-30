@@ -4,6 +4,7 @@ import argparse
 import codegen
 from pycparser.c_ast import Struct
 from enum import Enum
+import re
 
 parser = argparse.ArgumentParser(description='json code gen')
 parser.add_argument('--input', type=str, required=True)
@@ -29,6 +30,7 @@ class JsonFieldType(Enum):
     BOOLEAN = 3
     OBJECT = 4
     BASE64BLOB = 5
+    ENUM = 6
 
 
 class JsonField:
@@ -74,6 +76,8 @@ class JsonCodeBlock(codegen.CodeBlock):
                 continue
             elif field.type == codegen.FieldType.POINTER:
                 json_type = self.__pointer_type_mapping.get(field.c_type)
+            elif field.type == codegen.FieldType.ENUM:
+                json_type = JsonFieldType.ENUM
             else:
                 json_type = self.__type_mapping.get(field.c_type)
             assert json_type is not None, ('no json field mapping for %s' % field.c_type)
@@ -123,6 +127,34 @@ class JsonParser(JsonCodeBlock):
                            outputfile)
         self.end_scope(outputfile)
 
+    def __get_enum(self, field: codegen.Field, path, outputfile):
+        # define create a struct for string->enum mapping
+        self.start_scope(outputfile, prefix='struct mapping ')
+        self.add_statement("const gchar* str", outputfile)
+        self.add_statement("enum %s val" % field.c_type, outputfile)
+        self.end_scope(outputfile, terminate=True)
+
+        # fill in the mappings
+        self.start_scope(outputfile, prefix='const struct mapping map[] = ')
+        mappings = []
+        for v in field.enum.values:
+            v.show()
+            matches = re.search('%s_(.*)' % field.enum.name.upper(), v.name)
+            mappings.append('{ .str = \"%s\", .val = %s }' % (matches.group(1), v.name))
+            mappings.append('{ .str = \"%s\", .val = %s }' % (matches.group(1).lower(), v.name))
+        self.add_items(mappings, outputfile)
+        self.end_scope(outputfile, terminate=True)
+
+        self.add_statement('const gchar* enumtmp = json_object_get_string_member(root, "%s")' % (field.field_name),
+                           outputfile)
+        self.start_scope(outputfile, prefix='for(int i = 0; i < G_N_ELEMENTS(map); i++)')
+        self.start_condition('strcmp(enumtmp, map[i].str) == 0', outputfile)
+        self.add_statement('%s->%s = map[i].val' % (
+            self.struct_name, flatten_path(path, field.field_name)), outputfile)
+        self.add_break(outputfile)
+        self.end_condition(outputfile)
+        self.end_scope(outputfile, terminate=True)
+
     def __write(self, field: JsonField, path=[]):
 
         if field is not self.root:
@@ -143,6 +175,8 @@ class JsonParser(JsonCodeBlock):
             self.__get_string(field.c_field, path, outputfile)
         elif field.type == JsonFieldType.BASE64BLOB:
             self.__get_base64blob(field.c_field, path, outputfile)
+        elif field.type == JsonFieldType.ENUM:
+            self.__get_enum(field.c_field, path, outputfile)
         else:
             assert False, ('couldn\'t write json type %s' % field.type)
 
@@ -151,7 +185,7 @@ class JsonParser(JsonCodeBlock):
 
     def write(self, outputfile):
         self.start_scope(outputfile,
-                         prefix='static gboolean __attribute__((unused)) __%s_%s_from_json(struct %s* %s, JsonObject* root)' % (
+                         prefix='static gboolean __attribute__((unused)) __%s_%s_from_json(struct %s* %s, const JsonObject* root)' % (
                              TAG, self.struct_name, self.struct_name, self.struct_name))
         self.__write(self.root)
         self.add_statement('return TRUE', outputfile)
@@ -215,6 +249,8 @@ class JsonBuilder(JsonCodeBlock):
             self.__add_string(field.c_field, path, outputfile)
         elif field.type == JsonFieldType.BASE64BLOB:
             self.__add_base64blob(field.c_field, path, outputfile)
+        elif field.type == JsonFieldType.ENUM:
+            pass
         else:
             assert False, ('couldn\'t write json type %s' % field.type)
 

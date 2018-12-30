@@ -25,7 +25,7 @@ prog_jsongen = find_program(meson.source_root() + '/codegen/jsongen.py')
 gen_jsongen = generator(prog_jsongen,
                  output : ['@BASENAME@.json.h'],
                  arguments : ['--input=@INPUT@', '--output=@BUILD_DIR@/@BASENAME@.json.h'])
-generated_json = gen_jsongen.process('control.h','join.h', 'uplink.h', 'downlink.h')
+generated_json = gen_jsongen.process('control.h','join.h', 'uplink.h', 'downlink.h', 'pktfwdbr_txack.h')
 
 src = ['tlwbe.c',
        'crypto.c',

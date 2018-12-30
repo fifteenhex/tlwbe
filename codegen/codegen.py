@@ -1,5 +1,6 @@
 from pycparser import parse_file
 from pycparser.c_ast import Typedef, TypeDecl, Struct, Decl, IdentifierType, PtrDecl
+from pycparser.c_ast import Enum as CEnum
 from enum import Enum
 
 
@@ -30,28 +31,40 @@ class FieldType(Enum):
     NORMAL = 1
     POINTER = 2
     STRUCT = 3
+    ENUM = 4
 
 
 class Field:
-    __slots__ = ['field', 'field_name', 'type', 'c_type', 'struct', 'fields_and_annotations']
+    __slots__ = ['field', 'field_name', 'type', 'c_type', 'struct', 'enum', 'fields_and_annotations']
 
     def __init__(self, field: Decl, ast, tag, annotation_types):
         self.field = field
         self.field_name = field.name
 
-        if type(field.type) == TypeDecl and type(field.type.type) == IdentifierType:
-            self.c_type = field.type.type.names[0]
-            self.type = FieldType.NORMAL
-        elif type(field.type) == PtrDecl:
+        field_type = type(field.type)
+        if field_type == TypeDecl:
+            decl_type = type(field.type.type)
+            if decl_type == IdentifierType:
+                self.c_type = field.type.type.names[0]
+                self.type = FieldType.NORMAL
+            elif decl_type == Struct:
+                self.type = FieldType.STRUCT
+                self.c_type = field.type.type.name
+                self.struct = struct_by_name(ast, self.c_type)
+                self.fields_and_annotations = walk_struct(ast, tag, self.struct, annotation_types)
+            elif decl_type == CEnum:
+                self.type = FieldType.ENUM
+                self.c_type = field.type.type.name
+                self.enum = enum_by_name(ast, self.c_type)
+                self.enum.show()
+            else:
+                field.show()
+                assert False, ("TypeDecl type %s not handled" % decl_type)
+        elif field_type == PtrDecl:
             self.c_type = field.type.type.type.names[0]
             self.type = FieldType.POINTER
-        elif type(field.type) == TypeDecl and type(field.type.type) == Struct:
-            self.type = FieldType.STRUCT
-            self.c_type = field.type.type.name
-            self.struct = struct_by_name(ast, self.c_type)
-            self.fields_and_annotations = walk_struct(ast, tag, self.struct, annotation_types)
         else:
-            assert False, ("field type %s not handled" % type(field.type))
+            assert False, ("field type %s not handled" % (type(field.type)))
 
 
 class CodeBlock:
@@ -71,10 +84,13 @@ class CodeBlock:
         outputfile.write('{\n')
         self.indent += 1
 
-    def end_scope(self, outputfile):
+    def end_scope(self, outputfile, terminate=False):
         self.indent -= 1
         self.__do_indent(outputfile)
-        outputfile.write('}\n')
+        if terminate:
+            outputfile.write('};\n')
+        else:
+            outputfile.write('}\n')
 
     def start_condition(self, condition, outputfile):
         self.__do_indent(outputfile)
@@ -90,9 +106,17 @@ class CodeBlock:
         self.__do_indent(outputfile)
         outputfile.write('%s;\n' % statement)
 
+    def add_items(self, items: list, outputfile):
+        for item in items:
+            self.__do_indent(outputfile)
+            outputfile.write('%s,\n' % item)
+
     def add_label(self, name: str, outputfile):
         self.__do_indent(outputfile)
         outputfile.write('%s:\n' % name)
+
+    def add_break(self, outputfile):
+        self.add_statement('break', outputfile)
 
     def write(self, outputfile):
         outputfile.write('// empty code block\n\n')
@@ -184,4 +208,12 @@ def struct_by_name(ast, name: (str)):
                 if child.type.name == name:
                     print('found struct %s' % name)
                     return child.type
+    return None
+
+
+def enum_by_name(ast, name: (str)):
+    print('looking for enum %s' % name)
+    for child in ast:
+        if type(child) is Decl and type(child.type) is CEnum:
+            return child.type
     return None
