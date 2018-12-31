@@ -7,7 +7,7 @@
 #include "tlwbe.h"
 #include "lorawan.h"
 #endif
-#include "pktfwdbr.h"
+#include "pktfwdbr_rx.h"
 
 struct uplink {
 #ifdef __SQLITEGEN
@@ -21,7 +21,7 @@ struct uplink {
 #ifndef __SQLITEGEN
 	gsize payloadlen;
 #endif
-	struct pktfwdpkt_rfparams rfparams;
+	struct pktfwdbr_rx_rfparams rfparams;
 #ifdef __SQLITEGEN
 	void __sqlitegen_flags_id_hidden;
 	void __sqlitegen_constraints_id_notnull_primarykey_autoincrement_unique;
@@ -53,7 +53,7 @@ struct sessionkeys {
 };
 
 void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
-	int datalen, const struct pktfwdpkt* rxpkt);
+	int datalen, const struct pktfwdbr_rx* rxpkt);
 
 gboolean uplink_havequeueduplink(void);
 gboolean uplink_cleanup(gpointer data);

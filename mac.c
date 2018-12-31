@@ -1,7 +1,7 @@
 #include "mac.h"
 
 void mac_process(struct context* cntx, const gchar* gateway, guchar* data,
-		int datalen, const struct pktfwdpkt* rxpkt) {
+		int datalen, const struct pktfwdbr_rx* rxpkt) {
 
 	struct packet_unpacked unpacked;
 	packet_unpack(data, datalen, &unpacked);

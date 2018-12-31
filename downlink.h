@@ -4,7 +4,8 @@
 #include "codegen/fakeglib.h"
 #else
 #include <json-glib/json-glib.h>
-#include "pktfwdbr.h"
+#include "tlwbe.h"
+#include "pktfwdbr_rx.h"
 #include "pktfwdbr_txack.h"
 #include "regional.h"
 #endif
@@ -68,10 +69,10 @@ struct downlink_schedule_result {
 
 void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 	const gchar* token, guint8* pkt, gsize pktlen,
-	const struct pktfwdpkt* rxpkt, enum RXWINDOW rxwindow);
+	const struct pktfwdbr_rx* rxpkt, enum RXWINDOW rxwindow);
 void downlink_dorxwindowdownlink(struct context* cntx, const gchar* gateway,
 	const gchar* token, guint8* pkt, gsize pktlen,
-	const struct pktfwdpkt* rxpkt);
+	const struct pktfwdbr_rx* rxpkt);
 
 void downlink_onbrokerconnect(const struct context* cntx);
 void downlink_onmsg(struct context* cntx, char** splittopic, int numtopicparts,

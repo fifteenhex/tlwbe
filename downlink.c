@@ -14,7 +14,7 @@
 
 static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 		guint64 delay, gdouble frequency, const gchar* dr, guint8 txpower,
-		const struct pktfwdpkt* rxpkt) {
+		const struct pktfwdbr_rx* rxpkt) {
 
 	JsonBuilder* jsonbuilder = json_builder_new();
 	json_builder_begin_object(jsonbuilder);
@@ -67,7 +67,7 @@ static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 
 void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 		const gchar* token, guint8* pkt, gsize pktlen,
-		const struct pktfwdpkt* rxpkt, enum RXWINDOW rxwindow) {
+		const struct pktfwdbr_rx* rxpkt, enum RXWINDOW rxwindow) {
 	gchar* topic = utils_createtopic(gateway, PKTFWDBR_TOPIC_TX, token, NULL);
 	gsize payloadlen;
 	gchar* payload = downlink_createtxjson(pkt, pktlen, &payloadlen,
@@ -83,7 +83,7 @@ void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 
 void downlink_dorxwindowdownlink(struct context* cntx, const gchar* gateway,
 		const gchar* token, guint8* pkt, gsize pktlen,
-		const struct pktfwdpkt* rxpkt) {
+		const struct pktfwdbr_rx* rxpkt) {
 	downlink_dodownlink(cntx, gateway, token, pkt, pktlen, rxpkt, RXW_R1);
 	//downlink_dodownlink(cntx, gateway, token, pkt, pktlen, rxpkt, RXW_R2);
 }

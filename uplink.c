@@ -78,7 +78,7 @@ static void uplink_process_rowcallback(const struct keyparts* keyparts,
 }
 
 void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
-		int datalen, const struct pktfwdpkt* rxpkt) {
+		int datalen, const struct pktfwdbr_rx* rxpkt) {
 
 	struct packet_unpacked unpacked;
 	packet_unpack(data, datalen, &unpacked);

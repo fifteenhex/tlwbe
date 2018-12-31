@@ -82,7 +82,7 @@ static void join_announce(struct context* cntx, const gchar* appeui,
 }
 
 void join_processjoinrequest(struct context* cntx, const gchar* gateway,
-		guchar* data, int datalen, const struct pktfwdpkt* rxpkt) {
+		guchar* data, int datalen, const struct pktfwdbr_rx* rxpkt) {
 
 	struct packet_unpacked unpacked;
 	packet_unpack(data, datalen, &unpacked);

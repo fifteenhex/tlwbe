@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "pktfwdbr.h"
+#include "pktfwdbr_rx.h"
 #include "pktfwdbr_txack.h"
 #include "pktfwdbr_txack.json.h"
 #include "lorawan.h"
@@ -11,7 +12,7 @@
 #include "downlink.h"
 
 static gboolean pktfwdbr_onmsg_parsepkt(const JsonObject* rootobj,
-		struct pktfwdpkt* pkt) {
+		struct pktfwdbr_rx* pkt) {
 
 	if (!(json_object_has_member(rootobj, PKTFWDBR_JSON_TXPK_MODU))
 			|| !(json_object_has_member(rootobj, PKTFWDBR_JSON_TXPK_FREQ))
@@ -67,7 +68,7 @@ void pktfwdbr_onmsg(struct context* cntx, const JsonObject* rootobj,
 	guchar* data = NULL;
 
 	if (strcmp(direction, PKTFWDBR_TOPIC_RX) == 0) {
-		struct pktfwdpkt pkt;
+		struct pktfwdbr_rx pkt;
 		pktfwdbr_onmsg_parsepkt(rootobj, &pkt);
 
 		const gchar* b64data = pkt.data;

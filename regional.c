@@ -105,7 +105,7 @@ guint64 regional_getwindowdelay(enum RXWINDOW rxwindow) {
 }
 
 gdouble regional_getfrequency(struct regional* regional, enum RXWINDOW rxwindow,
-		const struct pktfwdpkt* rxpkt) {
+		const struct pktfwdbr_rx* rxpkt) {
 	switch (rxwindow) {
 	case RXW_R2:
 	case RXW_J2:
@@ -116,7 +116,7 @@ gdouble regional_getfrequency(struct regional* regional, enum RXWINDOW rxwindow,
 }
 
 const gchar* regional_getdatarate(struct regional* regional,
-		enum RXWINDOW rxwindow, const struct pktfwdpkt* rxpkt) {
+		enum RXWINDOW rxwindow, const struct pktfwdbr_rx* rxpkt) {
 	switch (rxwindow) {
 	case RXW_R2:
 	case RXW_J2:

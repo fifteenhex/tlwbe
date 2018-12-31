@@ -4,7 +4,7 @@
 #include "codegen/fakeglib.h"
 #else
 #include "tlwbe.h"
-#include "pktfwdbr.h"
+#include "pktfwdbr_rx.h"
 #endif
 
 struct session {
@@ -43,5 +43,5 @@ typedef struct joinannounce __jsongen_builder;
 
 #if !defined(__SQLITEGEN) && !defined(__JSONGEN)
 void join_processjoinrequest(struct context* cntx, const gchar* gateway,
-	guchar* data, int datalen, const struct pktfwdpkt* rxpkt);
+	guchar* data, int datalen, const struct pktfwdbr_rx* rxpkt);
 #endif
