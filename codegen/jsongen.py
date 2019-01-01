@@ -16,6 +16,10 @@ annotation_types = {
     'flags', 'default'
 }
 
+flags = {
+    'inline'
+}
+
 
 def flatten_path(path, field_name):
     field_path = path.copy()
@@ -31,6 +35,7 @@ class JsonFieldType(Enum):
     OBJECT = 4
     BASE64BLOB = 5
     ENUM = 6
+    INLINE = 7
 
 
 class JsonField:
@@ -69,8 +74,19 @@ class JsonCodeBlock(codegen.CodeBlock):
     def __dowalk(self, root: JsonField, fields_and_annotations):
         for field in fields_and_annotations[0]:
             print(field.field_name)
+
+            inline = False
+            field_annotations = []
+            for annotation in fields_and_annotations[1]:
+                if annotation.field_name == field.field_name:
+                    field_annotations.append(annotation)
+                    if 'inline' in annotation.parameters:
+                        inline = True
+
             if field.type == codegen.FieldType.STRUCT:
-                new_root = JsonField(field.field_name, JsonFieldType.OBJECT, field.field_name)
+
+                new_root = JsonField(field.field_name, JsonFieldType.INLINE if inline else JsonFieldType.OBJECT,
+                                     field.field_name)
                 self.__dowalk(new_root, field.fields_and_annotations)
                 root.children.append(new_root)
                 continue
@@ -81,11 +97,6 @@ class JsonCodeBlock(codegen.CodeBlock):
             else:
                 json_type = self.__type_mapping.get(field.c_type)
             assert json_type is not None, ('no json field mapping for %s' % field.c_type)
-
-            field_annotations = []
-            for annotation in fields_and_annotations[1]:
-                if annotation.field_name == field.field_name:
-                    field_annotations.append(annotation)
 
             root.children.append(JsonField(field.field_name, json_type, field, field_annotations))
 
@@ -110,7 +121,7 @@ class JsonParser(JsonCodeBlock):
             self.struct_name, flatten_path(path, field.field_name), field.field_name), outputfile)
 
     def __get_double(self, field: codegen.Field, path, outputfile):
-        self.add_statement('%s->%s = json_object_get_double_member(root, "%s");\n' % (
+        self.add_statement('%s->%s = json_object_get_double_member(root, "%s")' % (
             self.struct_name, flatten_path(path, field.field_name), field.field_name), outputfile)
 
     def __get_string(self, field: codegen.Field, path, outputfile):
@@ -157,10 +168,12 @@ class JsonParser(JsonCodeBlock):
 
     def __write(self, field: JsonField, path=[]):
 
-        if field is not self.root:
+        member = field.type is not JsonFieldType.INLINE and field is not self.root
+
+        if member:
             self.start_condition('json_object_has_member(root, "%s")' % field.name, outputfile)
 
-        if field.type == JsonFieldType.OBJECT:
+        if field.type == JsonFieldType.OBJECT or field.type == JsonFieldType.INLINE:
             if field.c_field is not None:
                 path.append(field.c_field)
             for c in field.children:
@@ -180,7 +193,7 @@ class JsonParser(JsonCodeBlock):
         else:
             assert False, ('couldn\'t write json type %s' % field.type)
 
-        if field is not self.root:
+        if member:
             self.end_condition(outputfile)
 
     def write(self, outputfile):
@@ -280,7 +293,7 @@ def __struct_callback(ast, struct: Struct, flags: dict, outputs: list):
     f = flags.get(struct.name)
     if f is not None:
         print('found flags for %s' % struct.name)
-        fields_and_annotations = codegen.walk_struct(ast, TAG, struct)
+        fields_and_annotations = codegen.walk_struct(ast, TAG, struct, annotation_types)
         for ff in f:
             outputs.append(flag_to_generator[ff](struct.name, fields_and_annotations))
 

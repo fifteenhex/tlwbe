@@ -23,6 +23,9 @@ struct pktfwdbr_rx {
 	const gchar* data;
 	gsize size;
 	guint32 timestamp;
+#ifdef __JSONGEN
+	void __jsongen_flags_rfparams_inline;
+#endif
 };
 #ifdef __JSONGEN
 typedef struct pktfwdbr_rx __jsongen_parser;
