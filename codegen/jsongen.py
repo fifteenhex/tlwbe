@@ -17,7 +17,7 @@ annotation_types = {
 }
 
 flags = {
-    'inline'
+    'inline', 'optional'
 }
 
 
@@ -39,7 +39,7 @@ class JsonFieldType(Enum):
 
 
 class JsonField:
-    __slots__ = ['name', 'type', 'children', 'c_field', 'annotations']
+    __slots__ = ['name', 'type', 'children', 'c_field', 'annotations', 'optional']
 
     def __init__(self, name: str, type: JsonFieldType, c_field=None, annotations=None):
         self.name = name
@@ -47,6 +47,13 @@ class JsonField:
         self.c_field = c_field
         self.annotations = annotations
         self.children = []
+
+        self.optional = False
+        if annotations is not None:
+            for annotation in annotations:
+                if annotation.annotation_type == 'flags':
+                    if 'optional' in annotation.parameters:
+                        self.optional = True
 
 
 class JsonCodeBlock(codegen.CodeBlock):
@@ -199,8 +206,9 @@ class JsonParser(JsonCodeBlock):
             assert False, ('couldn\'t write json type %s' % field.type)
 
         if member:
-            self.add_else(outputfile)
-            self.add_statement('goto err', outputfile)
+            if not field.optional:
+                self.add_else(outputfile)
+                self.add_statement('goto err', outputfile)
             self.end_condition(outputfile)
 
     def write(self, outputfile):

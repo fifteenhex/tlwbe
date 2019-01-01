@@ -26,6 +26,8 @@ struct <json object> {
 
 ## tweaking generated parser/builder
 
+### optional
+
 ### inline
 
 When you have some JSON that has members that make more sense in a sub-struct in C
