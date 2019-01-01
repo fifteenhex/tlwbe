@@ -96,6 +96,14 @@ class CodeBlock:
         outputfile.write('if(%s){\n' % condition)
         self.indent += 1
 
+    def add_else(self, outputfile):
+        self.indent -= 1
+        self.__do_indent(outputfile)
+        outputfile.write('}\n')
+        self.__do_indent(outputfile)
+        outputfile.write('else {\n')
+        self.indent += 1
+
     def end_condition(self, outputfile):
         self.indent -= 1
         self.__do_indent(outputfile)

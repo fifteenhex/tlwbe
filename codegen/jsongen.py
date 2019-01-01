@@ -13,7 +13,7 @@ parser.add_argument('--output', type=str, required=True)
 TAG = 'jsongen'
 
 annotation_types = {
-    'flags', 'default'
+    'member', 'flags', 'default'
 }
 
 flags = {
@@ -75,17 +75,22 @@ class JsonCodeBlock(codegen.CodeBlock):
         for field in fields_and_annotations[0]:
             print(field.field_name)
 
+            json_member = field.field_name
             inline = False
             field_annotations = []
+
             for annotation in fields_and_annotations[1]:
                 if annotation.field_name == field.field_name:
                     field_annotations.append(annotation)
-                    if 'inline' in annotation.parameters:
+                    if annotation.annotation_type == 'member':
+                        assert len(annotation.parameters) == 1
+                        json_member = annotation.parameters[0]
+                        print('overriding member with %s' % json_member)
+                    elif annotation.annotation_type == 'flags' and 'inline' in annotation.parameters:
                         inline = True
 
             if field.type == codegen.FieldType.STRUCT:
-
-                new_root = JsonField(field.field_name, JsonFieldType.INLINE if inline else JsonFieldType.OBJECT,
+                new_root = JsonField(json_member, JsonFieldType.INLINE if inline else JsonFieldType.OBJECT,
                                      field.field_name)
                 self.__dowalk(new_root, field.fields_and_annotations)
                 root.children.append(new_root)
@@ -98,7 +103,7 @@ class JsonCodeBlock(codegen.CodeBlock):
                 json_type = self.__type_mapping.get(field.c_type)
             assert json_type is not None, ('no json field mapping for %s' % field.c_type)
 
-            root.children.append(JsonField(field.field_name, json_type, field, field_annotations))
+            root.children.append(JsonField(json_member, json_type, field, field_annotations))
 
     def __init__(self, struct_name: str, fields_and_annotations):
         super(JsonCodeBlock, self).__init__()
@@ -112,25 +117,25 @@ class JsonParser(JsonCodeBlock):
     def __init__(self, struct_name: str, fields_and_annotations):
         super().__init__(struct_name, fields_and_annotations)
 
-    def __get_int(self, field: codegen.Field, path, outputfile):
+    def __get_int(self, member: str, field: codegen.Field, path, outputfile):
         self.add_statement('%s->%s = json_object_get_int_member(root, "%s")' % (
-            self.struct_name, flatten_path(path, field.field_name), field.field_name), outputfile)
+            self.struct_name, flatten_path(path, field.field_name), member), outputfile)
 
-    def __get_boolean(self, field: codegen.Field, path, outputfile):
+    def __get_boolean(self, member: str, field: codegen.Field, path, outputfile):
         self.add_statement('%s->%s = json_object_get_boolean_member(root, "%s")' % (
-            self.struct_name, flatten_path(path, field.field_name), field.field_name), outputfile)
+            self.struct_name, flatten_path(path, field.field_name), member), outputfile)
 
-    def __get_double(self, field: codegen.Field, path, outputfile):
+    def __get_double(self, member: str, field: codegen.Field, path, outputfile):
         self.add_statement('%s->%s = json_object_get_double_member(root, "%s")' % (
-            self.struct_name, flatten_path(path, field.field_name), field.field_name), outputfile)
+            self.struct_name, flatten_path(path, field.field_name), member), outputfile)
 
-    def __get_string(self, field: codegen.Field, path, outputfile):
+    def __get_string(self, member: str, field: codegen.Field, path, outputfile):
         self.add_statement('%s->%s = json_object_get_string_member(root, "%s")' % (
-            self.struct_name, flatten_path(path, field.field_name), field.field_name), outputfile)
+            self.struct_name, flatten_path(path, field.field_name), member), outputfile)
 
-    def __get_base64blob(self, field: codegen.Field, path, outputfile):
+    def __get_base64blob(self, member: str, field: codegen.Field, path, outputfile):
         self.start_scope(outputfile)
-        self.add_statement('const gchar* payloadb64 = json_object_get_string_member(root, "%s")' % field.field_name,
+        self.add_statement('const gchar* payloadb64 = json_object_get_string_member(root, "%s")' % member,
                            outputfile)
         self.add_statement('%s->%s = g_base64_decode(payloadb64, &%s->%slen)' % (
             self.struct_name, flatten_path(path, field.field_name), self.struct_name,
@@ -138,8 +143,8 @@ class JsonParser(JsonCodeBlock):
                            outputfile)
         self.end_scope(outputfile)
 
-    def __get_enum(self, field: codegen.Field, path, outputfile):
-        # define create a struct for string->enum mapping
+    def __get_enum(self, member: str, field: codegen.Field, path, outputfile):
+        # create a struct for string->enum mapping
         self.start_scope(outputfile, prefix='struct mapping ')
         self.add_statement("const gchar* str", outputfile)
         self.add_statement("enum %s val" % field.c_type, outputfile)
@@ -156,7 +161,7 @@ class JsonParser(JsonCodeBlock):
         self.add_items(mappings, outputfile)
         self.end_scope(outputfile, terminate=True)
 
-        self.add_statement('const gchar* enumtmp = json_object_get_string_member(root, "%s")' % (field.field_name),
+        self.add_statement('const gchar* enumtmp = json_object_get_string_member(root, "%s")' % (member),
                            outputfile)
         self.start_scope(outputfile, prefix='for(int i = 0; i < G_N_ELEMENTS(map); i++)')
         self.start_condition('strcmp(enumtmp, map[i].str) == 0', outputfile)
@@ -179,21 +184,23 @@ class JsonParser(JsonCodeBlock):
             for c in field.children:
                 self.__write(c, path.copy())
         elif field.type == JsonFieldType.INT:
-            self.__get_int(field.c_field, path, outputfile)
+            self.__get_int(field.name, field.c_field, path, outputfile)
         elif field.type == JsonFieldType.BOOLEAN:
-            self.__get_boolean(field.c_field, path, outputfile)
+            self.__get_boolean(field.name, field.c_field, path, outputfile)
         elif field.type == JsonFieldType.DOUBLE:
-            self.__get_double(field.c_field, path, outputfile)
+            self.__get_double(field.name, field.c_field, path, outputfile)
         elif field.type == JsonFieldType.STRING:
-            self.__get_string(field.c_field, path, outputfile)
+            self.__get_string(field.name, field.c_field, path, outputfile)
         elif field.type == JsonFieldType.BASE64BLOB:
-            self.__get_base64blob(field.c_field, path, outputfile)
+            self.__get_base64blob(field.name, field.c_field, path, outputfile)
         elif field.type == JsonFieldType.ENUM:
-            self.__get_enum(field.c_field, path, outputfile)
+            self.__get_enum(field.name, field.c_field, path, outputfile)
         else:
             assert False, ('couldn\'t write json type %s' % field.type)
 
         if member:
+            self.add_else(outputfile)
+            self.add_statement('goto err', outputfile)
             self.end_condition(outputfile)
 
     def write(self, outputfile):
