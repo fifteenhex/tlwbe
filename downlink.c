@@ -96,31 +96,31 @@ void downlink_onbrokerconnect(const struct context* cntx) {
 static void downlink_schedule(struct context* cntx, const gchar* appeui,
 		const gchar* deveui, guint8 port, const gchar* token,
 		const JsonObject* rootobj) {
-
 	struct downlink downlink = { 0 };
-	__jsongen_downlink_from_json(&downlink, rootobj);
+	if (__jsongen_downlink_from_json(&downlink, rootobj)) {
+		downlink.timestamp = g_get_real_time();
+		downlink.deadline = ((24 * 60) * 60);
+		downlink.appeui = appeui;
+		downlink.deveui = deveui;
+		downlink.port = (guint8) (port & 0xff);
+		downlink.token = token;
 
-	downlink.timestamp = g_get_real_time();
-	downlink.deadline = ((24 * 60) * 60);
-	downlink.appeui = appeui;
-	downlink.deveui = deveui;
-	downlink.port = (guint8) (port & 0xff);
-	downlink.token = token;
+		g_message("have downlink for app %s, dev %s, port %d, token %s",
+				downlink.appeui, downlink.deveui, (int )port, downlink.token);
 
-	g_message("have downlink for app %s, dev %s, port %d, token %s",
-			downlink.appeui, downlink.deveui, (int )port, downlink.token);
+		database_downlink_add(cntx, &downlink);
 
-	database_downlink_add(cntx, &downlink);
+		struct downlink_schedule_result result = { };
+		JsonBuilder* builder = json_builder_new_immutable();
+		__jsongen_downlink_schedule_result_to_json(&result, builder);
+		gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "downlink",
+				"result", token, NULL);
+		mosquitto_client_publish_json_builder(cntx->mosqclient, builder, topic,
+		TRUE);
 
-	struct downlink_schedule_result result = { };
-	JsonBuilder* builder = json_builder_new_immutable();
-	__jsongen_downlink_schedule_result_to_json(&result, builder);
-	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "downlink",
-			"result", token, NULL);
-	mosquitto_client_publish_json_builder(cntx->mosqclient, builder, topic,
-	TRUE);
-
-	g_free(topic);
+		g_free(topic);
+	} else
+		g_message("failed to parse downlink message");
 }
 
 void downlink_onmsg(struct context* cntx, char** splittopic, int numtopicparts,

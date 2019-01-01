@@ -41,6 +41,11 @@ struct downlink {
 	void __sqlitegen_flags_token_searchable;
 	void __sqlitegen_constraints_token_notnull_unique;
 #endif
+#ifdef __JSONGEN
+	void __jsongen_flags_timestamp_optional;
+	void __jsongen_flags_deadline_optional;
+	void __jsongen_flags_confirm_optional;
+#endif
 };
 #ifdef __SQLITEGEN
 	typedef struct downlink __sqlitegen_table_downlinks;
