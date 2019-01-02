@@ -153,7 +153,7 @@ gboolean downlink_cleanup(gpointer data) {
 	return TRUE;
 }
 
-void downlink_announce_sent(struct context* cntx, const gchar* token) {
+void downlink_announce_sent(const struct context* cntx, const gchar* token) {
 	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "downlink",
 			"sent", token, NULL);
 	JsonBuilder* jsonbuilder = json_builder_new();
@@ -171,6 +171,9 @@ void downlink_process_txack(const struct context* cntx, const gchar* token,
 		case PKTFWDBR_TXACK_ERROR_NONE:
 			database_downlinks_delete_by_token(cntx, token);
 			downlink_announce_sent(cntx, token);
+			break;
+		default:
+			g_message("forwarder didn't schedule downlink");
 			break;
 		}
 	}

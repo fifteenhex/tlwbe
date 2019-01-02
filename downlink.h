@@ -83,7 +83,7 @@ void downlink_onbrokerconnect(const struct context* cntx);
 void downlink_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
 	const JsonObject* rootobj);
 gboolean downlink_cleanup(gpointer data);
-void downlink_announce_sent(struct context* cntx, const gchar* token);
+void downlink_announce_sent(const struct context* cntx, const gchar* token);
 void downlink_process_txack(const struct context* cntx, const gchar* token,
 	enum pktfwdbr_txack_error error);
 void downlink_init(struct context* cntx);
