@@ -1,0 +1,13 @@
+Source: tlwbe
+Section: unknown
+Priority: optional
+Maintainer: Daniel Palmer <daniel@0x0f.com>
+Build-Depends: debhelper (>=10)
+Standards-Version: 4.0.0
+Homepage: https://github.com/fifteenhex/tlwbe
+
+Package: tlwbe
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: tiny LoRaWAN backend
+ A small, incomplete, buggy etc LoRaWAN backend

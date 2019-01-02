@@ -9,9 +9,13 @@ language:
 services:
   - docker
 
+git:
+  depth: false
+
 before_install:
   - docker pull debian:testing
 
 script:
   - docker build -t withgit .
-  - docker run withgit /bin/sh -c "cd /root && TRAVIS=true CC=$CC CXX=$CXX meson builddir && ninja -C builddir"
+  - docker run withgit /bin/sh -c "cd root && git checkout -b tmp && gbp buildpackage --git-ignore-new --no-sign"
+#  - docker run withgit /bin/sh -c "cd /root && TRAVIS=true CC=$CC CXX=$CXX meson builddir && ninja -C builddir"
