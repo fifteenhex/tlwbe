@@ -55,3 +55,5 @@ executable('tlwbe', src,
            dependencies : deps, 
            install : true,
            install_dir : 'bin')
+
+install_data('regionalparameters.json')
