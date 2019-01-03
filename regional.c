@@ -3,6 +3,7 @@
 #include "json-glib-macros/jsonparserutils.h"
 
 #include "regional.h"
+#include "config.h"
 
 gboolean regional_init(struct regional* regional, const gchar* region) {
 	if (region == NULL) {
@@ -11,8 +12,7 @@ gboolean regional_init(struct regional* regional, const gchar* region) {
 	}
 
 	JsonParser* parser = json_parser_new_immutable();
-	if (json_parser_load_from_file(parser, "../regionalparameters.json",
-	NULL)) {
+	if (json_parser_load_from_file(parser,TLWBE_REGIONALPARAMETERS,NULL)) {
 		JsonNode* root = json_parser_get_root(parser);
 		JsonObject* rootobject = JSON_NODE_GET_OBJECT(root);
 		if (rootobject != NULL) {

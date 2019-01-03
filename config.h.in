@@ -11,3 +11,5 @@
 #ifndef TLWBE_DEBUG_REPACKPACKETS
 #define TLWBE_DEBUG_REPACKPACKETS	 @debug@
 #endif
+
+#define TLWBE_REGIONALPARAMETERS	"@rp_path@"
