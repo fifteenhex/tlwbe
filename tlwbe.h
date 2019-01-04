@@ -20,3 +20,5 @@ struct context {
 	struct stats stats;
 	struct downlinkcontext dwnlnkcntx;
 };
+
+typedef const struct context context_readonly;

@@ -166,13 +166,13 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	return;
 }
 
-void database_app_add(struct context* cntx, const struct app* app) {
+void database_app_add(context_readonly* cntx, const struct app* app) {
 	__sqlitegen_apps_add(cntx->dbcntx.insertappstmt, app);
 	database_stepuntilcomplete(cntx->dbcntx.insertappstmt, NULL, NULL);
 	sqlite3_reset(cntx->dbcntx.insertappstmt);
 }
 
-void database_app_update(struct context* cntx, const struct app* app) {
+void database_app_update(context_readonly* cntx, const struct app* app) {
 
 }
 
@@ -189,12 +189,12 @@ static void database_app_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 			callbackanddata->second);
 }
 
-void database_app_get(struct context* cntx, const char* eui,
+void database_app_get(context_readonly* cntx, const char* eui,
 		void (*callback)(const struct app* app, void* data), void* data) {
 	LOOKUPBYSTRING(cntx->dbcntx.getappsstmt, eui, database_app_get_rowcallback);
 }
 
-void database_app_del(struct context* cntx, const char* eui) {
+void database_app_del(context_readonly* cntx, const char* eui) {
 
 }
 
@@ -205,7 +205,7 @@ static void database_apps_list_rowcallback(sqlite3_stmt* stmt, void* data) {
 			callbackanddata->second);
 }
 
-void database_apps_list(struct context* cntx,
+void database_apps_list(context_readonly* cntx,
 		void (*callback)(const char* eui, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
 	sqlite3_stmt* stmt = cntx->dbcntx.listappsstmt;
@@ -218,20 +218,20 @@ static void data_appflags_list_rowcallback(sqlite3_stmt* stmt, void* data) {
 
 }
 
-void database_appflags_list(struct context* cntx, const char* appeui,
+void database_appflags_list(context_readonly* cntx, const char* appeui,
 		void (*callback)(const char* flag, void* data), void* data) {
 	LOOKUPBYSTRING(cntx->dbcntx.listappflagsstmt, appeui,
 			data_appflags_list_rowcallback);
 }
 
-void database_dev_add(struct context* cntx, const struct dev* dev) {
+void database_dev_add(context_readonly* cntx, const struct dev* dev) {
 	sqlite3_stmt* stmt = cntx->dbcntx.insertdevstmt;
 	__sqlitegen_devs_add(stmt, dev);
 	database_stepuntilcomplete(stmt, NULL, NULL);
 	sqlite3_reset(stmt);
 }
 
-void database_dev_update(struct context* cntx, const struct dev* dev) {
+void database_dev_update(context_readonly* cntx, const struct dev* dev) {
 
 }
 
@@ -251,16 +251,16 @@ static void database_dev_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 			callbackanddata->second);
 }
 
-void database_dev_get(struct context* cntx, const char* eui,
+void database_dev_get(context_readonly* cntx, const char* eui,
 		void (*callback)(const struct dev* app, void* data), void* data) {
 	LOOKUPBYSTRING(cntx->dbcntx.getdevstmt, eui, database_dev_get_rowcallback);
 }
 
-void database_dev_del(struct context* cntx, const char* eui) {
+void database_dev_del(context_readonly* cntx, const char* eui) {
 
 }
 
-void database_devs_list(struct context* cntx,
+void database_devs_list(context_readonly* cntx,
 		void (*callback)(const char* eui, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
 	sqlite3_stmt* stmt = cntx->dbcntx.listdevsstmt;
@@ -269,7 +269,7 @@ void database_devs_list(struct context* cntx,
 	sqlite3_reset(stmt);
 }
 
-gboolean database_session_add(struct context* cntx,
+gboolean database_session_add(context_readonly* cntx,
 		const struct session* session) {
 	sqlite3_stmt* stmt = cntx->dbcntx.insertsessionstmt;
 	__sqlitegen_sessions_add(stmt, session);
@@ -293,7 +293,7 @@ static void database_session_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 			callbackanddata->second);
 }
 
-void database_session_get_deveui(struct context* cntx, const char* deveui,
+void database_session_get_deveui(context_readonly* cntx, const char* deveui,
 		void (*callback)(const struct session* session, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
 	sqlite3_stmt* stmt = cntx->dbcntx.getsessionbydeveuistmt;
@@ -303,7 +303,7 @@ void database_session_get_deveui(struct context* cntx, const char* deveui,
 	sqlite3_reset(stmt);
 }
 
-void database_session_get_devaddr(struct context* cntx, const char* devaddr,
+void database_session_get_devaddr(context_readonly* cntx, const char* devaddr,
 		void (*callback)(const struct session* session, void* data), void* data) {
 	const struct pair callbackanddata = { .first = callback, .second = data };
 	sqlite3_stmt* stmt = cntx->dbcntx.getsessionbydevaddrstmt;
@@ -313,7 +313,7 @@ void database_session_get_devaddr(struct context* cntx, const char* devaddr,
 	sqlite3_reset(stmt);
 }
 
-void database_session_del(struct context* cntx, const char* deveui) {
+void database_session_del(context_readonly* cntx, const char* deveui) {
 	sqlite3_stmt* stmt = cntx->dbcntx.deletesessionstmt;
 	sqlite3_bind_text(stmt, 1, deveui, -1, SQLITE_STATIC);
 	database_stepuntilcomplete(stmt, NULL, NULL);
@@ -336,7 +336,7 @@ static void database_keyparts_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 			callbackanddata->second);
 }
 
-void database_keyparts_get(struct context* cntx, const char* devaddr,
+void database_keyparts_get(context_readonly* cntx, const char* devaddr,
 		void (*callback)(const struct keyparts* keyparts, void* data),
 		void* data) {
 	LOOKUPBYSTRING(cntx->dbcntx.getkeyparts, devaddr,
@@ -349,7 +349,7 @@ static void database_framecounter_get_rowcallback(sqlite3_stmt* stmt,
 	*framecounter = sqlite3_column_int(stmt, 0);
 }
 
-int database_framecounter_down_getandinc(struct context* cntx,
+int database_framecounter_down_getandinc(context_readonly* cntx,
 		const char* devaddr) {
 	int framecounter = -1;
 	sqlite3_bind_text(cntx->dbcntx.getframecounterdown, 1, devaddr, -1,
@@ -365,7 +365,7 @@ int database_framecounter_down_getandinc(struct context* cntx,
 	return framecounter;
 }
 
-void database_framecounter_up_set(struct context* cntx, const char* devaddr,
+void database_framecounter_up_set(context_readonly* cntx, const char* devaddr,
 		int framecounter) {
 	sqlite3_bind_int(cntx->dbcntx.setframecounterup, 1, framecounter);
 	sqlite3_bind_text(cntx->dbcntx.setframecounterup, 2, devaddr, -1,
@@ -375,7 +375,7 @@ void database_framecounter_up_set(struct context* cntx, const char* devaddr,
 	sqlite3_reset(cntx->dbcntx.setframecounterup);
 }
 
-void database_uplink_add(struct context* cntx, struct uplink* uplink) {
+void database_uplink_add(context_readonly* cntx, struct uplink* uplink) {
 	__sqlitegen_uplinks_add(cntx->dbcntx.insertuplink, uplink);
 	database_stepuntilcomplete(cntx->dbcntx.insertuplink,
 	NULL, NULL);
@@ -399,27 +399,27 @@ static void database_uplinks_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 			callbackanddata->second);
 }
 
-void database_uplinks_get(struct context* cntx, const char* deveui,
+void database_uplinks_get(context_readonly* cntx, const char* deveui,
 		void (*callback)(const struct uplink* uplink, void* data), void* data) {
 	LOOKUPBYSTRING(cntx->dbcntx.getuplinks_dev, deveui,
 			database_uplinks_get_rowcallback);
 }
 
-void database_uplinks_clean(struct context* cntx, guint64 timestamp) {
+void database_uplinks_clean(context_readonly* cntx, guint64 timestamp) {
 	sqlite3_bind_int64(cntx->dbcntx.cleanuplinks, 1, timestamp);
 	database_stepuntilcomplete(cntx->dbcntx.cleanuplinks,
 	NULL, NULL);
 	sqlite3_reset(cntx->dbcntx.cleanuplinks);
 }
 
-void database_downlink_add(struct context* cntx, struct downlink* downlink) {
+void database_downlink_add(context_readonly* cntx, struct downlink* downlink) {
 	__sqlitegen_downlinks_add(cntx->dbcntx.insertdownlink, downlink);
 	database_stepuntilcomplete(cntx->dbcntx.insertdownlink,
 	NULL, NULL);
 	sqlite3_reset(cntx->dbcntx.insertdownlink);
 }
 
-void database_downlinks_clean(struct context* cntx, guint64 timestamp) {
+void database_downlinks_clean(context_readonly* cntx, guint64 timestamp) {
 	sqlite3_bind_int64(cntx->dbcntx.cleandownlinks, 1, timestamp);
 	database_stepuntilcomplete(cntx->dbcntx.cleandownlinks,
 	NULL, NULL);
@@ -431,7 +431,7 @@ static void database_downlinks_count_rowcallback(sqlite3_stmt* stmt, void* data)
 	*rows = sqlite3_column_int(stmt, 0);
 }
 
-int database_downlinks_count(struct context* cntx, const char* appeui,
+int database_downlinks_count(context_readonly* cntx, const char* appeui,
 		const char* deveui) {
 	int rows = 0;
 	sqlite3_bind_text(cntx->dbcntx.countdownlinks, 1, appeui, -1,
@@ -457,8 +457,8 @@ static void database_downlinks_sqlitegen_callback(
 	result->token = g_strdup(downlink->token);
 }
 
-gboolean database_downlinks_get_first(struct context* cntx, const char* appeui,
-		const char* deveui, struct downlink* downlink) {
+gboolean database_downlinks_get_first(context_readonly* cntx,
+		const char* appeui, const char* deveui, struct downlink* downlink) {
 	sqlite3_bind_text(cntx->dbcntx.downlinks_get_first, 1, appeui, -1,
 	SQLITE_STATIC);
 	sqlite3_bind_text(cntx->dbcntx.downlinks_get_first, 2, deveui, -1,
@@ -471,7 +471,7 @@ gboolean database_downlinks_get_first(struct context* cntx, const char* appeui,
 	return TRUE;
 }
 
-gboolean database_downlinks_delete_by_token(struct context* cntx,
+gboolean database_downlinks_delete_by_token(context_readonly* cntx,
 		const char* token) {
 	sqlite3_bind_text(cntx->dbcntx.downlinks_delete_by_token, 1, token, -1,
 	SQLITE_STATIC);
