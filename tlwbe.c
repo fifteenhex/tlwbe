@@ -102,6 +102,7 @@ int main(int argc, char** argv) {
 	int ret = 0;
 
 	gchar* databasepath = TLWBE_DATABASE;
+	gchar* regionalparamspath = TLWBE_REGIONALPARAMETERS;
 
 	gchar* mqttid = NULL;
 	gchar* mqtthost = "localhost";
@@ -114,7 +115,11 @@ int main(int argc, char** argv) {
 
 	GOptionEntry entries[] = { //
 			MQTTOPTS, //
-			{ "region", 0, 0, G_OPTION_ARG_STRING, &region, "", "" }, //
+			{ "regionalparameters_path", 0, 0, G_OPTION_ARG_STRING,
+					&regionalparamspath, "", "" }, //
+					{ "database_path", 0, 0, G_OPTION_ARG_STRING, &databasepath,
+							"", "" }, //
+					{ "region", 0, 0, G_OPTION_ARG_STRING, &region, "", "" }, //
 					{ NULL } };
 
 	GOptionContext* context = g_option_context_new("");
@@ -126,16 +131,20 @@ int main(int argc, char** argv) {
 	}
 
 	downlink_init(&cntx);
-	regional_init(&cntx.regional, region);
+
 	stats_init(&cntx.stats);
 
-	cntx.mosqclient = mosquitto_client_new_plaintext(mqttid, mqtthost,
-			mqttport);
+	if (!regional_init(&cntx.regional, regionalparamspath, region))
+		goto out;
+
 	if (!database_init(&cntx, databasepath)) {
 		g_message("failed to init database");
 		ret = 1;
 		goto out;
 	}
+
+	cntx.mosqclient = mosquitto_client_new_plaintext(mqttid, mqtthost,
+			mqttport);
 
 	g_signal_connect(cntx.mosqclient, MOSQUITTO_CLIENT_SIGNAL_CONNECTED,
 			(GCallback )connectedcallback, &cntx);

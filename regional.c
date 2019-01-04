@@ -5,20 +5,28 @@
 #include "regional.h"
 #include "config.h"
 
-gboolean regional_init(struct regional* regional, const gchar* region) {
+gboolean regional_init(struct regional* regional, const gchar* path,
+		const gchar* region) {
+
+	gboolean ret = FALSE;
+
 	if (region == NULL) {
 		g_message("region unspecified, defaulting to \"default\"");
 		region = "default";
 	}
 
 	JsonParser* parser = json_parser_new_immutable();
-	if (json_parser_load_from_file(parser,TLWBE_REGIONALPARAMETERS,NULL)) {
+	if (json_parser_load_from_file(parser, path, NULL)) {
 		JsonNode* root = json_parser_get_root(parser);
 		JsonObject* rootobject = JSON_NODE_GET_OBJECT(root);
 		if (rootobject != NULL) {
 			JsonObject* parameters = JSON_OBJECT_GET_MEMBER_OBJECT(rootobject,
 					region);
 			if (parameters != NULL) {
+
+				//fixme
+				ret = TRUE;
+
 				JsonArray* datarates = JSON_OBJECT_GET_MEMBER_ARRAY(parameters,
 						"datarates");
 				if (datarates != NULL) {
@@ -81,8 +89,9 @@ gboolean regional_init(struct regional* regional, const gchar* region) {
 
 	} else
 		g_message("failed to parse regional parameters json");
-	g_object_unref(parser);
-	return TRUE;
+
+	out: g_object_unref(parser);
+	return ret;
 }
 
 /* in the future these might need to come from

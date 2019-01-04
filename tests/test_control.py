@@ -22,10 +22,12 @@ async def tlwbe_client():
 
 
 @pytest.mark.asyncio
-async def test_addapp(mosquitto_process, tlwbe_process, tlwbe_client):
+async def test_addapp(mosquitto_process, tlwbe_process, tlwbe_client : Tlwbe):
     time.sleep(10)
 
     assert mosquitto_process.poll() is None
     assert tlwbe_process.poll() is None
+
+
 
     assert False
