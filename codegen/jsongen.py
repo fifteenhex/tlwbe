@@ -125,24 +125,24 @@ class JsonParser(JsonCodeBlock):
         super().__init__(struct_name, fields_and_annotations)
 
     def __get_int(self, member: str, field: codegen.Field, path, outputfile):
-        self.add_statement('%s->%s = json_object_get_int_member(root, "%s")' % (
+        self.add_statement('%s->%s = json_object_get_int_member((JsonObject*) root, "%s")' % (
             self.struct_name, flatten_path(path, field.field_name), member), outputfile)
 
     def __get_boolean(self, member: str, field: codegen.Field, path, outputfile):
-        self.add_statement('%s->%s = json_object_get_boolean_member(root, "%s")' % (
+        self.add_statement('%s->%s = json_object_get_boolean_member((JsonObject*) root, "%s")' % (
             self.struct_name, flatten_path(path, field.field_name), member), outputfile)
 
     def __get_double(self, member: str, field: codegen.Field, path, outputfile):
-        self.add_statement('%s->%s = json_object_get_double_member(root, "%s")' % (
+        self.add_statement('%s->%s = json_object_get_double_member((JsonObject*) root, "%s")' % (
             self.struct_name, flatten_path(path, field.field_name), member), outputfile)
 
     def __get_string(self, member: str, field: codegen.Field, path, outputfile):
-        self.add_statement('%s->%s = json_object_get_string_member(root, "%s")' % (
+        self.add_statement('%s->%s = json_object_get_string_member((JsonObject*) root, "%s")' % (
             self.struct_name, flatten_path(path, field.field_name), member), outputfile)
 
     def __get_base64blob(self, member: str, field: codegen.Field, path, outputfile):
         self.start_scope(outputfile)
-        self.add_statement('const gchar* payloadb64 = json_object_get_string_member(root, "%s")' % member,
+        self.add_statement('const gchar* payloadb64 = json_object_get_string_member((JsonObject*) root, "%s")' % member,
                            outputfile)
         self.add_statement('%s->%s = g_base64_decode(payloadb64, &%s->%slen)' % (
             self.struct_name, flatten_path(path, field.field_name), self.struct_name,
@@ -168,7 +168,7 @@ class JsonParser(JsonCodeBlock):
         self.add_items(mappings, outputfile)
         self.end_scope(outputfile, terminate=True)
 
-        self.add_statement('const gchar* enumtmp = json_object_get_string_member(root, "%s")' % (member),
+        self.add_statement('const gchar* enumtmp = json_object_get_string_member((JsonObject*)root, "%s")' % (member),
                            outputfile)
         self.start_scope(outputfile, prefix='for(int i = 0; i < G_N_ELEMENTS(map); i++)')
         self.start_condition('strcmp(enumtmp, map[i].str) == 0', outputfile)
@@ -183,7 +183,7 @@ class JsonParser(JsonCodeBlock):
         member = field.type is not JsonFieldType.INLINE and field is not self.root
 
         if member:
-            self.start_condition('json_object_has_member(root, "%s")' % field.name, outputfile)
+            self.start_condition('json_object_has_member((JsonObject*) root, "%s")' % field.name, outputfile)
 
         if field.type == JsonFieldType.OBJECT or field.type == JsonFieldType.INLINE:
             if field.c_field is not None:
