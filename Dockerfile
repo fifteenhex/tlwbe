@@ -5,10 +5,12 @@ RUN apt-get -qq install -y build-essential \
                            libjson-glib-dev \
                            libsqlite3-dev \
                            libssl-dev \
+                           mosquitto \
                            libmosquitto-dev \
                            meson \
-                           python3-pycparser \
                            git-buildpackage \
-                           python3-pip
+                           python3-pip \
+                           python3-pytest \
+                           python3-pycparser
 RUN pip3 install git+https://github.com/fifteenhex/tlwpy.git@master
 ADD . /root
