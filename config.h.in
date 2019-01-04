@@ -1,5 +1,7 @@
 #pragma once
 
+#define TWLBE_DEBUG					@debug@
+
 #ifndef TLWBE_DEBUG_MOSQUITTO
 #define TLWBE_DEBUG_MOSQUITTO		 @debug@
 #endif
@@ -13,4 +15,5 @@
 #endif
 
 #define TLWBE_REGIONALPARAMETERS	"@rp_path@"
+#define TLWBE_STATEDIR				"@state_dir@"
 #define TLWBE_DATABASE				"@db_path@"

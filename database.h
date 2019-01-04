@@ -16,7 +16,7 @@ struct keyparts {
 	const gchar* deveui;
 };
 
-void database_init(struct context* cntx, const gchar* databasepath);
+gboolean database_init(struct context* cntx, const gchar* databasepath);
 
 // app
 void database_app_add(context_readonly* cntx, const struct app* app);

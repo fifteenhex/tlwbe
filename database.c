@@ -8,6 +8,8 @@
 #include "uplink.sqlite.h"
 #include "downlink.sqlite.h"
 
+#include "config.h"
+
 //sql for apps
 #define LIST_APPFLAGS	"SELECT flag FROM appflags WHERE eui = ?;"
 
@@ -31,22 +33,23 @@
 #define COUNT_DOWNLINKS	"SELECT count(*) FROM downlinks WHERE appeui = ? AND deveui = ?"
 #define DOWNLINKS_GET_FIRST "SELECT timestamp,deadline,appeui,deveui,port,payload,confirm,token FROM `downlinks` ORDER BY `timestamp` DESC LIMIT 1"
 
-static int database_stepuntilcomplete(sqlite3_stmt* stmt,
+#define ISSQLITEERROR(v) ((v & SQLITE_ERROR) == SQLITE_ERROR)
+
+static gboolean database_stepuntilcomplete(sqlite3_stmt* stmt,
 		void (*rowcallback)(sqlite3_stmt* stmt, void* data), void* data) {
 	int ret;
 	while (1) {
 		ret = sqlite3_step(stmt);
 		if (ret == SQLITE_DONE)
-			break;
+			return TRUE;
 		else if (ret == SQLITE_ROW) {
 			if (rowcallback != NULL)
 				rowcallback(stmt, data);
-		} else if ((ret & SQLITE_ERROR) == SQLITE_ERROR) {
+		} else if (ISSQLITEERROR(ret)) {
 			g_message("sqlite error; %s", sqlite3_errstr(ret));
-			break;
+			return false;
 		}
 	}
-	return ret;
 }
 
 #define INITSTMT(SQL, STMT) if (sqlite3_prepare_v2(cntx->dbcntx.db, SQL,\
@@ -85,7 +88,10 @@ static gboolean database_init_createtables(struct context* cntx) {
 			createuplinksstmt, createdownlinksstmt };
 
 	for (int i = 0; i < G_N_ELEMENTS(createstmts); i++) {
-		database_stepuntilcomplete(createstmts[i], NULL, NULL);
+		if (!database_stepuntilcomplete(createstmts[i], NULL, NULL)) {
+			g_message("error running table create statement %d", i);
+			goto out;
+		}
 		sqlite3_finalize(createstmts[i]);
 	}
 
@@ -94,12 +100,39 @@ static gboolean database_init_createtables(struct context* cntx) {
 	out: return FALSE;
 }
 
-void database_init(struct context* cntx, const gchar* databasepath) {
-	int ret = sqlite3_open(databasepath, &cntx->dbcntx.db);
-	if (ret)
-		sqlite3_close(cntx->dbcntx.db);
+gboolean database_init(struct context* cntx, const gchar* databasepath) {
+#if TWLBE_DEBUG
+	g_message("database is in %s", databasepath);
+#endif
 
-	g_assert(database_init_createtables(cntx));
+	sqlite3_stmt* stmts[] = { cntx->dbcntx.insertappstmt,
+			cntx->dbcntx.getappsstmt, cntx->dbcntx.listappsstmt,
+			cntx->dbcntx.listappflagsstmt, cntx->dbcntx.insertdevstmt,
+			cntx->dbcntx.getdevstmt, cntx->dbcntx.listdevsstmt,
+			cntx->dbcntx.insertsessionstmt, cntx->dbcntx.getsessionbydeveuistmt,
+			cntx->dbcntx.getsessionbydevaddrstmt,
+			cntx->dbcntx.deletesessionstmt, cntx->dbcntx.getkeyparts,
+			cntx->dbcntx.getframecounterup, cntx->dbcntx.getframecounterdown,
+			cntx->dbcntx.setframecounterup, cntx->dbcntx.incframecounterdown,
+			cntx->dbcntx.insertuplink, cntx->dbcntx.getuplinks_dev,
+			cntx->dbcntx.cleanuplinks, cntx->dbcntx.insertdownlink,
+			cntx->dbcntx.cleandownlinks, cntx->dbcntx.countdownlinks,
+			cntx->dbcntx.downlinks_get_first };
+
+	if (g_mkdir_with_parents(TLWBE_STATEDIR, 0660) != 0) {
+		g_message("failed to create state directory");
+		goto out;
+	}
+
+	int ret = sqlite3_open(databasepath, &cntx->dbcntx.db);
+	if (ret) {
+		g_message("failed to open database %s", databasepath);
+		sqlite3_close(cntx->dbcntx.db);
+		goto out;
+	}
+
+	if (!database_init_createtables(cntx))
+		goto out;
 
 	INITSTMT(__SQLITEGEN_APPS_INSERT, cntx->dbcntx.insertappstmt);
 	INITSTMT(__SQLITEGEN_APPS_GETBY_EUI, cntx->dbcntx.getappsstmt);
@@ -135,35 +168,15 @@ void database_init(struct context* cntx, const gchar* databasepath) {
 	INITSTMT(__SQLITEGEN_DOWNLINKS_DELETEBY_TOKEN,
 			cntx->dbcntx.downlinks_delete_by_token);
 
-	goto noerr;
+	return TRUE;
 
-	out: {
-		sqlite3_stmt* stmts[] = { cntx->dbcntx.insertappstmt,
-				cntx->dbcntx.getappsstmt, cntx->dbcntx.listappsstmt,
-				cntx->dbcntx.listappflagsstmt, cntx->dbcntx.insertdevstmt,
-				cntx->dbcntx.getdevstmt, cntx->dbcntx.listdevsstmt,
-				cntx->dbcntx.insertsessionstmt,
-				cntx->dbcntx.getsessionbydeveuistmt,
-				cntx->dbcntx.getsessionbydevaddrstmt,
-				cntx->dbcntx.deletesessionstmt, cntx->dbcntx.getkeyparts,
-				cntx->dbcntx.getframecounterup,
-				cntx->dbcntx.getframecounterdown,
-				cntx->dbcntx.setframecounterup,
-				cntx->dbcntx.incframecounterdown, cntx->dbcntx.insertuplink,
-				cntx->dbcntx.getuplinks_dev, cntx->dbcntx.cleanuplinks,
-				cntx->dbcntx.insertdownlink, cntx->dbcntx.cleandownlinks,
-				cntx->dbcntx.countdownlinks, cntx->dbcntx.downlinks_get_first };
+	out:
 
-		for (int i = 0; i < G_N_ELEMENTS(stmts); i++) {
-			sqlite3_finalize(stmts[i]);
-		}
+	for (int i = 0; i < G_N_ELEMENTS(stmts); i++) {
+		sqlite3_finalize(stmts[i]);
 	}
 
-	noerr: {
-
-	}
-
-	return;
+	return FALSE;
 }
 
 void database_app_add(context_readonly* cntx, const struct app* app) {

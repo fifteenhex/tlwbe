@@ -10,7 +10,7 @@
 #include "control.h"
 #include "uplink.h"
 #include "downlink.h"
-#include "config.h.in"
+#include "config.h"
 
 typedef void (*interface_onconnected)(const struct context* cntx);
 typedef void (*interface_onmsg)(struct context* cntx, char** splittopic,
@@ -99,8 +99,9 @@ static void connectedcallback(MosquittoClient* client, void* something,
 int main(int argc, char** argv) {
 
 	struct context cntx = { 0 };
+	int ret = 0;
 
-	gchar* databasepath = "./tlwbe.sqlite";
+	gchar* databasepath = TLWBE_DATABASE;
 
 	gchar* mqttid = NULL;
 	gchar* mqtthost = "localhost";
@@ -113,7 +114,7 @@ int main(int argc, char** argv) {
 
 	GOptionEntry entries[] = { //
 			MQTTOPTS, //
-					{ "region", 0, 0, G_OPTION_ARG_STRING, &region, "", "" }, //
+			{ "region", 0, 0, G_OPTION_ARG_STRING, &region, "", "" }, //
 					{ NULL } };
 
 	GOptionContext* context = g_option_context_new("");
@@ -130,7 +131,11 @@ int main(int argc, char** argv) {
 
 	cntx.mosqclient = mosquitto_client_new_plaintext(mqttid, mqtthost,
 			mqttport);
-	database_init(&cntx, databasepath);
+	if (!database_init(&cntx, databasepath)) {
+		g_message("failed to init database");
+		ret = 1;
+		goto out;
+	}
 
 	g_signal_connect(cntx.mosqclient, MOSQUITTO_CLIENT_SIGNAL_CONNECTED,
 			(GCallback )connectedcallback, &cntx);
