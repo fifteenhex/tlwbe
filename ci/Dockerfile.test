@@ -4,6 +4,7 @@ RUN apt-get -qq dist-upgrade
 RUN apt-get -qq install -y mosquitto \
                            python3-pip \
                            python3-pytest \
+                           python3-pytest-asyncio \
+                           python3-paho-mqtt \
                            git
-RUN pip3 install git+https://github.com/fifteenhex/tlwpy.git@master
 ADD . /root/tlwbe
