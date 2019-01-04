@@ -2,7 +2,7 @@ Source: tlwbe
 Section: unknown
 Priority: optional
 Maintainer: Daniel Palmer <daniel@0x0f.com>
-Build-Depends: debhelper (>=10), libjson-glib-dev, libsqlite3-dev, libssl-dev, libmosquitto-dev, python3-pycparser
+Build-Depends: debhelper (>=10), libjson-glib-dev, libsqlite3-dev, libssl-dev, libmosquitto-dev, python3-pycparser, meson
 Standards-Version: 4.0.0
 Homepage: https://github.com/fifteenhex/tlwbe
 
