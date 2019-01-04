@@ -13,3 +13,4 @@
 #endif
 
 #define TLWBE_REGIONALPARAMETERS	"@rp_path@"
+#define TLWBE_DATABASE				"@db_path@"
