@@ -88,7 +88,7 @@ gboolean regional_init(struct regional* regional, const gchar* path,
 			g_message("regional parameters root should have been an object");
 
 	} else
-		g_message("failed to parse regional parameters json");
+		g_message("failed to parse regional parameters from %s", path);
 
 	out: g_object_unref(parser);
 	return ret;
