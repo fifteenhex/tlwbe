@@ -60,3 +60,14 @@ executable('tlwbe', src,
            install_dir : 'bin')
 
 install_data('regionalparameters.json')
+
+pytest = find_program('pytest-3', required : false)
+mosquitto = find_program('mosquitto', '/usr/sbin/mosquitto', required : false)
+if pytest.found() and mosquitto.found()
+run_target('e2etests',
+           command : [pytest,
+           meson.source_root() + '/tests/test_control.py',
+           '--mosquitto_path=' + mosquitto.path(),
+           '--tlwbe_path=' + meson.build_root() + '/tlwbe',
+           '--tlwbe_regionalparameters_path=' +  meson.source_root() + '/regionalparameters.json'])
+endif

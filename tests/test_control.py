@@ -36,5 +36,3 @@ async def test_addapp(mosquitto_process, tlwbe_process, tlwbe_client: Tlwbe):
 
     assert mosquitto_process.poll() is None
     assert tlwbe_process.poll() is None
-
-    assert False
