@@ -15,7 +15,7 @@ def mosquitto_process(mosquitto_path):
 
 @pytest.fixture
 def tlwbe_process(tlwbe_path, tlwbe_database_path, tlwbe_regionalparameters_path):
-    args = [tlwbe_path, '-h', 'localhost', '-p', '6666', '--region=as920_923']
+    args = [tlwbe_path, '-h', 'localhost', '-p', str(MQTT_PORT), '--region=as920_923']
     if tlwbe_database_path is not None:
         args.append('--database_path=%s' % tlwbe_database_path)
     if tlwbe_regionalparameters_path is not None:
@@ -31,8 +31,25 @@ async def tlwbe_client():
 
 
 @pytest.mark.asyncio
-async def test_addapp(mosquitto_process, tlwbe_process, tlwbe_client: Tlwbe):
-    time.sleep(10)
+async def test_app_add(mosquitto_process, tlwbe_process, tlwbe_client: Tlwbe):
+    time.sleep(4)
 
     assert mosquitto_process.poll() is None
     assert tlwbe_process.poll() is None
+
+    result = await tlwbe_client.add_app('myapp')
+    print(result.payload)
+
+    assert False
+
+
+@pytest.mark.asyncio
+async def test_app_list(mosquitto_process, tlwbe_process, tlwbe_client: Tlwbe):
+    time.sleep(4)
+
+    assert mosquitto_process.poll() is None
+    assert tlwbe_process.poll() is None
+
+    result = await tlwbe_client.list_apps()
+
+    assert False

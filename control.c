@@ -47,17 +47,24 @@ static char* control_generatekey() {
 
 static int control_app_add(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
-	if (!json_object_has_member(rootobj, CONTROL_JSON_NAME)
-			|| !json_object_has_member(rootobj, CONTROL_JSON_EUI))
+
+	struct control_app_add appadd = { 0 };
+	if (!__jsongen_control_app_add_from_json(&appadd, rootobj)) {
 		return -1;
+	}
 
-	const gchar* name = json_object_get_string_member(rootobj,
-	CONTROL_JSON_NAME);
-	const gchar* eui = json_object_get_string_member(rootobj, CONTROL_JSON_EUI);
+	gchar euibuff[EUIASCIILEN];
+	if (appadd.eui == NULL) {
+		g_message("no eui provided for app, generating one");
+		appadd.eui = control_generateeui64(euibuff);
+	}
 
-	struct app a = { .name = name, .eui = eui };
+	struct app a = { .name = appadd.name, .eui = appadd.eui };
 
 	database_app_add(cntx, &a);
+
+	json_builder_set_member_name(jsonbuilder, "app");
+	__jsongen_app_to_json(&a, jsonbuilder);
 
 	return 0;
 }

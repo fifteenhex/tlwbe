@@ -12,7 +12,11 @@ etc.
 
 ### publish payload
 
-```{}```
+```{ "name": <app name>, "eui": <optional eui>}```
+
+### result payload
+
+```{ }```
 
 
 ## update app

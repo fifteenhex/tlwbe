@@ -7,6 +7,18 @@
 #include "tlwbe.h"
 #endif
 
+
+struct control_app_add {
+	const gchar* eui;
+	const gchar* name;
+#ifdef __JSONGEN
+	void __jsongen_flags_eui_optional;
+#endif
+};
+#ifdef __JSONGEN
+typedef struct control_app_add __jsongen_parser;
+#endif
+
 struct flag {
 #ifdef __SQLITEGEN
 	guint64 id;
