@@ -7,13 +7,17 @@ come in from devs and also query uplinks tlwbe has stored.
 
 ### publish topic
 
-```tlwbe/uplink/<appeui>/<deveui>```
+```
+tlwbe/uplink/<appeui>/<deveui>
+```
 
 ## Querying stored uplinks
 
 ### publish topic
 
-```tlwbe/uplinks/query/<token; uuid or other unique string>```
+```
+tlwbe/uplinks/query/<token; uuid or other unique string>
+```
 
 ### publish payload
 
@@ -25,7 +29,9 @@ come in from devs and also query uplinks tlwbe has stored.
 
 ### result topic
 
-```tlwbe/uplinks/result/<token from query>```
+```
+tlwbe/uplinks/result/<token from query>
+```
 
 ### result payload
 

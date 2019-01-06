@@ -19,13 +19,26 @@ struct control_app_add {
 typedef struct control_app_add __jsongen_parser;
 #endif
 
-struct control_app_del {
+struct control_app_dev_del {
 	const gchar* eui;
 };
 #ifdef __JSONGEN
-typedef struct control_app_del __jsongen_parser;
+typedef struct control_app_dev_del __jsongen_parser;
 #endif
 
+struct control_dev_add {
+	const gchar* eui;
+	const gchar* name;
+	const gchar* key;
+	const gchar* appeui;
+#ifdef __JSONGEN
+	void __jsongen_flags_eui_optional;
+	void __jsongen_flags_key_optional;
+#endif
+};
+#ifdef __JSONGEN
+typedef struct control_dev_add __jsongen_parser;
+#endif
 
 struct flag {
 #ifdef __SQLITEGEN

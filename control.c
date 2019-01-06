@@ -94,8 +94,8 @@ static int control_app_update(struct context* cntx, const JsonObject* rootobj,
 static int control_app_del(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
 	int ret = -1;
-	struct control_app_del request = { 0 };
-	if (__jsongen_control_app_del_from_json(&request, rootobj)) {
+	struct control_app_dev_del request = { 0 };
+	if (__jsongen_control_app_dev_del_from_json(&request, rootobj)) {
 		database_app_del(cntx, request.eui);
 		ret = 0;
 	}
@@ -118,41 +118,37 @@ static int control_apps_list(struct context* cntx, const JsonObject* rootobj,
 
 static int control_dev_add(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
-	if (!json_object_has_member(rootobj, CONTROL_JSON_NAME)
-			|| !json_object_has_member(rootobj, CONTROL_JSON_APPEUI))
-		return -1;
-
+	int ret = -1;
+	struct control_dev_add devadd = { 0 };
 	gchar euibuff[EUIASCIILEN];
 	gchar keybuff[KEYASCIILEN];
-
-	const gchar* eui =
-			json_object_has_member(rootobj, CONTROL_JSON_EUI) ?
-					json_object_get_string_member(rootobj, CONTROL_JSON_EUI) :
-					control_generateeui64(euibuff);
-	const gchar* appeui = json_object_get_string_member(rootobj,
-	CONTROL_JSON_APPEUI);
-
-// look for a key in the json, if there isn't one generate one
-	const gchar* key = NULL;
 	gboolean freekey = FALSE;
-	if (json_object_has_member(rootobj, CONTROL_JSON_KEY))
-		key = json_object_get_string_member(rootobj, CONTROL_JSON_KEY);
-	else {
-		key = control_generatekey();
-		freekey = TRUE;
+	if (__jsongen_control_dev_add_from_json(&devadd, rootobj)) {
+		if (devadd.eui == NULL) {
+			g_message("no eui provided for dev, generating one");
+			devadd.eui = control_generateeui64(euibuff);
+		}
+
+		if (devadd.key == NULL) {
+			g_message("no key provided for dev, generating one");
+			devadd.key = control_generatekey();
+			freekey = TRUE;
+		}
+
+		struct dev d = { .eui = devadd.eui, .appeui = devadd.appeui, .key =
+				devadd.key, .name = devadd.name };
+		database_dev_add(cntx, &d);
+
+		json_builder_set_member_name(jsonbuilder, "dev");
+		__jsongen_dev_to_json(&d, jsonbuilder);
+
+		if (freekey)
+			g_free((void*) devadd.key);
+
+		ret = 0;
 	}
 
-	const gchar* name = json_object_get_string_member(rootobj,
-	CONTROL_JSON_NAME);
-
-	struct dev d = { .eui = eui, .appeui = appeui, .key = key, .name = name };
-
-	database_dev_add(cntx, &d);
-
-	if (freekey)
-		g_free((void*) key);
-
-	return 0;
+	return ret;
 }
 
 static int control_dev_update(struct context* cntx, const JsonObject* rootobj,
@@ -178,8 +174,13 @@ static int control_dev_get(struct context* cntx, const JsonObject* rootobj,
 
 static int control_dev_del(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
-	database_dev_del(cntx, NULL);
-	return 0;
+	int ret = -1;
+	struct control_app_dev_del request = { 0 };
+	if (__jsongen_control_app_dev_del_from_json(&request, rootobj)) {
+		database_dev_del(cntx, request.eui);
+		ret = 0;
+	}
+	return ret;
 }
 
 static int control_devs_list(struct context* cntx, const JsonObject* rootobj,

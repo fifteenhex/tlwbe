@@ -1,69 +1,132 @@
 # control interface
 
-This interface is used it do CRUD operations on apps and devs
+This interface is used to do CRUD operations on apps and devs
 so you can add apps, and then devs to apps, set/update keys
 etc.
 
-## add app
+## Basics
 
-### publish topic
+Requests are made by sending a publish to one of the topics
+detailed below. The last element in the topic should be a
+token like a uuid that your client can use to extract the
+result from the flow of results tlwbe publishes to the [results](#Results)
+topic.
 
-```tlwbe/control/app/add/<token; uuid or other unique string>```
+## Managing Applications
 
-### publish payload
+### Adding an app
 
-```{ "name": <app name>, "eui": <optional eui>}```
+To add an app you only need to provide a unique app name to the
+`app/add` endpoint. If an existing app is being re-added
+so some reason you can provide the existing EUI for it.
 
-### result payload
+#### publish topic
 
-```{ }```
+```
+tlwbe/control/app/add/<token; uuid or other unique string>
+```
 
+#### publish payload
 
-## update app
+```
+{ "name": <app name>, "eui": <optional eui>}
+```
 
-```tlwbe/control/app/update/<token; uuid or other unique string>```
+#### result payload
 
-## delete app
+See *get app* for the contents of "app".
 
-```tlwbe/control/app/del/<token; uuid or other unique string>```
+```
+{ "code": 0, "app": { .. } }
+```
 
-## list apps
+### Updating an app
 
-```tlwbe/control/app/list/<token; uuid or other unique string>```
+#### publish topic
 
-## get app
+```
+tlwbe/control/app/update/<token; uuid or other unique string>
+```
 
-```tlwbe/control/app/get/<token; uuid or other unique string>```
+### Deleting an app
 
-```{ "eui": "<app eui>" }```
+#### publish topic
 
+```
+tlwbe/control/app/del/<token; uuid or other unique string>
+```
 
-## add dev
+### Listing apps
 
-```tlwbe/control/dev/add```
+```
+tlwbe/control/app/list/<token; uuid or other unique string>
+```
 
-## update dev
+### Get a specific app
 
-```tlwbe/control/dev/update```
+```
+tlwbe/control/app/get/<token; uuid or other unique string>
+```
 
-## delete dev
+```
+{ "eui": "<app eui>" }
+```
+## Managing Devices
 
-```tlwbe/control/dev/del```
+### Adding a device
 
-## list devs
+#### publish topic
 
-```tlwbe/control/dev/list/<token; uuid or other unique string>```
+```
+tlwbe/control/dev/add
+```
 
-```{ }```
+### updating a device
 
-```{"result":...,"code":0}```
+#### publish topic
 
-## get dev
+```
+tlwbe/control/dev/update
+```
 
-```tlwbe/control/dev/get/<token; uuid or other unique string>```
+### Deleting a device
 
-```{"eui": "<device eui>" }```
+#### publish topic
 
-## result topic
+```
+tlwbe/control/dev/del
+```
 
-```tlwbe/control/result/<token; uuid or other unique string>```
+### Listing devices
+
+#### publish topic
+
+```
+tlwbe/control/dev/list/<token; uuid or other unique string>
+```
+
+```
+{ }
+```
+
+```
+{"eui_list": [ ... ] ,"code":0}
+```
+
+### Getting a specific device
+
+#### publish topic
+
+```
+tlwbe/control/dev/get/<token; uuid or other unique string>
+```
+
+```
+{"eui": "<device eui>" }
+```
+
+## Request results
+
+```
+tlwbe/control/result/<token; uuid or other unique string>
+```
