@@ -7,10 +7,10 @@ etc.
 ## Basics
 
 Requests are made by sending a publish to one of the topics
-detailed below. The last element in the topic should be a
-token like a uuid that your client can use to extract the
-result from the flow of results tlwbe publishes to the [results](#Results)
-topic.
+detailed below. All requests and results are serialised into JSON.
+The last element in the topic should be a token like a uuid that your
+client can use to extract the result from the flow of results tlwbe
+publishes to the [results](#Results) topic.
 
 ## Managing Applications
 
@@ -18,7 +18,7 @@ topic.
 
 To add an app you only need to provide a unique app name to the
 `app/add` endpoint. If an existing app is being re-added
-so some reason you can provide the existing EUI for it.
+for some reason you can provide the existing EUI for it.
 
 #### publish topic
 
@@ -75,11 +75,27 @@ tlwbe/control/app/get/<token; uuid or other unique string>
 
 ### Adding a device
 
+To add an device you need to provide a unique device name and
+the eui of the application is belongs to to the `dev/add` endpoint.
+If an existing dev is being re-added for some reason you can provide
+the existing EUI and key for it.
+
 #### publish topic
 
 ```
 tlwbe/control/dev/add
 ```
+
+#### publish payload
+
+```
+{
+	"name": <device name>
+	"appeui": <eui of the app the device belongs to>
+	"eui": <optional eui for the device>
+	"key": <optional key for the device>
+}
+````
 
 ### updating a device
 
