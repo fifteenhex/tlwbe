@@ -3,24 +3,12 @@
 
 import cmd2
 import argparse
-from uuid import uuid4
-from rxmqtt import RxMqttClient
-import json
 from rx import Observable
 import datetime
 import base64
 import binascii
-
-rxmqttclient = RxMqttClient("espressobin1")
-
-
-def publishandwaitforresult_newstyle(topic, payload={}):
-    # this seems to be asking for a race condition
-    token = str(uuid4())
-    rxmqttclient.mqttclient.publish("%s/%s" % (topic, token), json.dumps(payload))
-    return rxmqttclient.publishsubject \
-        .filter(lambda msg: msg['topic'].split('/')[-1] == token) \
-        .first()
+from tlwpy.tlwbe import Tlwbe
+import asyncio
 
 
 class Interpreter(cmd2.Cmd):
@@ -198,11 +186,17 @@ class Interpreter(cmd2.Cmd):
                 print("%s - %s@%s:%d -> %s" % (str(ts), deveui, appeui, payload['port'], hexeddata))
 
 
-if __name__ == '__main__':
-    rxmqttclient.mqttclient.subscribe("tlwbe/control/result/#")
-    rxmqttclient.mqttclient.subscribe("tlwbe/uplink/#")
-    rxmqttclient.mqttclient.subscribe("tlwbe/uplinks/result/#")
-    rxmqttclient.mqttclient.subscribe("tlwbe/join/+/+")
+async def main():
+    tlwbe = Tlwbe('espressobin1')
+    print("here")
+    # interpreter = Interpreter()
+    # asyncio.get_event_loop().run_in_executor(None, interpreter.cmdloop)
+    devs = await tlwbe.list_devs()
+    print(devs.payload)
 
-    interpreter = Interpreter()
-    interpreter.cmdloop()
+    apps = await tlwbe.list_apps()
+    print(apps.payload)
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
