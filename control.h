@@ -19,6 +19,18 @@ struct control_app_add {
 typedef struct control_app_add __jsongen_parser;
 #endif
 
+struct control_app_dev_get {
+	const gchar* eui;
+	const gchar* name;
+#ifdef __JSONGEN
+	void __jsongen_flags_eui_optional;
+	void __jsongen_flags_name_optional;
+#endif
+};
+#ifdef __JSONGEN
+typedef struct control_app_dev_get __jsongen_parser;
+#endif
+
 struct control_app_dev_del {
 	const gchar* eui;
 };
@@ -59,8 +71,10 @@ struct app {
 	const gchar* name;
 	guint32 serial;
 #ifdef __SQLITEGEN
-	void __sqlitegen_flags_eui_searchable;
 	void __sqlitegen_constraints_eui_notnull_primarykey_unique;
+	void __sqlitegen_constraints_name_notnull_unique;
+	void __sqlitegen_flags_eui_searchable;
+	void __sqlitegen_flags_name_searchable;
 #endif
 };
 #ifdef __SQLITEGEN
@@ -78,8 +92,10 @@ struct dev {
 	const gchar* name;
 	guint32 serial;
 #ifdef __SQLITEGEN
-	void __sqlitegen_flags_eui_searchable;
 	void __sqlitegen_constraints_eui_notnull_primarykey_unique;
+	void __sqlitegen_constraints_name_notnull_unique;
+	void __sqlitegen_flags_eui_searchable;
+	void __sqlitegen_flags_name_searchable;
 #endif
 };
 #ifdef __SQLITEGEN

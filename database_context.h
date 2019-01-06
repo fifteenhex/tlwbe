@@ -6,13 +6,15 @@ struct database_context {
 	sqlite3* db;
 	// statements for apps
 	sqlite3_stmt* insertappstmt;
-	sqlite3_stmt* getappsstmt;
+	sqlite3_stmt* app_get_by_eui;
+	sqlite3_stmt* app_get_by_name;
 	sqlite3_stmt* listappsstmt;
 	sqlite3_stmt* listappflagsstmt;
 	sqlite3_stmt* app_delete_by_eui;
 	// statements for devs
 	sqlite3_stmt* insertdevstmt;
-	sqlite3_stmt* getdevstmt;
+	sqlite3_stmt* dev_get_by_eui;
+	sqlite3_stmt* dev_get_by_name;
 	sqlite3_stmt* listdevsstmt;
 	sqlite3_stmt* dev_delete_by_eui;
 	// statements for sessions

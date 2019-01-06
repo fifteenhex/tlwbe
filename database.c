@@ -106,9 +106,10 @@ gboolean database_init(struct context* cntx, const gchar* databasepath) {
 #endif
 
 	sqlite3_stmt* stmts[] = { cntx->dbcntx.insertappstmt,
-			cntx->dbcntx.getappsstmt, cntx->dbcntx.listappsstmt,
-			cntx->dbcntx.app_delete_by_eui, cntx->dbcntx.listappflagsstmt,
-			cntx->dbcntx.insertdevstmt, cntx->dbcntx.getdevstmt,
+			cntx->dbcntx.app_get_by_eui, cntx->dbcntx.app_get_by_name,
+			cntx->dbcntx.listappsstmt, cntx->dbcntx.app_delete_by_eui,
+			cntx->dbcntx.listappflagsstmt, cntx->dbcntx.insertdevstmt,
+			cntx->dbcntx.dev_get_by_eui, cntx->dbcntx.dev_get_by_name,
 			cntx->dbcntx.dev_delete_by_eui, cntx->dbcntx.listdevsstmt,
 			cntx->dbcntx.insertsessionstmt, cntx->dbcntx.getsessionbydeveuistmt,
 			cntx->dbcntx.getsessionbydevaddrstmt,
@@ -136,13 +137,15 @@ gboolean database_init(struct context* cntx, const gchar* databasepath) {
 		goto out;
 
 	INITSTMT(__SQLITEGEN_APPS_INSERT, cntx->dbcntx.insertappstmt);
-	INITSTMT(__SQLITEGEN_APPS_GETBY_EUI, cntx->dbcntx.getappsstmt);
+	INITSTMT(__SQLITEGEN_APPS_GETBY_EUI, cntx->dbcntx.app_get_by_eui);
+	INITSTMT(__SQLITEGEN_APPS_GETBY_NAME, cntx->dbcntx.app_get_by_name);
 	INITSTMT(__SQLITEGEN_APPS_LIST_EUI, cntx->dbcntx.listappsstmt);
 	INITSTMT(__SQLITEGEN_APPS_DELETEBY_EUI, cntx->dbcntx.app_delete_by_eui);
 	INITSTMT(LIST_APPFLAGS, cntx->dbcntx.listappflagsstmt);
 
 	INITSTMT(__SQLITEGEN_DEVS_INSERT, cntx->dbcntx.insertdevstmt);
-	INITSTMT(__SQLITEGEN_DEVS_GETBY_EUI, cntx->dbcntx.getdevstmt);
+	INITSTMT(__SQLITEGEN_DEVS_GETBY_EUI, cntx->dbcntx.dev_get_by_eui);
+	INITSTMT(__SQLITEGEN_DEVS_GETBY_NAME, cntx->dbcntx.dev_get_by_name);
 	INITSTMT(__SQLITEGEN_DEVS_DELETEBY_EUI, cntx->dbcntx.dev_delete_by_eui);
 	INITSTMT(__SQLITEGEN_DEVS_LIST_EUI, cntx->dbcntx.listdevsstmt);
 
@@ -205,9 +208,16 @@ static void database_app_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 			callbackanddata->second);
 }
 
-void database_app_get(context_readonly* cntx, const char* eui,
+void database_app_get(context_readonly* cntx, const char* eui, const char* name,
 		void (*callback)(const struct app* app, void* data), void* data) {
-	LOOKUPBYSTRING(cntx->dbcntx.getappsstmt, eui, database_app_get_rowcallback);
+	g_assert(eui != NULL || name != NULL);
+	if (eui != NULL) {
+		LOOKUPBYSTRING(cntx->dbcntx.app_get_by_eui, eui,
+				database_app_get_rowcallback);
+	} else if (name != NULL) {
+		LOOKUPBYSTRING(cntx->dbcntx.app_get_by_name, name,
+				database_app_get_rowcallback);
+	}
 }
 
 void database_app_del(context_readonly* cntx, const char* eui) {
@@ -271,9 +281,16 @@ static void database_dev_get_rowcallback(sqlite3_stmt* stmt, void* data) {
 			callbackanddata->second);
 }
 
-void database_dev_get(context_readonly* cntx, const char* eui,
+void database_dev_get(context_readonly* cntx, const char* eui, const char* name,
 		void (*callback)(const struct dev* app, void* data), void* data) {
-	LOOKUPBYSTRING(cntx->dbcntx.getdevstmt, eui, database_dev_get_rowcallback);
+	g_assert(eui != NULL || name != NULL);
+	if (eui != NULL) {
+		LOOKUPBYSTRING(cntx->dbcntx.dev_get_by_eui, eui,
+				database_dev_get_rowcallback);
+	} else if (name != NULL) {
+		LOOKUPBYSTRING(cntx->dbcntx.dev_get_by_name, name,
+				database_dev_get_rowcallback);
+	}
 }
 
 void database_dev_del(context_readonly* cntx, const char* eui) {

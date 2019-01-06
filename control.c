@@ -77,11 +77,15 @@ static void control_app_get_callback(const struct app* app, void* data) {
 
 static int control_app_get(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
-	if (!json_object_has_member(rootobj, CONTROL_JSON_EUI))
-		return -1;
-
-	const gchar* eui = json_object_get_string_member(rootobj, CONTROL_JSON_EUI);
-	database_app_get(cntx, eui, control_app_get_callback, jsonbuilder);
+	int ret = -1;
+	struct control_app_dev_get appdevget = { 0 };
+	if (__jsongen_control_app_dev_get_from_json(&appdevget, rootobj)) {
+		if (appdevget.eui != NULL || appdevget.name != NULL) {
+			database_app_get(cntx, appdevget.eui, appdevget.name,
+					control_app_get_callback, jsonbuilder);
+			ret = 0;
+		}
+	}
 	return 0;
 }
 
@@ -165,11 +169,17 @@ static void control_dev_get_callback(const struct dev* dev, void* data) {
 
 static int control_dev_get(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
-	if (!json_object_has_member(rootobj, CONTROL_JSON_EUI))
-		return -1;
-	const gchar* eui = json_object_get_string_member(rootobj, CONTROL_JSON_EUI);
-	database_dev_get(cntx, eui, control_dev_get_callback, jsonbuilder);
-	return 0;
+	int ret = -1;
+
+	struct control_app_dev_get appdevget = { 0 };
+	if (__jsongen_control_app_dev_get_from_json(&appdevget, rootobj)) {
+		if (appdevget.eui != NULL || appdevget.name != NULL) {
+			database_dev_get(cntx, appdevget.eui, appdevget.name,
+					control_dev_get_callback, jsonbuilder);
+			ret = 0;
+		}
+	}
+	return ret;
 }
 
 static int control_dev_del(struct context* cntx, const JsonObject* rootobj,

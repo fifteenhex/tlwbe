@@ -102,7 +102,8 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 			unpacked.joinreq.devnonce);
 
 	uint8_t* key = NULL;
-	database_dev_get(cntx, asciieui, join_processjoinrequest_rowcallback, &key);
+	database_dev_get(cntx, asciieui, NULL, join_processjoinrequest_rowcallback,
+			&key);
 	if (key == NULL) {
 		g_message("couldn't find key for device %s", asciieui);
 		goto out;

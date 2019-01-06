@@ -21,7 +21,7 @@ gboolean database_init(struct context* cntx, const gchar* databasepath);
 // app
 void database_app_add(context_readonly* cntx, const struct app* app);
 void database_app_update(context_readonly* cntx, const struct app* app);
-void database_app_get(context_readonly* cntx, const char* eui,
+void database_app_get(context_readonly* cntx, const char* eui, const char* name,
 		void (*callback)(const struct app* app, void* data), void* data);
 void database_app_del(context_readonly* cntx, const char* eui);
 void database_apps_list(context_readonly* cntx,
@@ -31,7 +31,7 @@ void database_appflags_list(context_readonly* cntx, const char* appeui,
 // dev
 void database_dev_add(context_readonly* cntx, const struct dev* dev);
 void database_dev_update(context_readonly* cntx, const struct dev* dev);
-void database_dev_get(context_readonly* cntx, const char* eui,
+void database_dev_get(context_readonly* cntx, const char* eui, const char* name,
 		void (*callback)(const struct dev* dev, void* data), void* data);
 void database_dev_del(context_readonly* cntx, const char* eui);
 void database_devs_list(context_readonly* cntx,
