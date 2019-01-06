@@ -158,5 +158,7 @@ int main(int argc, char** argv) {
 	GMainLoop* mainloop = g_main_loop_new(NULL, FALSE);
 	g_main_loop_run(mainloop);
 
+	mosquitto_client_free(cntx.mosqclient);
+
 	out: return 0;
 }

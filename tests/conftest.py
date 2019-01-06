@@ -8,7 +8,7 @@ def pytest_addoption(parser):
     parser.addoption("--tlwbe_regionalparameters_path", action="store")
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mosquitto_path(request):
     path = request.config.getoption("--mosquitto_path")
     if path is None:
@@ -16,7 +16,7 @@ def mosquitto_path(request):
     return path
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def tlwbe_path(request):
     path = request.config.getoption("--tlwbe_path")
     if path is None:
@@ -24,14 +24,14 @@ def tlwbe_path(request):
     return path
 
 
-@pytest.fixture
-def tlwbe_database_path(request, tmpdir):
+@pytest.fixture(scope="session")
+def tlwbe_database_path(request, tmpdir_factory):
     path = request.config.getoption("--tlwbe_database_path")
     if path is None:
-        path = tmpdir.join('tlwbe.sqlite')
+        path = tmpdir_factory.mktemp('tlwbe').join('tlwbe.sqlite')
     return path
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def tlwbe_regionalparameters_path(request):
     return request.config.getoption("--tlwbe_regionalparameters_path")
