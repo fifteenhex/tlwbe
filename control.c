@@ -93,8 +93,13 @@ static int control_app_update(struct context* cntx, const JsonObject* rootobj,
 
 static int control_app_del(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
-	database_app_del(cntx, NULL);
-	return 0;
+	int ret = -1;
+	struct control_app_del request = { 0 };
+	if (__jsongen_control_app_del_from_json(&request, rootobj)) {
+		database_app_del(cntx, request.eui);
+		ret = 0;
+	}
+	return ret;
 }
 
 static void control_apps_list_euicallback(const char* eui, void* data) {
@@ -104,7 +109,7 @@ static void control_apps_list_euicallback(const char* eui, void* data) {
 
 static int control_apps_list(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
-	json_builder_set_member_name(jsonbuilder, "result");
+	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_EUI_LIST);
 	json_builder_begin_array(jsonbuilder);
 	database_apps_list(cntx, control_apps_list_euicallback, jsonbuilder);
 	json_builder_end_array(jsonbuilder);
@@ -127,7 +132,7 @@ static int control_dev_add(struct context* cntx, const JsonObject* rootobj,
 	const gchar* appeui = json_object_get_string_member(rootobj,
 	CONTROL_JSON_APPEUI);
 
-	// look for a key in the json, if there isn't one generate one
+// look for a key in the json, if there isn't one generate one
 	const gchar* key = NULL;
 	gboolean freekey = FALSE;
 	if (json_object_has_member(rootobj, CONTROL_JSON_KEY))
@@ -179,7 +184,7 @@ static int control_dev_del(struct context* cntx, const JsonObject* rootobj,
 
 static int control_devs_list(struct context* cntx, const JsonObject* rootobj,
 		JsonBuilder* jsonbuilder) {
-	json_builder_set_member_name(jsonbuilder, "result");
+	json_builder_set_member_name(jsonbuilder, CONTROL_JSON_EUI_LIST);
 	json_builder_begin_array(jsonbuilder);
 	database_devs_list(cntx, control_apps_list_euicallback, jsonbuilder);
 	json_builder_end_array(jsonbuilder);

@@ -107,9 +107,10 @@ gboolean database_init(struct context* cntx, const gchar* databasepath) {
 
 	sqlite3_stmt* stmts[] = { cntx->dbcntx.insertappstmt,
 			cntx->dbcntx.getappsstmt, cntx->dbcntx.listappsstmt,
-			cntx->dbcntx.listappflagsstmt, cntx->dbcntx.insertdevstmt,
-			cntx->dbcntx.getdevstmt, cntx->dbcntx.listdevsstmt,
-			cntx->dbcntx.insertsessionstmt, cntx->dbcntx.getsessionbydeveuistmt,
+			cntx->dbcntx.apps_delete_by_eui, cntx->dbcntx.listappflagsstmt,
+			cntx->dbcntx.insertdevstmt, cntx->dbcntx.getdevstmt,
+			cntx->dbcntx.listdevsstmt, cntx->dbcntx.insertsessionstmt,
+			cntx->dbcntx.getsessionbydeveuistmt,
 			cntx->dbcntx.getsessionbydevaddrstmt,
 			cntx->dbcntx.deletesessionstmt, cntx->dbcntx.getkeyparts,
 			cntx->dbcntx.getframecounterup, cntx->dbcntx.getframecounterdown,
@@ -137,6 +138,7 @@ gboolean database_init(struct context* cntx, const gchar* databasepath) {
 	INITSTMT(__SQLITEGEN_APPS_INSERT, cntx->dbcntx.insertappstmt);
 	INITSTMT(__SQLITEGEN_APPS_GETBY_EUI, cntx->dbcntx.getappsstmt);
 	INITSTMT(__SQLITEGEN_APPS_LIST_EUI, cntx->dbcntx.listappsstmt);
+	INITSTMT(__SQLITEGEN_APPS_DELETEBY_EUI, cntx->dbcntx.apps_delete_by_eui);
 	INITSTMT(LIST_APPFLAGS, cntx->dbcntx.listappflagsstmt);
 
 	INITSTMT(__SQLITEGEN_DEVS_INSERT, cntx->dbcntx.insertdevstmt);
@@ -208,7 +210,11 @@ void database_app_get(context_readonly* cntx, const char* eui,
 }
 
 void database_app_del(context_readonly* cntx, const char* eui) {
-
+	sqlite3_bind_text(cntx->dbcntx.apps_delete_by_eui, 1, eui, -1,
+	SQLITE_STATIC);
+	database_stepuntilcomplete(cntx->dbcntx.apps_delete_by_eui,
+	NULL, NULL);
+	sqlite3_reset(cntx->dbcntx.apps_delete_by_eui);
 }
 
 static void database_apps_list_rowcallback(sqlite3_stmt* stmt, void* data) {

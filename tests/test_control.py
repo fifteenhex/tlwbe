@@ -1,7 +1,7 @@
 import pytest
 from subprocess import Popen
 import time
-from tlwpy.tlwbe import Tlwbe
+from tlwpy.tlwbe import Tlwbe, Result
 
 MQTT_PORT = 6666
 
@@ -40,7 +40,10 @@ async def test_app(mosquitto_process, tlwbe_process, tlwbe_client: Tlwbe):
     assert mosquitto_process.poll() is None
     assert tlwbe_process.poll() is None
 
-    app_result = await tlwbe_client.add_app('myapp')
-    print(app_result.payload)
-
-    list_result = await tlwbe_client.list_apps()
+    app_result: Result = await tlwbe_client.add_app('myapp')
+    eui = app_result.result['app']['eui']
+    list_result: Result = await tlwbe_client.list_apps()
+    assert eui in list_result.result['eui_list']
+    delete_result: Result = await  tlwbe_client.delete_app(eui)
+    list_result = await  tlwbe_client.list_apps()
+    assert eui not in list_result.result['eui_list']

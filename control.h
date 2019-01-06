@@ -19,6 +19,14 @@ struct control_app_add {
 typedef struct control_app_add __jsongen_parser;
 #endif
 
+struct control_app_del {
+	const gchar* eui;
+};
+#ifdef __JSONGEN
+typedef struct control_app_del __jsongen_parser;
+#endif
+
+
 struct flag {
 #ifdef __SQLITEGEN
 	guint64 id;
@@ -86,6 +94,7 @@ typedef struct dev __jsongen_builder;
 #define CONTROL_JSON_APPEUI		"appeui"
 #define CONTROL_JSON_KEY		"key"
 #define CONTROL_JSON_SERIAL		"serial"
+#define CONTROL_JSON_EUI_LIST	"eui_list"
 
 void control_onbrokerconnect(const struct context* cntx);
 void control_onmsg(struct context*, char** splittopic, int numtopicparts,
