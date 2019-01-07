@@ -1,9 +1,8 @@
 #include <string.h>
+#include <lorawan/crypto.h>
 
 #include "config.h"
 #include "packet.h"
-#include "lorawan.h"
-#include "crypto.h"
 #include "utils.h"
 
 static void packet_appendu32(GByteArray* pkt, guint32 value) {

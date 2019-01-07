@@ -3,12 +3,11 @@
 #include <mosquitto.h>
 #include <string.h>
 #include <stdio.h>
+#include <lorawan/crypto.h>
 
 #include "join.h"
 #include "tlwbe.h"
-#include "lorawan.h"
 #include "pktfwdbr.h"
-#include "crypto.h"
 #include "utils.h"
 #include "database.h"
 #include "downlink.h"

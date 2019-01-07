@@ -1,12 +1,11 @@
 #include <stdio.h>
 #include <string.h>
+#include <lorawan/crypto.h>
 
 #include "config.h"
 #include "uplink.h"
 #include "utils.h"
-#include "lorawan.h"
 #include "database.h"
-#include "crypto.h"
 #include "packet.h"
 #include "downlink.h"
 #include "flags.h"

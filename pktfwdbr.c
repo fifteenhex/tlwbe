@@ -1,11 +1,11 @@
 #include <string.h>
+#include <lorawan/lorawan.h>
 
 #include "pktfwdbr.h"
 #include "pktfwdbr_rx.h"
 #include "pktfwdbr_txack.h"
 #include "pktfwdbr_txack.json.h"
 #include "pktfwdbr_rx.json.h"
-#include "lorawan.h"
 #include "join.h"
 #include "uplink.h"
 #include "mac.h"

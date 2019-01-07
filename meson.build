@@ -32,7 +32,6 @@ generated_json = gen_jsongen.process('control.h','join.h', 'uplink.h',
                                      'downlink.h', 'pktfwdbr_txack.h', 'pktfwdbr_rx.h')
 
 src = ['tlwbe.c',
-       'crypto.c',
        'join.c',
        'database.c',
        'control.c',
@@ -51,7 +50,8 @@ src = ['tlwbe.c',
 deps = [ dependency('glib-2.0'),
          dependency('json-glib-1.0'),
          dependency('sqlite3'),
-         dependency('libcrypto'), 
+         dependency('libcrypto'),
+         dependency('liblorawan'),
          mosquitto_glib.get_variable('mosquitto_glib_dep')]
 
 executable('tlwbe', src, 

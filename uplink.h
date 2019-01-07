@@ -4,8 +4,8 @@
 #include "codegen/fakeglib.h"
 #else
 #include <json-glib/json-glib.h>
+#include <lorawan/lorawan.h>
 #include "tlwbe.h"
-#include "lorawan.h"
 #endif
 #include "pktfwdbr_rx.h"
 

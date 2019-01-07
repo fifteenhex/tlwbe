@@ -2,6 +2,7 @@ import pytest
 from tlwpy.tlwbe import Tlwbe, Result
 from subprocess import Popen
 import time
+from tlwpy.gatewaysimulator import Gateway
 
 MQTT_PORT = 6666
 
@@ -77,7 +78,7 @@ async def app(tlwbe_client: Tlwbe):
     assert result.code == 0
     app_eui = result.result['app']['eui']
     yield app_eui
-    tlwbe_client.delete_app(app_eui)
+    await tlwbe_client.delete_app(app_eui)
 
 
 @pytest.fixture()
@@ -86,4 +87,9 @@ async def dev(tlwbe_client: Tlwbe, app):
     assert result.code == 0
     dev_eui = result.result['dev']['eui']
     yield (app, dev_eui)
-    tlwbe_client.delete_dev(dev_eui)
+    await tlwbe_client.delete_dev(dev_eui)
+
+
+@pytest.fixture()
+async def gateway(mosquitto_process, tlwbe_process):
+    return Gateway('localhost', MQTT_PORT)

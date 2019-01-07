@@ -2,11 +2,11 @@
 #include <mosquitto.h>
 #include <string.h>
 #include <stdio.h>
+#include <lorawan/lorawan.h>
+#include <lorawan/crypto.h>
 
 #include "control.h"
 #include "database.h"
-#include "lorawan.h"
-#include "crypto.h"
 #include "utils.h"
 
 #include "json-glib-macros/jsonbuilderutils.h"
