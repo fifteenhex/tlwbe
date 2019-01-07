@@ -110,7 +110,7 @@ static void downlink_schedule(struct context* cntx, const gchar* appeui,
 
 		database_downlink_add(cntx, &downlink);
 
-		struct downlink_schedule_result result = { };
+		struct downlink_schedule_result result = { 0 };
 		JsonBuilder* builder = json_builder_new_immutable();
 		__jsongen_downlink_schedule_result_to_json(&result, builder);
 		gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "downlink",

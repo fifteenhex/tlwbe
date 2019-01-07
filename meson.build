@@ -64,11 +64,11 @@ install_data('regionalparameters.json')
 pytest = find_program('pytest-3', required : false)
 mosquitto = find_program('mosquitto', '/usr/sbin/mosquitto', required : false)
 if pytest.found() and mosquitto.found()
-	test('control',
-	     pytest,
-	     timeout : 120,
-	     args : [ meson.source_root() + '/tests/test_control.py',
-	              '--mosquitto_path=' + mosquitto.path(),
-	              '--tlwbe_path=' + meson.build_root() + '/tlwbe',
-	              '--tlwbe_regionalparameters_path=' +  meson.source_root() + '/regionalparameters.json'])
+	args = ['--mosquitto_path=' + mosquitto.path(),
+	        '--tlwbe_path=' + meson.build_root() + '/tlwbe',
+	        '--tlwbe_regionalparameters_path=' +  meson.source_root() + '/regionalparameters.json' ]
+	test('control', pytest, timeout : 120,
+	     args :  [meson.source_root() + '/tests/test_control.py'] + args)
+	test('downlink', pytest, timeout : 120,
+         args :  [meson.source_root() + '/tests/test_downlink.py'] + args)
 endif

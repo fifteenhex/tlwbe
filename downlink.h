@@ -62,7 +62,7 @@ struct downlink_announce_sent {
 #endif
 
 struct downlink_schedule_result {
-
+		guint8 code;
 };
 #ifdef __JSONGEN
 	typedef struct downlink_schedule_result __jsongen_builder;

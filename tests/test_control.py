@@ -1,38 +1,5 @@
 import pytest
-from subprocess import Popen
-import time
 from tlwpy.tlwbe import Tlwbe, Result
-
-MQTT_PORT = 6666
-
-
-@pytest.fixture(scope="session")
-def mosquitto_process(mosquitto_path):
-    process = Popen([mosquitto_path, '-v', '-p', str(MQTT_PORT)])
-    time.sleep(10)
-    yield process
-    process.terminate()
-    process.wait()
-
-
-@pytest.fixture(scope="session")
-def tlwbe_process(tlwbe_path, tlwbe_database_path, tlwbe_regionalparameters_path):
-    args = [tlwbe_path, '-h', 'localhost', '-p', str(MQTT_PORT), '--region=as920_923']
-    if tlwbe_database_path is not None:
-        args.append('--database_path=%s' % tlwbe_database_path)
-    if tlwbe_regionalparameters_path is not None:
-        args.append('--regionalparameters_path=%s' % tlwbe_regionalparameters_path)
-    process = Popen(args)
-    time.sleep(10)
-    yield process
-    process.terminate()
-    process.wait()
-
-
-@pytest.fixture()
-async def tlwbe_client():
-    tlwbe = Tlwbe('localhost', port=MQTT_PORT)
-    return tlwbe
 
 
 async def add_app(tlwbe_client, app_name='myapp'):

@@ -2,16 +2,37 @@
 
 ## queuing downlinks
 
-```tlwbe/downlink/schedule/<appeui>/<deveui>/<port>/<token>```
+### publish topic
 
-```tlwbe/downlink/result/<token>```
+```
+tlwbe/downlink/schedule/<appeui>/<deveui>/<port>/<token>
+```
+
+### publish payload
+
+```
+{"confirm": false, "payload": <base64 encoded payload>}
+
+```
 
 ## querying queued downlinks
 
-```tlwbe/downlink/query/<token>```
+### publish topic
 
-```tlwbe/downlink/result/<token>```
+```
+tlwbe/downlink/query/<token>
+```
+
+## Results
+
+```
+tlwbe/downlink/result/<token>
+```
 
 ## downlink transmission announcement
 
-```tlwbe/downlink/sent/<token>```
+### publish topic
+
+```
+tlwbe/downlink/sent/<token>
+```
