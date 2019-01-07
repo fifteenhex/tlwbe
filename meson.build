@@ -16,6 +16,7 @@ configure_file(input : 'config.h.in',
                configuration : conf_data)
 
 mosquitto_glib = subproject('mosquitto_glib')
+liblorawan = subproject('liblorawan')
 
 prog_sqlitegen = find_program(meson.source_root() + '/codegen/sqlitegen.py')
 gen_sqlitegen = generator(prog_sqlitegen,
@@ -50,8 +51,7 @@ src = ['tlwbe.c',
 deps = [ dependency('glib-2.0'),
          dependency('json-glib-1.0'),
          dependency('sqlite3'),
-         dependency('libcrypto'),
-         dependency('liblorawan'),
+         liblorawan.get_variable('lorawan_dep'),
          mosquitto_glib.get_variable('mosquitto_glib_dep')]
 
 executable('tlwbe', src, 

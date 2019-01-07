@@ -4,3 +4,6 @@
 [submodule "json-glib-macros"]
 	path = json-glib-macros
 	url = https://github.com/fifteenhex/json-glib-macros.git
+[submodule "subprojects/liblorawan"]
+	path = subprojects/liblorawan
+	url = https://github.com/fifteenhex/liblorawan.git
