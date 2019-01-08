@@ -127,61 +127,6 @@ guint8* packet_build_data(guint8 type, guint32 devaddr, gboolean adr,
 	return g_byte_array_free(pkt, FALSE);
 }
 
-#define COPYANDINC(dst, src)	memcpy(dst, src, sizeof(*dst));\
-									src += sizeof(*dst)
-
-void packet_unpack(guint8* data, gsize len, struct packet_unpacked* result) {
-	guint8* dataend = data + (len - sizeof(result->mic));
-
-	guint8 mhdr = *data++;
-	result->type = LORAWAN_TYPE(mhdr);
-
-	switch (result->type) {
-	case MHDR_MTYPE_JOINREQ: {
-		COPYANDINC(&result->joinreq.appeui, data);
-		COPYANDINC(&result->joinreq.deveui, data);
-		COPYANDINC(&result->joinreq.devnonce, data);
-	}
-		break;
-	case MHDR_MTYPE_UNCNFUP:
-	case MHDR_MTYPE_UNCNFDN:
-	case MHDR_MTYPE_CNFUP:
-	case MHDR_MTYPE_CNFDN: {
-		COPYANDINC(&result->data.devaddr, data);
-
-		// parse fctrl byte
-		guint8 fctrl = *data++;
-		result->data.foptscount = fctrl & LORAWAN_FHDR_FCTRL_FOPTLEN_MASK;
-		result->data.adr = (fctrl & LORAWAN_FHDR_FCTRL_ADR) ? 1 : 0;
-		result->data.adrackreq = (fctrl & LORAWAN_FHDR_FCTRL_ADRACKREQ) ? 1 : 0;
-		result->data.ack = (fctrl & LORAWAN_FHDR_FCTRL_ACK) ? 1 : 0;
-		result->data.pending = (fctrl & LORAWAN_FHDR_FCTRL_FPENDING) ? 1 : 0;
-
-		COPYANDINC(&result->data.framecount, data);
-		for (int i = 0; i < result->data.foptscount; i++)
-			result->data.fopts[i] = *data++;
-
-		// port and payload are optional
-		if (data != dataend) {
-			result->data.port = *data++;
-			result->data.payload = data;
-			result->data.payloadlen = dataend - data;
-			data += result->data.payloadlen;
-		} else {
-			result->data.port = 0;
-			result->data.payload = NULL;
-			result->data.payloadlen = 0;
-		}
-	}
-		break;
-	default:
-		g_message("don't know how to unpack packet type %d", result->type);
-		break;
-	}
-
-	COPYANDINC(&result->mic, data);
-}
-
 void packet_pack(struct packet_unpacked* unpacked, struct sessionkeys* keys) {
 	gsize pktlen;
 	guint8* pkt = NULL;
