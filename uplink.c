@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <lorawan/lorawan.h>
 #include <lorawan/crypto.h>
 
 #include "config.h"
@@ -105,7 +106,7 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 	}
 
 #if TLWBE_DEBUG_REPACKPACKETS
-	packet_pack(&unpacked, &keys);
+	packet_pack(&unpacked, keys.nwksk, keys.appsk, NULL, NULL);
 #endif
 
 	guint32 calcedmic = crypto_mic_2(keys.nwksk, KEYLEN, b0, sizeof(b0),

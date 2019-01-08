@@ -121,17 +121,25 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 	join_processjoinrequest_createsession(cntx, asciieui, asciidevnonce, &s);
 	printsessionkeys(key, &s);
 	gsize joinrespktlen;
-	guint8* joinrespkt = packet_build_joinresponse(&s, &cntx->regional, key,
-			&joinrespktlen);
+
+	GByteArray* joinackpkt = g_byte_array_new();
+	int pktbldret;
+	if ((pktbldret = packet_build_joinresponse(utils_hex2u24(s.appnonce),
+			utils_hex2u32(s.devaddr), cntx->regional.extrachannels, key,
+			utils_gbytearray_writer, joinackpkt)) != LORAWAN_NOERR) {
+		g_message("failed to build join ack: %d", pktbldret);
+		goto out;
+	}
+	packet_debug(joinackpkt->data, joinackpkt->len);
 
 	g_free((void*) s.appnonce);
 	g_free((void*) s.devaddr);
 
-	downlink_dodownlink(cntx, gateway, NULL, joinrespkt, joinrespktlen, rxpkt,
-			RXW_J1);
-	//downlink_dodownlink(cntx, gateway, joinrespkt, joinrespktlen, rxpkt,
+	downlink_dodownlink(cntx, gateway, NULL, joinackpkt->data, joinackpkt->len,
+			rxpkt, RXW_J1);
+	//downlink_dodownlink(cntx, gateway, joinackpkt->data, joinackpkt->len, rxpkt,
 	//		RXW_J2);
-	g_free(joinrespkt);
+	g_byte_array_free(joinackpkt, TRUE);
 
 	join_announce(cntx, asciiappeui, asciieui);
 

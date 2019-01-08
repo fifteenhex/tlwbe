@@ -31,56 +31,6 @@ static void packet_appendu8(GByteArray* pkt, guint8 value) {
 
 }
 
-guint8* packet_build_joinresponse(const struct session* s,
-		const struct regional* r, const char* appkey, gsize* pktlen) {
-
-	GByteArray* pkt = g_byte_array_new();
-
-	guint8 mhdr = (MHDR_MTYPE_JOINACK << MHDR_MTYPE_SHIFT);
-	packet_appendu8(pkt, mhdr);
-
-	guint32 appnonce = utils_hex2u24(s->appnonce);
-	packet_appendu24(pkt, appnonce);
-
-	guint32 netid = 0;
-	packet_appendu24(pkt, netid);
-
-	guint32 devaddr = utils_hex2u32(s->devaddr);
-	packet_appendu32(pkt, devaddr);
-
-	guint8 dlsettings = 0;
-	packet_appendu8(pkt, dlsettings);
-
-	guint8 rxdelay = 0;
-	packet_appendu8(pkt, rxdelay);
-
-	if (r->sendcflist) {
-		g_message("sending cflist");
-		for (int i = 0; i < 5; i++)
-			packet_appendu24(pkt, r->extrachannels[i]);
-		packet_appendu8(pkt, 0);
-	}
-
-	uint32_t mic = crypto_mic(appkey, KEYLEN, pkt->data, pkt->len);
-	packet_appendu32(pkt, mic);
-
-	guint8* crypted = g_malloc(pkt->len);
-	crypted[0] = pkt->data[0];
-	crypto_encryptfordevice(appkey, pkt->data + 1, pkt->len - 1, crypted + 1);
-
-	gchar* plainpkthex = utils_bin2hex(pkt->data, pkt->len);
-	gchar* cryptedpkthex = utils_bin2hex(crypted, pkt->len);
-	g_message("plain text packet:\t%s\n" "\tencrypted packet:\t%s", plainpkthex,
-			cryptedpkthex);
-	g_free(plainpkthex);
-	g_free(cryptedpkthex);
-
-	*pktlen = pkt->len;
-	g_byte_array_free(pkt, TRUE);
-
-	return crypted;
-}
-
 guint8* packet_build_data(guint8 type, guint32 devaddr, gboolean adr,
 		gboolean ack, guint32 framecounter, guint8 port, const guint8* payload,
 		gsize payloadlen, struct sessionkeys* keys, gsize* pktlen) {
@@ -127,29 +77,6 @@ guint8* packet_build_data(guint8 type, guint32 devaddr, gboolean adr,
 	return g_byte_array_free(pkt, FALSE);
 }
 
-void packet_pack(struct packet_unpacked* unpacked, struct sessionkeys* keys) {
-	gsize pktlen;
-	guint8* pkt = NULL;
-	switch (unpacked->type) {
-	case MHDR_MTYPE_UNCNFUP:
-	case MHDR_MTYPE_UNCNFDN:
-	case MHDR_MTYPE_CNFUP:
-	case MHDR_MTYPE_CNFDN:
-		pkt = packet_build_data(unpacked->type, unpacked->data.devaddr,
-				unpacked->data.adr, unpacked->data.ack,
-				unpacked->data.framecount, unpacked->data.port,
-				unpacked->data.payload, unpacked->data.payloadlen, keys,
-				&pktlen);
-		packet_debug(pkt, pktlen);
-		break;
-	default:
-		g_message("don't know how to pack type %d", (int ) unpacked->type);
-		break;
-	}
-	if (pkt != NULL)
-		g_free(pkt);
-}
-
 #define PRINTBOOL(b) (b ? "true":"false")
 
 void packet_debug(guint8* data, gsize len) {
@@ -174,6 +101,10 @@ void packet_debug(guint8* data, gsize len) {
 				"\traw: %s",//
 				types[up.type], up.joinreq.appeui, up.joinreq.deveui,
 				up.joinreq.devnonce, up.mic, datahex);
+	}
+		break;
+	case MHDR_MTYPE_JOINACK: {
+		g_message("type: %s\n", types[up.type]);
 	}
 		break;
 	case MHDR_MTYPE_UNCNFUP:
