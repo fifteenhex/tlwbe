@@ -34,8 +34,8 @@ CONTROL_ACTION_DEL, CONTROL_ACTION_GET, CONTROL_ACTION_LIST };
 static char* control_generateeui64(char* buff) {
 	guint64 now = g_get_real_time() / 1000000;
 	guint32 rand = g_random_int();
-	guint64 eui = (now << 4) | rand;
-	sprintf(buff, "%"G_GINT64_MODIFIER"x", eui);
+	guint64 eui = (now << (4 * 8)) | rand;
+	sprintf(buff, "%016"G_GINT64_MODIFIER"x", eui);
 	return buff;
 }
 
@@ -293,7 +293,7 @@ void control_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
 	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT,
 	CONTROL_SUBTOPIC, CONTROL_RESULT, token, NULL);
 	mosquitto_client_publish_json_builder(cntx->mosqclient, jsonbuilder, topic,
-	TRUE);
+			TRUE);
 	g_free(topic);
 
 	out: return;
