@@ -46,7 +46,7 @@ def tlwbe_regionalparameters_path(request):
 @pytest.fixture(scope="session")
 def mosquitto_process(mosquitto_path):
     process = Popen([mosquitto_path, '-v', '-p', str(MQTT_PORT)])
-    time.sleep(10)
+    time.sleep(2)
     yield process
     process.terminate()
     process.wait()
@@ -60,7 +60,7 @@ def tlwbe_process(tlwbe_path, tlwbe_database_path, tlwbe_regionalparameters_path
     if tlwbe_regionalparameters_path is not None:
         args.append('--regionalparameters_path=%s' % tlwbe_regionalparameters_path)
     process = Popen(args)
-    time.sleep(10)
+    time.sleep(2)
     yield process
     process.terminate()
     process.wait()
@@ -69,6 +69,7 @@ def tlwbe_process(tlwbe_path, tlwbe_database_path, tlwbe_regionalparameters_path
 @pytest.fixture()
 async def tlwbe_client(mosquitto_process, tlwbe_process):
     tlwbe = Tlwbe('localhost', port=MQTT_PORT)
+    await tlwbe.wait_for_connection()
     return tlwbe
 
 
@@ -86,10 +87,13 @@ async def dev(tlwbe_client: Tlwbe, app):
     result: Result = await tlwbe_client.add_dev('mydev', app)
     assert result.code == 0
     dev_eui = result.result['dev']['eui']
-    yield (app, dev_eui)
+    dev_key = result.result['dev']['key']
+    yield (app, dev_eui, dev_key)
     await tlwbe_client.delete_dev(dev_eui)
 
 
 @pytest.fixture()
 async def gateway(mosquitto_process, tlwbe_process):
-    return Gateway('localhost', MQTT_PORT)
+    gateway = Gateway('localhost', port=MQTT_PORT)
+    await gateway.wait_for_connection()
+    return gateway

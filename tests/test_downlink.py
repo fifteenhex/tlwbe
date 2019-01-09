@@ -10,10 +10,9 @@ async def test_downlink(mosquitto_process, tlwbe_process, dev, tlwbe_client: Tlw
 
     app_eui = dev[0]
     dev_eui = dev[1]
+    dev_key = dev[2]
 
-    await gateway.join(app_eui, dev_eui)
+    await gateway.join(app_eui, dev_eui, dev_key)
 
     result: Result = await tlwbe_client.send_downlink(app_eui, dev_eui, 1, b'123abc', False)
     assert result.code == 0
-
-    assert False
