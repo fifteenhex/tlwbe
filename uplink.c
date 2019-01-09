@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <string.h>
+
 #include <lorawan/lorawan.h>
 #include <lorawan/crypto.h>
+#include <lorawan/packet.h>
 
 #include "config.h"
 #include "uplink.h"
