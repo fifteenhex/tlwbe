@@ -5,32 +5,6 @@
 #include "packet.h"
 #include "utils.h"
 
-static void packet_appendu32(GByteArray* pkt, guint32 value) {
-	for (int i = 0; i < 4; i++) {
-		guint8 byte = (value >> (i * 8) & 0xff);
-		g_byte_array_append(pkt, &byte, sizeof(byte));
-	}
-}
-
-static void packet_appendu24(GByteArray* pkt, guint32 value) {
-	for (int i = 0; i < 3; i++) {
-		guint8 byte = (value >> (i * 8) & 0xff);
-		g_byte_array_append(pkt, &byte, sizeof(byte));
-	}
-}
-
-static void packet_appendu16(GByteArray* pkt, guint16 value) {
-	for (int i = 0; i < 2; i++) {
-		guint8 byte = (value >> (i * 8) & 0xff);
-		g_byte_array_append(pkt, &byte, sizeof(byte));
-	}
-}
-
-static void packet_appendu8(GByteArray* pkt, guint8 value) {
-	g_byte_array_append(pkt, &value, 1);
-
-}
-
 guint8* packet_build_data(guint8 type, guint32 devaddr, gboolean adr,
 		gboolean ack, guint32 framecounter, guint8 port, const guint8* payload,
 		gsize payloadlen, struct sessionkeys* keys, gsize* pktlen) {
