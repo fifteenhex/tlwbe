@@ -108,12 +108,12 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 		goto out;
 	}
 
-	guint32 calcedmic = crypto_mic(key, KEYLEN, data, datalen - 4);
-
-	if (calcedmic != unpacked.mic) {
+	uint32_t packetmic;
+	uint32_t calcedmic;
+	if (!lorawan_packet_verifymic(key, data, datalen, &packetmic, &calcedmic)) {
 		g_message(
 				"mic should be %"G_GINT32_MODIFIER"x, calculated %"G_GINT32_MODIFIER"x",
-				unpacked.mic, calcedmic);
+				packetmic, calcedmic);
 		goto out;
 	}
 

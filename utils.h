@@ -19,6 +19,5 @@ static int __attribute__((unused)) utils_gbytearray_writer(uint8_t* data,
 		size_t len, void* userdata) {
 	GByteArray* bytearray = userdata;
 	g_byte_array_append(bytearray, data, len);
-	g_message("appended %d bytes to buffer", len);
 	return 0;
 }
