@@ -7,5 +7,6 @@ RUN apt-get -qq install -y mosquitto \
                            python3-pytest-asyncio \
                            python3-paho-mqtt \
                            cython3 \
+                           libssl-dev \
                            git
 ADD . /root/tlwbe
