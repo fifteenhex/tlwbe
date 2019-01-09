@@ -5,52 +5,6 @@
 #include "packet.h"
 #include "utils.h"
 
-guint8* packet_build_data(guint8 type, guint32 devaddr, gboolean adr,
-		gboolean ack, guint32 framecounter, guint8 port, const guint8* payload,
-		gsize payloadlen, struct sessionkeys* keys, gsize* pktlen) {
-
-	uint8_t dir =
-			(type == MHDR_MTYPE_CNFDN || type == MHDR_MTYPE_UNCNFDN) ? 1 : 0;
-
-	GByteArray* pkt = g_byte_array_new();
-	guint8 mhdr = (type << MHDR_MTYPE_SHIFT);
-	g_byte_array_append(pkt, &mhdr, sizeof(mhdr));
-
-	g_byte_array_append(pkt, (void*) &devaddr, sizeof(devaddr));
-
-	guint8 fctrl = 0;
-	if (adr)
-		fctrl |= LORAWAN_FHDR_FCTRL_ADR;
-	if (ack)
-		fctrl |= LORAWAN_FHDR_FCTRL_ACK;
-	g_byte_array_append(pkt, &fctrl, sizeof(fctrl));
-
-	guint16 fcnt = framecounter & 0xffff;
-	g_byte_array_append(pkt, (const guint8*) &fcnt, sizeof(fcnt));
-
-	if (payload != NULL) {
-		guint8 encryptedpayload[128];
-		payloadlen = MIN(sizeof(encryptedpayload), payloadlen);
-		uint8_t* key = (uint8_t*) (port == 0 ? &keys->nwksk : &keys->appsk);
-		crypto_endecryptpayload(key, true, devaddr, framecounter, payload,
-				encryptedpayload, payloadlen);
-		g_byte_array_append(pkt, &port, sizeof(port));
-		g_byte_array_append(pkt, encryptedpayload, payloadlen);
-	}
-
-	uint8_t b0[BLOCKLEN];
-
-	crypto_fillinblock_updownlink(b0, dir, devaddr, framecounter, pkt->len);
-	guint32 mic = crypto_mic_2(keys->nwksk, KEYLEN, b0, sizeof(b0), pkt->data,
-			pkt->len);
-	g_message("pkt len %d", pkt->len);
-
-	g_byte_array_append(pkt, (const guint8*) &mic, sizeof(mic));
-
-	*pktlen = pkt->len;
-	return g_byte_array_free(pkt, FALSE);
-}
-
 #define PRINTBOOL(b) (b ? "true":"false")
 
 void packet_debug(guint8* data, gsize len) {

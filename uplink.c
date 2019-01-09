@@ -169,20 +169,22 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 				}
 			}
 
-			gsize pktlen;
 			gint64 framecounter = database_framecounter_down_getandinc(cntx,
 					devaddrascii);
-			guint8* pkt = packet_build_data(
+
+			GByteArray* pkt = g_byte_array_new();
+			lorawan_packet_build_data(
 					confirmdownlink ? MHDR_MTYPE_CNFDN : MHDR_MTYPE_UNCNFDN,
 					unpacked.data.devaddr, FALSE, confirm, framecounter,
 					(senddownlink ? downlink.port : 0),
 					(senddownlink ? downlink.payload : NULL),
-					(senddownlink ? downlink.payloadlen : 0), &keys, &pktlen);
+					(senddownlink ? downlink.payloadlen : 0), keys.nwksk,
+					keys.appsk, utils_gbytearray_writer, pkt);
 
-			packet_debug(pkt, pktlen);
-			downlink_dorxwindowdownlink(cntx, gateway, downlink.token, pkt,
-					pktlen, rxpkt);
-			g_free(pkt);
+			packet_debug(pkt->data, pkt->len);
+			downlink_dorxwindowdownlink(cntx, gateway, downlink.token,
+					pkt->data, pkt->len, rxpkt);
+			g_byte_array_free(pkt, TRUE);
 
 			if (senddownlink) {
 				g_free(downlink.appeui);
