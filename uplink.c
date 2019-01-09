@@ -115,12 +115,12 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 		uint8_t* key = (uint8_t*) (
 				unpacked.data.port == 0 ? &keys.nwksk : &keys.appsk);
 
-		uint8_t decrypted[128];
-		crypto_endecryptpayload(key, false, unpacked.data.devaddr, fullfcnt,
-				unpacked.data.payload, decrypted, unpacked.data.payloadlen);
+		GByteArray* decrypted = g_byte_array_new();
+		lorawan_crypto_endecryptpayload(key, false, unpacked.data.devaddr,
+				fullfcnt, unpacked.data.payload, unpacked.data.payloadlen,
+				utils_gbytearray_writer, decrypted);
 
-		gchar* decryptedhex = utils_bin2hex(decrypted,
-				unpacked.data.payloadlen);
+		gchar* decryptedhex = utils_bin2hex(decrypted->data, decrypted->len);
 		g_message("decrypted payload: %s", decryptedhex);
 		g_free(decryptedhex);
 
@@ -130,7 +130,7 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 
 		struct uplink ul = { .timestamp = g_get_real_time(), .appeui =
 				keys.appeui, .deveui = keys.deveui, .port = unpacked.data.port,
-				.payload = decrypted, .payloadlen = unpacked.data.payloadlen };
+				.payload = decrypted->data, .payloadlen = decrypted->len };
 		memcpy(&ul.rfparams, &rxpkt->rfparams, sizeof(ul.rfparams));
 
 		struct flags flags;
@@ -141,6 +141,8 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 
 		if (!flags.uplink.norealtime)
 			uplink_process_publish(cntx, &ul, &flags);
+
+		g_byte_array_free(decrypted, TRUE);
 
 		int queueddownlinks = database_downlinks_count(cntx, keys.appeui,
 				keys.deveui);
