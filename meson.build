@@ -68,7 +68,9 @@ if pytest.found() and mosquitto.found()
 	        '--tlwbe_path=' + meson.build_root() + '/tlwbe',
 	        '--tlwbe_regionalparameters_path=' +  meson.source_root() + '/regionalparameters.json' ]
 	test('control', pytest, timeout : 120,
-	     args :  [meson.source_root() + '/tests/test_control.py'] + args)
+	     args :  [meson.source_root() + '/tests/test_control.py'] + args,
+             is_parallel : false)
 	test('downlink', pytest, timeout : 120,
-         args :  [meson.source_root() + '/tests/test_downlink.py'] + args)
+         args :  [meson.source_root() + '/tests/test_downlink.py'] + args,
+         is_parallel : false)
 endif
