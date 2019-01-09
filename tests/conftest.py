@@ -51,9 +51,9 @@ def tlwbe_regionalparameters_path(request):
 def mosquitto_process(mosquitto_path, mosquitto_port):
     process = Popen([mosquitto_path, '-v', '-p', str(mosquitto_port)])
     time.sleep(2)
-    yield process
-    process.terminate()
-    process.wait()
+    return process
+    # process.terminate()
+    # process.wait()
 
 
 @pytest.fixture(scope="session")
@@ -65,9 +65,9 @@ def tlwbe_process(mosquitto_port, tlwbe_path, tlwbe_database_path, tlwbe_regiona
         args.append('--regionalparameters_path=%s' % tlwbe_regionalparameters_path)
     process = Popen(args)
     time.sleep(2)
-    yield process
-    process.terminate()
-    process.wait()
+    return process
+    # process.terminate()
+    # process.wait()
 
 
 @pytest.fixture()
