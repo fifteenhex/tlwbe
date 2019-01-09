@@ -92,11 +92,6 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 	gchar devaddrascii[DEVADDRASCIILEN];
 	sprintf(devaddrascii, "%08"G_GINT32_MODIFIER"x", unpacked.data.devaddr);
 
-	uint8_t b0[BLOCKLEN];
-	guint32 fullfcnt = unpacked.data.framecount;
-	crypto_fillinblock_updownlink(b0, 0, unpacked.data.devaddr, fullfcnt,
-			datasizewithoutmic);
-
 	struct sessionkeys keys = { 0 };
 	database_keyparts_get(cntx, devaddrascii, uplink_process_rowcallback,
 			&keys);
@@ -109,8 +104,12 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 	packet_pack(&unpacked, keys.nwksk, keys.appsk, NULL, NULL);
 #endif
 
-	guint32 calcedmic = crypto_mic_2(keys.nwksk, KEYLEN, b0, sizeof(b0),
-			datastart, datasizewithoutmic);
+	uint8_t b0[BLOCKLEN];
+	guint32 fullfcnt = unpacked.data.framecount;
+	crypto_fillinblock_updownlink(b0, 0, unpacked.data.devaddr, fullfcnt,
+			datasizewithoutmic);
+	guint32 calcedmic = lorawan_crypto_mic_simple2(keys.nwksk, KEYLEN, b0,
+			sizeof(b0), datastart, datasizewithoutmic);
 
 	if (unpacked.mic == calcedmic) {
 		uint8_t* key = (uint8_t*) (
@@ -187,10 +186,12 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 			g_byte_array_free(pkt, TRUE);
 
 			if (senddownlink) {
-				g_free(downlink.appeui);
-				g_free(downlink.deveui);
-				g_free(downlink.payload);
-				g_free(downlink.token);
+				// these are copies on heap
+				// so safe to cast
+				g_free((void*) downlink.appeui);
+				g_free((void*) downlink.deveui);
+				g_free((void*) downlink.payload);
+				g_free((void*) downlink.token);
 			}
 
 		}

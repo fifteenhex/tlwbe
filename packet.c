@@ -32,7 +32,7 @@ void packet_debug(guint8* data, gsize len) {
 	}
 		break;
 	case MHDR_MTYPE_JOINACK: {
-		g_message("type: %s\n", types[up.type]);
+		g_message("type: %s", types[up.type]);
 	}
 		break;
 	case MHDR_MTYPE_UNCNFUP:
