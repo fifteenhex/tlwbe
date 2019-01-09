@@ -3,8 +3,7 @@ from tlwpy.tlwbe import Tlwbe, Result
 from subprocess import Popen
 import time
 from tlwpy.gatewaysimulator import Gateway
-
-MQTT_PORT = 6666
+import random
 
 
 def pytest_addoption(parser):
@@ -12,6 +11,11 @@ def pytest_addoption(parser):
     parser.addoption("--tlwbe_path", action="store")
     parser.addoption("--tlwbe_database_path", action="store")
     parser.addoption("--tlwbe_regionalparameters_path", action="store")
+
+
+@pytest.fixture(scope='session')
+def mosquitto_port():
+    return random.randint(6000, 8000)
 
 
 @pytest.fixture(scope="session")
@@ -44,8 +48,8 @@ def tlwbe_regionalparameters_path(request):
 
 
 @pytest.fixture(scope="session")
-def mosquitto_process(mosquitto_path):
-    process = Popen([mosquitto_path, '-v', '-p', str(MQTT_PORT)])
+def mosquitto_process(mosquitto_path, mosquitto_port):
+    process = Popen([mosquitto_path, '-v', '-p', str(mosquitto_port)])
     time.sleep(2)
     yield process
     process.terminate()
@@ -53,8 +57,8 @@ def mosquitto_process(mosquitto_path):
 
 
 @pytest.fixture(scope="session")
-def tlwbe_process(tlwbe_path, tlwbe_database_path, tlwbe_regionalparameters_path):
-    args = [tlwbe_path, '-h', 'localhost', '-p', str(MQTT_PORT), '--region=as920_923']
+def tlwbe_process(mosquitto_port, tlwbe_path, tlwbe_database_path, tlwbe_regionalparameters_path):
+    args = [tlwbe_path, '-h', 'localhost', '-p', str(mosquitto_port), '--region=as920_923']
     if tlwbe_database_path is not None:
         args.append('--database_path=%s' % tlwbe_database_path)
     if tlwbe_regionalparameters_path is not None:
@@ -67,8 +71,8 @@ def tlwbe_process(tlwbe_path, tlwbe_database_path, tlwbe_regionalparameters_path
 
 
 @pytest.fixture()
-async def tlwbe_client(mosquitto_process, tlwbe_process):
-    tlwbe = Tlwbe('localhost', port=MQTT_PORT)
+async def tlwbe_client(mosquitto_process, mosquitto_port, tlwbe_process):
+    tlwbe = Tlwbe('localhost', port=mosquitto_port)
     await tlwbe.wait_for_connection()
     return tlwbe
 
@@ -93,7 +97,7 @@ async def dev(tlwbe_client: Tlwbe, app):
 
 
 @pytest.fixture()
-async def gateway(mosquitto_process, tlwbe_process):
-    gateway = Gateway('localhost', port=MQTT_PORT)
+async def gateway(mosquitto_process, mosquitto_port, tlwbe_process):
+    gateway = Gateway('localhost', port=mosquitto_port)
     await gateway.wait_for_connection()
     return gateway
