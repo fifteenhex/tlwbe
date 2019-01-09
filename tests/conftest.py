@@ -52,8 +52,8 @@ def mosquitto_process(mosquitto_path, mosquitto_port):
     process = Popen([mosquitto_path, '-v', '-p', str(mosquitto_port)])
     time.sleep(2)
     return process
-    # process.terminate()
-    # process.wait()
+    process.terminate()
+    process.wait()
 
 
 @pytest.fixture(scope="session")
@@ -66,8 +66,8 @@ def tlwbe_process(mosquitto_port, tlwbe_path, tlwbe_database_path, tlwbe_regiona
     process = Popen(args)
     time.sleep(2)
     return process
-    # process.terminate()
-    # process.wait()
+    process.terminate()
+    process.wait()
 
 
 @pytest.fixture()
