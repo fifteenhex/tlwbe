@@ -17,4 +17,4 @@ before_install:
 
 script:
   - ci/buildindocker.sh
-  - ci/testindocker.sh
+#  - ci/testindocker.sh
