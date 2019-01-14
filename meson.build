@@ -67,7 +67,8 @@ if pytest.found() and mosquitto.found()
 	args = ['--mosquitto_path=' + mosquitto.path(),
 	        '--tlwbe_path=' + meson.build_root() + '/tlwbe',
 	        '--tlwbe_regionalparameters_path=' +  meson.source_root() + '/regionalparameters.json',
-		'--capture=no' ]
+		'--capture=no',
+                '--log-level=debug']
 	test('control', pytest, timeout : 120,
 	     args :  [meson.source_root() + '/tests/test_control.py'] + args,
              is_parallel : false)
