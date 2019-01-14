@@ -1,5 +1,4 @@
-#include <string.h>
-#include <lorawan/crypto.h>
+#include <lorawan/packet.h>
 
 #include "config.h"
 #include "packet.h"

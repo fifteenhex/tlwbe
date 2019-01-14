@@ -3,7 +3,9 @@
 #include <mosquitto.h>
 #include <string.h>
 #include <stdio.h>
+
 #include <lorawan/crypto.h>
+#include <lorawan/packet.h>
 
 #include "join.h"
 #include "tlwbe.h"

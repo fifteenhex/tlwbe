@@ -1,3 +1,5 @@
+#include <lorawan/packet.h>
+
 #include "mac.h"
 
 void mac_process(struct context* cntx, const gchar* gateway, guchar* data,

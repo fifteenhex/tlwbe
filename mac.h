@@ -1,6 +1,8 @@
 #pragma once
 
-#include "packet.h"
+#include <glib.h>
+
+#include "tlwbe.h"
 #include "pktfwdbr_rx.h"
 
 void mac_process(struct context* cntx, const gchar* gateway, guchar* data,
