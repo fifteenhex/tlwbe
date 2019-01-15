@@ -1,10 +1,6 @@
 #pragma once
 
-#if defined(__JSONGEN)
-#include <codegen/fakeglib.h>
-#else
-#include <glib.h>
-#endif
+#include <codegen/glibwrapper.h>
 
 #define PKTFWDBR_JSON_TXACK_ROOT "tx_ack"
 #define PKTFWDBR_JSON_ERROR						"error"
