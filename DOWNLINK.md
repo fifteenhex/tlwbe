@@ -1,6 +1,6 @@
 # downlink interface
 
-## queuing downlinks
+## scheduling downlinks
 
 ### publish topic
 

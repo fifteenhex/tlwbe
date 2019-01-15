@@ -90,7 +90,11 @@ void downlink_dorxwindowdownlink(struct context* cntx, const gchar* gateway,
 
 void downlink_onbrokerconnect(const struct context* cntx) {
 	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
-	NULL, TLWBE_TOPICROOT "/" DOWNLINK_SUBTOPIC "/" DOWNLINK_SCHEDULE "/#", 0);
+	NULL,
+	TLWBE_TOPICROOT "/" DOWNLINK_SUBTOPIC "/" DOWNLINK_ACTION_SCHEDULE "/#", 0);
+	mosquitto_subscribe(mosquitto_client_getmosquittoinstance(cntx->mosqclient),
+	NULL, TLWBE_TOPICROOT "/" DOWNLINK_SUBTOPIC "/" DOWNLINK_ACTION_QUERY "/#",
+			0);
 }
 
 static void downlink_schedule(struct context* cntx, const gchar* appeui,
@@ -123,12 +127,23 @@ static void downlink_schedule(struct context* cntx, const gchar* appeui,
 		g_message("failed to parse downlink message");
 }
 
+static void downlink_query(struct context* cntx, const gchar* token,
+		const JsonObject* rootobj) {
+	struct downlink_query_result result = { 0 };
+	JsonBuilder* builder = json_builder_new_immutable();
+	__jsongen_downlink_query_result_to_json(&result, builder);
+	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "downlink",
+			"result", token, NULL);
+	mosquitto_client_publish_json_builder(cntx->mosqclient, builder, topic,
+	TRUE);
+}
+
 void downlink_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
 		const JsonObject* rootobj) {
 
 	const gchar* action = splittopic[0];
 
-	if (g_strcmp0(action, DOWNLINK_SCHEDULE) == 0) {
+	if (g_strcmp0(action, DOWNLINK_ACTION_SCHEDULE) == 0) {
 		//schedule/<appeui>/<deveui>/<port>/<token>
 		if (numtopicparts != 5) {
 			g_message("need 5 topic parts, got %d", numtopicparts);
@@ -142,6 +157,14 @@ void downlink_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
 		}
 		downlink_schedule(cntx, splittopic[1], splittopic[2], port,
 				splittopic[4], rootobj);
+
+	} else if (g_strcmp0(action, DOWNLINK_ACTION_QUERY) == 0) {
+		//query/<token>
+		if (numtopicparts != 2) {
+			g_message("need 2 topic parts, got %d", numtopicparts);
+			return;
+		}
+		downlink_query(cntx, splittopic[1], rootobj);
 
 	} else
 		g_message("unknown downlink action; %s", action);

@@ -246,6 +246,10 @@ void uplink_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
 		database_uplinks_get(cntx, deveui, uplink_onmsg_rowcallback,
 				jsonbuilder);
 		json_builder_end_array(jsonbuilder);
+
+		json_builder_set_member_name(jsonbuilder, "code");
+		json_builder_add_int_value(jsonbuilder, 0);
+
 		json_builder_end_object(jsonbuilder);
 
 		gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT,
