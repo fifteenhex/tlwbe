@@ -1,8 +1,9 @@
 import pytest
 from tlwpy.tlwbe import Tlwbe, Result
+from tlwpy.gatewaysimulator import Gateway
+from tlwpy.pktfwdbr import PacketForwarder
 from subprocess import Popen
 import time
-from tlwpy.gatewaysimulator import Gateway
 import random
 
 
@@ -101,3 +102,10 @@ async def gateway(mosquitto_process, mosquitto_port, tlwbe_process):
     gateway = Gateway('localhost', port=mosquitto_port)
     await gateway.wait_for_connection()
     return gateway
+
+
+@pytest.fixture()
+async def pktfwdbr(mosquitto_process, mosquitto_port, tlwbe_process):
+    pktfwdbr = PacketForwarder('localhost', port=mosquitto_port)
+    await pktfwdbr.wait_for_connection()
+    return pktfwdbr
