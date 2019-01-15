@@ -22,3 +22,5 @@ async def test_downlink(mosquitto_process, tlwbe_process, dev, tlwbe_client: Tlw
 
     result: Result = await tlwbe_client.send_downlink(app_eui, dev_eui, 1, b'123abc', False)
     assert result.code == 0
+
+    result: Result = await tlwbe_client.list_downlinks(dev_eui)
