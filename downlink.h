@@ -68,9 +68,17 @@ struct downlink_schedule_result {
 	typedef struct downlink_schedule_result __jsongen_builder;
 #endif
 
+struct downlink_query_result {
+		guint8 code;
+};
+#ifdef __JSONGEN
+	typedef struct downlink_query_result __jsongen_builder;
+#endif
+
 #if !(defined(__SQLITEGEN) || defined(__JSONGEN))
-#define DOWNLINK_SUBTOPIC "downlink"
-#define DOWNLINK_SCHEDULE "schedule"
+#define DOWNLINK_SUBTOPIC			"downlink"
+#define DOWNLINK_ACTION_SCHEDULE	"schedule"
+#define DOWNLINK_ACTION_QUERY		"query"
 
 void downlink_dodownlink(struct context* cntx, const gchar* gateway,
 	const gchar* token, guint8* pkt, gsize pktlen,
