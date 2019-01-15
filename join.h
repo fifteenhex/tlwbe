@@ -1,7 +1,7 @@
 #pragma once
 
 #if defined(__SQLITEGEN) || defined(__JSONGEN)
-#include "codegen/fakeglib.h"
+#include <codegen/fakeglib.h>
 #else
 #include "tlwbe.h"
 #include "pktfwdbr_rx.h"

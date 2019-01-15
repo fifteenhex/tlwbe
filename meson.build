@@ -17,20 +17,20 @@ configure_file(input : 'config.h.in',
 
 mosquitto_glib = subproject('mosquitto_glib')
 liblorawan = subproject('liblorawan')
-
-prog_sqlitegen = find_program(meson.source_root() + '/codegen/sqlitegen.py')
-gen_sqlitegen = generator(prog_sqlitegen,
-                 output : ['@BASENAME@.sqlite.h'],
-                 arguments : ['--input=@INPUT@', '--output=@BUILD_DIR@/@BASENAME@.sqlite.h'])
-generated_sqlite = gen_sqlitegen.process('control.h','join.h','uplink.h','downlink.h')
+codegen = subproject('codegen')
 
 
-prog_jsongen = find_program(meson.source_root() + '/codegen/jsongen.py')
-gen_jsongen = generator(prog_jsongen,
-                 output : ['@BASENAME@.json.h'],
-                 arguments : ['--input=@INPUT@', '--output=@BUILD_DIR@/@BASENAME@.json.h'])
-generated_json = gen_jsongen.process('control.h','join.h', 'uplink.h', 
-                                     'downlink.h', 'pktfwdbr_txack.h', 'pktfwdbr_rx.h')
+generated_sqlite = codegen.get_variable('gen_sqlitegen').process(meson.current_source_dir() + '/control.h',
+                                                                 meson.current_source_dir() + '/join.h',
+                                                                 meson.current_source_dir() + '/uplink.h',
+                                                                 meson.current_source_dir() + '/downlink.h')
+generated_json = codegen.get_variable('gen_jsongen').process(meson.current_source_dir() + '/control.h',
+                                                             meson.current_source_dir() + '/join.h',
+                                                             meson.current_source_dir() + '/uplink.h',
+                                                             meson.current_source_dir() + '/downlink.h',
+                                                             meson.current_source_dir() + '/pktfwdbr_txack.h',
+                                                             meson.current_source_dir() + '/pktfwdbr_rx.h')
+generated_rpc = codegen.get_variable('gen_rpcgen').process(meson.current_source_dir() + '/downlink_rpc.json')
 
 src = ['tlwbe.c',
        'join.c',
@@ -46,13 +46,15 @@ src = ['tlwbe.c',
        'stats.c',
        'mac.c',
        generated_sqlite,
-       generated_json]
+       generated_json,
+       generated_rpc]
 
 deps = [ dependency('glib-2.0'),
          dependency('json-glib-1.0'),
          dependency('sqlite3'),
          liblorawan.get_variable('lorawan_dep'),
-         mosquitto_glib.get_variable('mosquitto_glib_dep')]
+         mosquitto_glib.get_variable('mosquitto_glib_dep'),
+         codegen.get_variable('dep')]
 
 executable('tlwbe', src, 
            dependencies : deps, 

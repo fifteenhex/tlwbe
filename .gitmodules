@@ -8,5 +8,5 @@
 	path = subprojects/liblorawan
 	url = https://github.com/fifteenhex/liblorawan.git
 [submodule "codegen"]
-	path = codegen
+	path = subprojects/codegen
 	url = https://github.com/fifteenhex/codegen.git
