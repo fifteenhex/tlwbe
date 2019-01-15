@@ -7,3 +7,6 @@
 [submodule "subprojects/liblorawan"]
 	path = subprojects/liblorawan
 	url = https://github.com/fifteenhex/liblorawan.git
+[submodule "codegen"]
+	path = codegen
+	url = https://github.com/fifteenhex/codegen.git
