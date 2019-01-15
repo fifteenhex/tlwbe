@@ -1,0 +1,8 @@
+{
+	"root": "downlink",
+	"endpoints": [
+		{ "name": "add" },
+		{ "name": "del" },
+		{ "name": "query" }
+	]
+}
