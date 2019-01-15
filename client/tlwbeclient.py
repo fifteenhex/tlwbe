@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from tlwpy.tlwbe import Tlwbe, RESULT_OK
+from tlwpy.tlwbe import Tlwbe, RESULT_OK, Uplink
 import asyncio
 from prompt_toolkit import PromptSession, print_formatted_text, HTML
 from prompt_toolkit.eventloop import use_asyncio_event_loop
@@ -11,6 +11,7 @@ import prompt_toolkit.lexers
 import prompt_toolkit.completion
 import prompt_toolkit.contrib.regular_languages.compiler
 import re
+import string
 
 use_asyncio_event_loop()
 
@@ -71,6 +72,18 @@ async def cmd_app_add(tlwbe: Tlwbe, parameters: dict):
         print_formatted_text('failed')
 
 
+async def cmd_app_get(tlwbe: Tlwbe, parameters: dict):
+    result = await tlwbe.get_app_by_eui(eui=parameters['eui'])
+    if result.code is not 0:
+        print_formatted_text('failed')
+
+
+async def cmd_app_delete(tlwbe: Tlwbe, parameters: dict):
+    result = await tlwbe.delete_app(eui=parameters['eui'])
+    if result.code is not 0:
+        print_formatted_text('failed')
+
+
 async def cmd_dev_list(tlwbe: Tlwbe, parameters: dict):
     devs = await tlwbe.list_devs()
     if devs.code == RESULT_OK:
@@ -90,48 +103,95 @@ async def cmd_dev_add(tlwbe: Tlwbe, parameters: dict):
         print_formatted_text('failed')
 
 
-async def cmd_uplink(tlwbe: Tlwbe, parameters: dict):
-    pass
+async def cmd_dev_delete(tlwbe: Tlwbe, parameters: dict):
+    result = await tlwbe.delete_dev(eui=parameters['eui'])
+    if result.code is not 0:
+        print_formatted_text('failed')
 
 
-async def cmd_downlink(tlwbe: Tlwbe, parameters: dict):
-    pass
+async def cmd_uplink_list(tlwbe: Tlwbe, parameters: dict):
+    result = await tlwbe.list_uplinks(app_eui=parameters.get('app_eui'),
+                                      dev_eui=parameters.get('dev_eui'))
+    if result.code is not 0:
+        print_formatted_text('failed')
+        return
+
+    for uplink in result.uplinks:
+        hexbytes = []
+
+        printable_chars = bytes(string.printable, 'ascii')
+        asciibytes = []
+        for b in uplink.payload:
+            hexbytes.append('%02x' % b)
+            if b in printable_chars:
+                asciibytes.append('%c' % b)
+            else:
+                asciibytes.append('.')
+        print_formatted_text('%s %s@%s %s [%s]' % (
+            uplink.timestamp, uplink.dev_eui, uplink.port, ''.join(hexbytes), ''.join(asciibytes)))
+
+
+async def cmd_downlink_add(tlwbe: Tlwbe, parameters: dict):
+    payload = b'poop'
+    result = await tlwbe.send_downlink(parameters['app_eui'], parameters['dev_eui'], int(parameters['port']), payload)
+    if result.code is not 0:
+        print_formatted_text('failed')
+
+
+async def cmd_downlink_list(tlwbe: Tlwbe, parameters: dict):
+    result = await tlwbe.list_downlinks(app_eui=parameters.get('app_eui'),
+                                        dev_eui=parameters.get('dev_eui'))
+
+
+class Command:
+    __slots__ = ['func', 'required_fields', 'optional_fields']
+
+    def __init__(self, func: callable, required_fields: list = None, optional_fields: list = None):
+        self.func = func
+        self.required_fields = required_fields
+        self.optional_fields = optional_fields
 
 
 class Object:
-    __slots__ = ['commands', 'required_fields', 'optional_fields']
+    __slots__ = ['commands']
 
-    def __init__(self, get: callable = None,
+    def __init__(self, get: callable = None, get_required_fields: list = None, get_optional_fields: list = None,
                  add: callable = None, add_required_fields: list = None, add_optional_fields: list = None,
-                 delete: callable = None, list: callable = None):
+                 delete: callable = None, delete_required_fields: list = None, delete_optional_fields: list = None,
+                 list: callable = None, list_required_fields: list = None, list_optional_fields: list = None):
         self.commands = {
-            'get': get,
-            'add': add,
-            'delete': delete,
-            'list': list
-        }
-        self.required_fields = {
-            'add': add_required_fields
-        }
-        self.optional_fields = {
-            'add': add_optional_fields
+            'get': Command(get, get_required_fields, get_optional_fields),
+            'add': Command(add, add_required_fields, add_optional_fields),
+            'del': Command(delete, delete_required_fields, delete_optional_fields),
+            'list': Command(list, list_required_fields, list_optional_fields)
         }
 
+
+FIELD_NAME = 'name'
+FIELD_EUI = 'eui'
+FIELD_APP_EUI = 'app_eui'
+FIELD_DEV_EUI = 'dev_eui'
+FIELD_PORT = 'port'
 
 objects = {
-    'app': Object(add=cmd_app_add, add_required_fields=['name'], list=cmd_app_list),
-    'dev': Object(add=cmd_dev_add, add_required_fields=['name', 'app_eui'], list=cmd_dev_list),
-    'uplink': Object(cmd_uplink),
-    'downlink': Object(cmd_downlink)
+    'app': Object(get=cmd_app_get, get_required_fields=[FIELD_EUI],
+                  add=cmd_app_add, add_required_fields=[FIELD_NAME],
+                  delete=cmd_app_delete, delete_required_fields=[FIELD_EUI],
+                  list=cmd_app_list),
+    'dev': Object(add=cmd_dev_add, add_required_fields=[FIELD_NAME, FIELD_APP_EUI],
+                  delete=cmd_dev_delete, delete_required_fields=[FIELD_EUI],
+                  list=cmd_dev_list),
+    'uplink': Object(list=cmd_uplink_list),
+    'downlink': Object(add=cmd_downlink_add, add_required_fields=[FIELD_APP_EUI, FIELD_DEV_EUI, FIELD_PORT],
+                       list=cmd_downlink_list)
 }
 object_types = list(objects.keys())
 commands = ['get', 'add', 'del', 'update', 'list', 'help']
 misc = ['help']
-fields = ['name', 'eui', 'app_eui']
+fields = [FIELD_NAME, FIELD_EUI, FIELD_APP_EUI, FIELD_DEV_EUI, FIELD_PORT]
 
 parameter_regex = '(%s)\\s(\\w{1,})\\s?' % '|'.join(fields)
-regex = '(%s)(\\s(%s)\\s?)?((%s){0,})' % (
-    '|'.join(misc + object_types), '|'.join(commands), parameter_regex)
+regex = '(%s)(\\s(%s)\\s?)?((%s){0,})' % ('|'.join(misc + object_types), '|'.join(commands), parameter_regex)
 print(regex)
 
 
@@ -163,26 +223,29 @@ async def main(host: str, port: int):
                 for match in matches:
                     parameters[match.group(1)] = match.group(2)
 
-                # print('%s %s %s' % (obj, command, str(parameters)))
+                print('%s %s %s' % (obj, command, str(parameters)))
 
                 o = objects.get(obj)
                 c = o.commands.get(command)
-                r_f: list = o.required_fields.get(command)
-                o_f = o.optional_fields.get(command)
 
                 if c is not None:
-                    if r_f is not None:
+                    if c.required_fields is not None:
+                        missing_fields = c.required_fields.copy()
                         for f in parameters:
-                            if f in r_f:
-                                r_f.remove(f)
-                        if len(r_f) is not 0:
+                            if f in missing_fields:
+                                missing_fields.remove(f)
+                        if len(missing_fields) is not 0:
                             print_formatted_text("One or more required parameters are missing...")
-                            for f in r_f:
+                            for f in missing_fields:
                                 print_formatted_text(HTML('parameter <b>%s</b> is required' % f))
                             call = False
 
                     if call:
-                        await c(tlwbe, parameters)
+                        try:
+                            await c.func(tlwbe, parameters)
+                        except asyncio.TimeoutError:
+                            print_formatted_text('timeout :(')
+
             else:
                 cmd_unknown()
 
