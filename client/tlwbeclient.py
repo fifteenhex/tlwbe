@@ -33,30 +33,6 @@ class Completer(prompt_toolkit.completion.Completer):
                 yield prompt_toolkit.completion.Completion(command)
 
 
-def cmd_unknown():
-    print('I have no idea, sorry.')
-
-
-async def cmd_help(tlwbe: Tlwbe, parameters: dict):
-    print_formatted_text(HTML('<b>Usage:</b>'))
-    print_formatted_text(HTML('OBJECT COMMAND [PARAMETERS]'))
-    print_formatted_text('')
-
-    print_formatted_text(HTML('<b>Objects</b>'))
-    for o in object_types:
-        print_formatted_text(HTML('<b>%s</b>' % o))
-    print_formatted_text('')
-
-    print_formatted_text(HTML('<b>Commands</b>'))
-    for c in commands:
-        print_formatted_text((HTML('<b>%s</b>' % c)))
-    print_formatted_text('')
-
-    print_formatted_text(HTML('<b>Misc</b>'))
-    for m in misc:
-        print_formatted_text((HTML('<b>%s</b>' % m)))
-
-
 def __print_failure(result):
     if result.code != RESULT_OK:
         print_formatted_text('failed, code %d' % result.code)
@@ -174,6 +150,15 @@ class Command:
         if optional_fields is not None:
             self.possible_fields += optional_fields
 
+    def print_summary(self):
+        summary = []
+        if self.required_fields is not None:
+            summary.append(" ".join(map(lambda a: '%s <%s>' % (a, a), self.required_fields)))
+        if self.optional_fields is not None:
+            summary.append(" ".join(map(lambda a: '[%s <%s>]' % (a, a), self.optional_fields)))
+
+        return ' '.join(summary)
+
 
 class Object:
     __slots__ = ['commands']
@@ -182,12 +167,16 @@ class Object:
                  add: callable = None, add_required_fields: list = None, add_optional_fields: list = None,
                  delete: callable = None, delete_required_fields: list = None, delete_optional_fields: list = None,
                  list: callable = None, list_required_fields: list = None, list_optional_fields: list = None):
-        self.commands = {
-            'get': Command(get, get_required_fields, get_optional_fields),
-            'add': Command(add, add_required_fields, add_optional_fields),
-            'del': Command(delete, delete_required_fields, delete_optional_fields),
-            'list': Command(list, list_required_fields, list_optional_fields)
-        }
+        self.commands = {}
+
+        if get is not None:
+            self.commands['get'] = Command(get, get_required_fields, get_optional_fields)
+        if add is not None:
+            self.commands['add'] = Command(add, add_required_fields, add_optional_fields)
+        if delete is not None:
+            self.commands['del'] = Command(delete, delete_required_fields, delete_optional_fields)
+        if list is not None:
+            self.commands['list'] = Command(list, list_required_fields, list_optional_fields)
 
 
 FIELD_NAME = 'name'
@@ -199,7 +188,7 @@ FIELD_DATA = 'data'
 
 objects = {
     'app': Object(get=cmd_app_get, get_required_fields=[FIELD_EUI],
-                  add=cmd_app_add, add_required_fields=[FIELD_NAME],
+                  add=cmd_app_add, add_required_fields=[FIELD_NAME], add_optional_fields=[FIELD_EUI],
                   delete=cmd_app_delete, delete_required_fields=[FIELD_EUI],
                   list=cmd_app_list),
     'dev': Object(add=cmd_dev_add, add_required_fields=[FIELD_NAME, FIELD_APP_EUI],
@@ -213,6 +202,22 @@ objects = {
 object_types = list(objects.keys())
 commands = ['get', 'add', 'del', 'update', 'list', 'help']
 misc = ['help']
+
+
+def cmd_unknown():
+    print('I have no idea, sorry.')
+
+
+def cmd_help():
+    print_formatted_text(HTML('<b>Usage:</b>'))
+    print_formatted_text(HTML('OBJECT COMMAND [PARAMETERS]'))
+    print_formatted_text('')
+
+    print_formatted_text(HTML('<b>Object manipulation</b>'))
+    for o in objects:
+        for c in objects[o].commands:
+            print_formatted_text(HTML('%s %s' % (o, c)), objects[o].commands[c].print_summary())
+        print_formatted_text('')
 
 
 class Parameter:
@@ -253,57 +258,63 @@ async def main(host: str, port: int):
         with patch_stdout():
             result: str = await session.prompt('tlwbe> ', async_=True)
 
-            call = True
-
-            matches = re.search(regex, result)
-            if matches is not None:
-                obj = matches.group(1)
-                command = matches.group(3)
-                if command is None:
-                    command = 'list'
-                raw_parameters = matches.group(4)
-                matches = re.finditer(parameter_regex, raw_parameters)
-                parameters = {}
-                for match in matches:
-                    parameters[match.group(1)] = match.group(2)
-
-                # print('%s %s %s' % (obj, command, str(parameters)))
-
-                o = objects.get(obj)
-                c = o.commands.get(command)
-
-                if c is not None:
-                    # work out if any required parameter are missing
-                    if c.required_fields is not None:
-                        missing_fields = c.required_fields.copy()
-                        for f in parameters:
-                            if f in missing_fields:
-                                missing_fields.remove(f)
-                        if len(missing_fields) is not 0:
-                            print_formatted_text("One or more required parameters are missing...")
-                            for f in missing_fields:
-                                print_formatted_text(HTML('parameter <b>%s</b> is required' % f))
-                            call = False
-
-                    # work out if there are unclaimed parameters
-                    claimed_parameters = {}
-                    for pp in c.possible_fields:
-                        if pp in parameters:
-                            claimed_parameters[pp] = parameters.pop(pp)
-
-                    if len(parameters) is not 0:
-                        for p in parameters:
-                            print_formatted_text(HTML('parameter <b>%s</b> isn\'t applicable here' % p))
-                        call = False
-
-                    if call:
-                        try:
-                            await c.func(tlwbe, claimed_parameters)
-                        except asyncio.TimeoutError:
-                            print_formatted_text('timeout :(')
+            if result.startswith('help'):
+                cmd_help()
 
             else:
-                cmd_unknown()
+                call = True
+
+                matches = re.search(regex, result)
+                if matches is not None:
+                    obj = matches.group(1)
+                    command = matches.group(3)
+                    if command is None:
+                        command = 'list'
+                    raw_parameters = matches.group(4)
+                    matches = re.finditer(parameter_regex, raw_parameters)
+                    parameters = {}
+                    for match in matches:
+                        parameters[match.group(1)] = match.group(2)
+
+                    # print('%s %s %s' % (obj, command, str(parameters)))
+
+                    o = objects.get(obj)
+                    c = o.commands.get(command)
+
+                    if c is not None:
+                        # work out if any required parameter are missing
+                        if c.required_fields is not None:
+                            missing_fields = c.required_fields.copy()
+                            for f in parameters:
+                                if f in missing_fields:
+                                    missing_fields.remove(f)
+                            if len(missing_fields) is not 0:
+                                print_formatted_text("One or more required parameters are missing...")
+                                for f in missing_fields:
+                                    print_formatted_text(HTML('parameter <b>%s</b> is required' % f))
+                                call = False
+
+                        # work out if there are unclaimed parameters
+                        claimed_parameters = {}
+                        for pp in c.possible_fields:
+                            if pp in parameters:
+                                claimed_parameters[pp] = parameters.pop(pp)
+
+                        if len(parameters) is not 0:
+                            for p in parameters:
+                                print_formatted_text(HTML('parameter <b>%s</b> isn\'t applicable here' % p))
+                            call = False
+
+                        if call:
+                            try:
+                                await c.func(tlwbe, claimed_parameters)
+                            except asyncio.TimeoutError:
+                                print_formatted_text('timeout :(')
+
+                    else:
+                        print_formatted_text(HTML('<b>%s</b> is not applicable to <b>%s</b>' % (command, obj)))
+                else:
+                    cmd_unknown()
 
 
 if __name__ == '__main__':
