@@ -57,63 +57,76 @@ async def cmd_help(tlwbe: Tlwbe, parameters: dict):
         print_formatted_text((HTML('<b>%s</b>' % m)))
 
 
+def __print_failure(result):
+    if result.code != RESULT_OK:
+        print_formatted_text('failed, code %d' % result.code)
+        return True
+    else:
+        return False
+
+
 async def cmd_app_list(tlwbe: Tlwbe, parameters: dict):
     apps = await tlwbe.list_apps()
-    if apps.code == RESULT_OK:
-        for eui in apps.eui_list:
-            app = await tlwbe.get_app_by_eui(eui)
-            if app.code == RESULT_OK:
-                print_formatted_text(HTML('<b>%s</b>[%s]' % (app.app.name, app.app.eui)))
+
+    if __print_failure(apps):
+        return
+
+    for eui in apps.eui_list:
+        app = await tlwbe.get_app_by_eui(eui)
+        if app.code == RESULT_OK:
+            print_formatted_text(HTML('<b>%s</b>[%s]' % (app.app.name, app.app.eui)))
 
 
 async def cmd_app_add(tlwbe: Tlwbe, parameters: dict):
     result = await tlwbe.add_app(name=parameters['name'])
-    if result.code is not 0:
-        print_formatted_text('failed')
+    if __print_failure(result):
+        return
 
 
 async def cmd_app_get(tlwbe: Tlwbe, parameters: dict):
     result = await tlwbe.get_app_by_eui(eui=parameters['eui'])
-    if result.code is not 0:
-        print_formatted_text('failed')
+    if __print_failure(result):
+        return
 
 
 async def cmd_app_delete(tlwbe: Tlwbe, parameters: dict):
     result = await tlwbe.delete_app(eui=parameters['eui'])
-    if result.code is not 0:
-        print_formatted_text('failed')
+    if __print_failure(result):
+        return
 
 
 async def cmd_dev_list(tlwbe: Tlwbe, parameters: dict):
     devs = await tlwbe.list_devs()
-    if devs.code == RESULT_OK:
-        for eui in devs.eui_list:
-            dev = await tlwbe.get_dev_by_eui(eui)
-            if dev.code == RESULT_OK:
-                app = await tlwbe.get_app_by_eui(eui)
-                if app.code == RESULT_OK:
-                    print_formatted_text(
-                        HTML('<b>%s</b>[%s]' % (
-                            dev.dev.name, dev.dev.eui)))  # app.app.name, app.app.eui)))
+
+    if __print_failure(devs):
+        return
+
+    for eui in devs.eui_list:
+        dev = await tlwbe.get_dev_by_eui(eui)
+        if dev.code == RESULT_OK:
+            app = await tlwbe.get_app_by_eui(eui)
+            if app.code == RESULT_OK:
+                print_formatted_text(
+                    HTML('<b>%s</b>[%s]' % (
+                        dev.dev.name, dev.dev.eui)))  # app.app.name, app.app.eui)))
 
 
 async def cmd_dev_add(tlwbe: Tlwbe, parameters: dict):
     result = await tlwbe.add_dev(name=parameters['name'], app_eui=parameters['app_eui'])
-    if result.code is not 0:
-        print_formatted_text('failed')
+    if __print_failure(result):
+        return
 
 
 async def cmd_dev_delete(tlwbe: Tlwbe, parameters: dict):
     result = await tlwbe.delete_dev(eui=parameters['eui'])
-    if result.code is not 0:
-        print_formatted_text('failed')
+    if __print_failure(result):
+        return
 
 
 async def cmd_uplink_list(tlwbe: Tlwbe, parameters: dict):
     result = await tlwbe.list_uplinks(app_eui=parameters.get('app_eui'),
                                       dev_eui=parameters.get('dev_eui'))
-    if result.code is not 0:
-        print_formatted_text('failed')
+    if __print_failure(result):
         return
 
     for uplink in result.uplinks:
@@ -135,19 +148,23 @@ async def cmd_downlink_add(tlwbe: Tlwbe, parameters: dict):
     payload = b'poop'
     result = await tlwbe.send_downlink(parameters['app_eui'], parameters['dev_eui'],
                                        int(parameters['port']), payload)
-    if result.code is not 0:
-        print_formatted_text('failed')
+    if __print_failure(result):
+        return
 
 
 async def cmd_downlink_list(tlwbe: Tlwbe, parameters: dict):
     result = await tlwbe.list_downlinks(app_eui=parameters.get('app_eui'),
                                         dev_eui=parameters.get('dev_eui'))
 
+    if __print_failure(result):
+        return
+
 
 class Command:
-    __slots__ = ['func', 'required_fields', 'optional_fields', 'possible_fields']
+    __slots__ = ['func', 'required_fields', 'optional_fields', 'possible_fields', 'mutually_exclusive_fields']
 
-    def __init__(self, func: callable, required_fields: list = None, optional_fields: list = None):
+    def __init__(self, func: callable,
+                 required_fields: list = None, optional_fields: list = None, mutually_exclusive_fields: [[str]] = None):
         self.func = func
         self.required_fields = required_fields
         self.optional_fields = optional_fields
@@ -188,10 +205,10 @@ objects = {
     'dev': Object(add=cmd_dev_add, add_required_fields=[FIELD_NAME, FIELD_APP_EUI],
                   delete=cmd_dev_delete, delete_required_fields=[FIELD_EUI],
                   list=cmd_dev_list),
-    'uplink': Object(list=cmd_uplink_list),
+    'uplink': Object(list=cmd_uplink_list, list_optional_fields=[FIELD_APP_EUI, FIELD_DEV_EUI]),
     'downlink': Object(add=cmd_downlink_add, add_required_fields=[FIELD_APP_EUI, FIELD_DEV_EUI,
                                                                   FIELD_PORT, FIELD_DATA],
-                       list=cmd_downlink_list)
+                       list=cmd_downlink_list, list_optional_fields=[FIELD_APP_EUI, FIELD_DEV_EUI])
 }
 object_types = list(objects.keys())
 commands = ['get', 'add', 'del', 'update', 'list', 'help']
