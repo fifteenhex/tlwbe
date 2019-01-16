@@ -1,8 +1,47 @@
 {
-	"root": "downlink",
-	"endpoints": [
-		{ "name": "add" },
-		{ "name": "del" },
-		{ "name": "query" }
-	]
+   "root":"downlink",
+   "context":{
+      "c_type":"struct context*"
+   },
+   "request":{
+      "c_type":"const JsonObject*"
+   },
+   "response":{
+      "c_type":"const JsonBuilder*"
+   },
+   "endpoints":{
+      "schedule":{
+         "topic_parts":{
+            "appeui":{
+               "length":16
+            },
+            "deveui":{
+               "length":16
+            },
+            "port":{
+               "c_type":"guint8",
+               "min":0,
+               "max":255,
+               "conversion":"unsigned"
+            },
+            "token":{
+
+            }
+         }
+      },
+      "cancel":{
+         "topic_parts":{
+            "token":{
+
+            }
+         }
+      },
+      "query":{
+         "topic_parts":{
+            "token":{
+
+            }
+         }
+      }
+   }
 }

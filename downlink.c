@@ -11,6 +11,7 @@
 #include "json-glib-macros/jsonbuilderutils.h"
 
 #include "downlink.json.h"
+#include "downlink_rpc.rpc.h"
 
 static gchar* downlink_createtxjson(guchar* data, gsize datalen, gsize* length,
 		guint64 delay, gdouble frequency, const gchar* dr, guint8 txpower,
@@ -97,11 +98,15 @@ void downlink_onbrokerconnect(const struct context* cntx) {
 			0);
 }
 
-static void downlink_schedule(struct context* cntx, const gchar* appeui,
-		const gchar* deveui, guint8 port, const gchar* token,
-		const JsonObject* rootobj) {
+static int __rpcgen_downlink_schedule(struct context* context,
+		const gchar* appeui, const gchar* deveui, guint8 port,
+		const gchar* token, const JsonObject* request,
+		const JsonBuilder* response) {
+
+	int ret = RPCGEN_ERR_NONE;
+
 	struct downlink downlink = { 0 };
-	if (__jsongen_downlink_from_json(&downlink, rootobj)) {
+	if (__jsongen_downlink_from_json(&downlink, request)) {
 		downlink.timestamp = g_get_real_time();
 		downlink.deadline = ((24 * 60) * 60);
 		downlink.appeui = appeui;
@@ -112,62 +117,46 @@ static void downlink_schedule(struct context* cntx, const gchar* appeui,
 		g_message("have downlink for app %s, dev %s, port %d, token %s",
 				downlink.appeui, downlink.deveui, (int )port, downlink.token);
 
-		database_downlink_add(cntx, &downlink);
+		database_downlink_add(context, &downlink);
 
 		struct downlink_schedule_result result = { 0 };
 		JsonBuilder* builder = json_builder_new_immutable();
 		__jsongen_downlink_schedule_result_to_json(&result, builder);
-		gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "downlink",
-				"result", token, NULL);
-		mosquitto_client_publish_json_builder(cntx->mosqclient, builder, topic,
-		TRUE);
 
-		g_free(topic);
-	} else
+	} else {
 		g_message("failed to parse downlink message");
+		ret = RPCGEN_ERR_BADREQUEST;
+	}
+
+	return ret;
+
 }
 
-static void downlink_query(struct context* cntx, const gchar* token,
-		const JsonObject* rootobj) {
+static int __rpcgen_downlink_cancel(struct context* context, const gchar* token,
+		const JsonObject* request, const JsonBuilder* response) {
+	return RPCGEN_ERR_NONE;
+}
+
+static int __rpcgen_downlink_query(struct context* context, const gchar* token,
+		const JsonObject* request, const JsonBuilder* response) {
 	struct downlink_query_result result = { 0 };
 	JsonBuilder* builder = json_builder_new_immutable();
 	__jsongen_downlink_query_result_to_json(&result, builder);
-	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "downlink",
-			"result", token, NULL);
-	mosquitto_client_publish_json_builder(cntx->mosqclient, builder, topic,
-	TRUE);
+	return RPCGEN_ERR_NONE;
 }
 
 void downlink_onmsg(struct context* cntx, char** splittopic, int numtopicparts,
 		const JsonObject* rootobj) {
-
-	const gchar* action = splittopic[0];
-
-	if (g_strcmp0(action, DOWNLINK_ACTION_SCHEDULE) == 0) {
-		//schedule/<appeui>/<deveui>/<port>/<token>
-		if (numtopicparts != 5) {
-			g_message("need 5 topic parts, got %d", numtopicparts);
-			return;
-		}
-		guint64 port;
-		if (!g_ascii_string_to_unsigned(splittopic[3], 10, 0, 255, &port,
-		NULL)) {
-			g_message("port number invalid");
-			return;
-		}
-		downlink_schedule(cntx, splittopic[1], splittopic[2], port,
-				splittopic[4], rootobj);
-
-	} else if (g_strcmp0(action, DOWNLINK_ACTION_QUERY) == 0) {
-		//query/<token>
-		if (numtopicparts != 2) {
-			g_message("need 2 topic parts, got %d", numtopicparts);
-			return;
-		}
-		downlink_query(cntx, splittopic[1], rootobj);
-
-	} else
-		g_message("unknown downlink action; %s", action);
+	JsonBuilder* response = json_builder_new();
+	json_builder_begin_object(response);
+	__rpcgen_downlink_dispatch(cntx, splittopic, numtopicparts, rootobj,
+			response);
+	json_builder_end_object(response);
+	gchar* topic = mosquitto_client_createtopic(TLWBE_TOPICROOT, "downlink",
+			"result", splittopic[numtopicparts - 1], NULL);
+	mosquitto_client_publish_json_builder(cntx->mosqclient, response, topic,
+	TRUE);
+	g_free(topic);
 }
 
 gboolean downlink_cleanup(gpointer data) {
