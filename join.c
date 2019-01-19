@@ -27,7 +27,8 @@ static void printsessionkeys(const uint8_t* key, const struct session* s) {
 	uint32_t netid = 0;
 	uint16_t devnonce = utils_hex2u16(s->devnonce);
 
-	crypto_calculatesessionkeys(key, appnonce, netid, devnonce, nsk, ask);
+	lorawan_crypto_calculatesessionkeys(key, appnonce, netid, devnonce, nsk,
+			ask);
 
 	gchar* nskhex = utils_bin2hex(nsk, sizeof(nsk));
 	gchar* askhex = utils_bin2hex(ask, sizeof(ask));

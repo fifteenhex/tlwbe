@@ -64,8 +64,8 @@ static void uplink_process_rowcallback(const struct keyparts* keyparts,
 
 	keys->nwksk[0] = 0xaa;
 
-	crypto_calculatesessionkeys(key, appnonce, netid, devnonce, keys->nwksk,
-			keys->appsk);
+	lorawan_crypto_calculatesessionkeys(key, appnonce, netid, devnonce,
+			keys->nwksk, keys->appsk);
 
 	gchar* nskhex = utils_bin2hex(&keys->nwksk, sizeof(keys->nwksk));
 	gchar* askhex = utils_bin2hex(&keys->appsk, sizeof(keys->appsk));
