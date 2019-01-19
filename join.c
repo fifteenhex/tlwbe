@@ -127,9 +127,10 @@ void join_processjoinrequest(struct context* cntx, const gchar* gateway,
 
 	GByteArray* joinackpkt = g_byte_array_new();
 	int pktbldret;
-	if ((pktbldret = packet_build_joinresponse(utils_hex2u24(s.appnonce),
-			utils_hex2u32(s.devaddr), cntx->regional.extrachannels, key,
-			utils_gbytearray_writer, joinackpkt)) != LORAWAN_NOERR) {
+	if ((pktbldret = lorawan_packet_build_joinresponse(
+			utils_hex2u24(s.appnonce), utils_hex2u32(s.devaddr),
+			cntx->regional.extrachannels, key, utils_gbytearray_writer,
+			joinackpkt)) != LORAWAN_NOERR) {
 		g_message("failed to build join ack: %d", pktbldret);
 		goto out;
 	}

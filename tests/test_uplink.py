@@ -2,8 +2,6 @@ import pytest
 from tlwpy.tlwbe import Tlwbe, Result
 from tlwpy.gatewaysimulator import Gateway
 from tlwpy.pktfwdbr import PacketForwarder
-from tlwpy.lorawan import JoinAccept
-import asyncio
 
 
 @pytest.mark.asyncio
@@ -16,6 +14,8 @@ async def test_uplink(mosquitto_process, tlwbe_process, dev, tlwbe_client: Tlwbe
     dev_eui = dev[1]
     dev_key = dev[2]
 
-    await gateway.join(app_eui, dev_eui, dev_key)
-    ack: JoinAccept = await asyncio.wait_for(pktfwdbr.joinacks.get(), 30)
-    assert ack is not None
+    dev_addr, network_key, app_key = await gateway.join(app_eui, dev_eui, dev_key)
+    assert 0 <= dev_addr <= 0xffffffff
+    assert len(network_key) is 16
+    assert len(app_key) is 16
+    await gateway.send_uplink(2, dev_addr, 0, 0, network_key, app_key)
