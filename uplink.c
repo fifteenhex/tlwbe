@@ -154,8 +154,8 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 		// build a packet and send it
 		//fixme this shouldn't be in here
 		if (confirm || queueddownlinks > 0) {
-
-			struct downlink downlink;
+			gchar* token = NULL;
+			struct downlink downlink = { 0 };
 			gboolean senddownlink = FALSE;
 			gboolean confirmdownlink = FALSE;
 			if (queueddownlinks > 0) {
@@ -169,6 +169,7 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 					g_message("%s", messagehex);
 					senddownlink = TRUE;
 					confirmdownlink = downlink.confirm;
+					token = downlink.token;
 				}
 			}
 
@@ -185,8 +186,8 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 					keys.appsk, utils_gbytearray_writer, pkt);
 
 			packet_debug(pkt->data, pkt->len);
-			downlink_dorxwindowdownlink(cntx, gateway, downlink.token,
-					pkt->data, pkt->len, rxpkt);
+			downlink_dorxwindowdownlink(cntx, gateway, token, pkt->data,
+					pkt->len, rxpkt);
 			g_byte_array_free(pkt, TRUE);
 
 			if (senddownlink) {
