@@ -179,7 +179,8 @@ void uplink_process(struct context* cntx, const gchar* gateway, guchar* data,
 			GByteArray* pkt = g_byte_array_new();
 			lorawan_packet_build_data(
 					confirmdownlink ? MHDR_MTYPE_CNFDN : MHDR_MTYPE_UNCNFDN,
-					unpacked.data.devaddr, FALSE, confirm, framecounter,
+					unpacked.data.devaddr, FALSE, FALSE, confirm,
+					queueddownlinks > 1, framecounter,
 					(senddownlink ? downlink.port : 0),
 					(senddownlink ? downlink.payload : NULL),
 					(senddownlink ? downlink.payloadlen : 0), keys.nwksk,
