@@ -100,7 +100,7 @@ static gboolean database_init_createtables(struct context* cntx) {
 	out: return FALSE;
 }
 
-gboolean database_init(struct context* cntx, const gchar* databasepath) {
+gboolean database_init(struct context* cntx, const gchar* databasepath, gboolean createdir) {
 #if TWLBE_DEBUG
 	g_message("database is in %s", databasepath);
 #endif
@@ -121,9 +121,11 @@ gboolean database_init(struct context* cntx, const gchar* databasepath) {
 			cntx->dbcntx.cleandownlinks, cntx->dbcntx.countdownlinks,
 			cntx->dbcntx.downlinks_get_first };
 
-	if (g_mkdir_with_parents(TLWBE_STATEDIR, 0660) != 0) {
-		g_message("failed to create state directory");
-		goto out;
+	if(createdir){
+		if (g_mkdir_with_parents(TLWBE_STATEDIR, 0660) != 0) {
+			g_message("failed to create state directory");
+			goto out;
+		}
 	}
 
 	int ret = sqlite3_open(databasepath, &cntx->dbcntx.db);

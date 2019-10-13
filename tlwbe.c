@@ -101,7 +101,8 @@ int main(int argc, char** argv) {
 	struct context cntx = { 0 };
 	int ret = 0;
 
-	gchar* databasepath = TLWBE_DATABASE;
+	gchar* databasepath = NULL;
+	gboolean database_createdir = false;
 	gchar* regionalparamspath = TLWBE_REGIONALPARAMETERS;
 
 	gchar* mqttid = NULL;
@@ -130,6 +131,11 @@ int main(int argc, char** argv) {
 		goto out;
 	}
 
+	if(!databasepath){
+		databasepath = TLWBE_DATABASE;
+		gboolean database_createdir = TRUE;
+	}
+
 	downlink_init(&cntx);
 
 	stats_init(&cntx.stats);
@@ -137,7 +143,7 @@ int main(int argc, char** argv) {
 	if (!regional_init(&cntx.regional, regionalparamspath, region))
 		goto out;
 
-	if (!database_init(&cntx, databasepath)) {
+	if (!database_init(&cntx, databasepath, database_createdir)) {
 		g_message("failed to init database");
 		ret = 1;
 		goto out;
